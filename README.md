@@ -45,8 +45,14 @@ cargo build --release
 
 Openpad consists of two crates:
 
-- **openpad-protocol**: Async Rust client for OpenCode HTTP/SSE API
+- **openpad-protocol**: Complete async Rust client for OpenCode HTTP/SSE API
+  - Full API coverage: Global, App, Project, Path, Config, Session, File/Find, TUI, Auth
+  - Type-safe requests and responses
+  - Real-time event subscription (SSE)
+  - See [openpad-protocol/README.md](openpad-protocol/README.md) for full API documentation
 - **openpad-app**: Makepad-based GUI application
+  - Currently uses basic session operations (create, list, prompt, SSE)
+  - Future versions will leverage the full protocol capabilities
 
 The app bridges async operations to the sync UI using `Cx::post_action()` for thread-safe communication.
 
