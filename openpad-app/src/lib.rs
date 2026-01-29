@@ -1,1 +1,1 @@
-// Empty library - binary is in main.rs
+pub mod app;
