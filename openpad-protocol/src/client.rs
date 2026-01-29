@@ -643,19 +643,19 @@ impl OpenCodeClient {
         Ok(session)
     }
 
-    pub async fn respond_to_permission(&self, session_id: &str, permission_id: &str, response: PermissionResponse) -> Result<bool> {
+    pub async fn respond_to_permission(&self, session_id: &str, permission_id: &str, permission_response: PermissionResponse) -> Result<bool> {
         let url = format!("{}/session/{}/permissions/{}", self.base_url, session_id, permission_id);
-        let resp = self.http
+        let response = self.http
             .post(&url)
             .query(&[("directory", &self.directory)])
-            .json(&response)
+            .json(&permission_response)
             .send()
             .await?;
 
-        if !resp.status().is_success() {
+        if !response.status().is_success() {
             return Err(Error::InvalidResponse(format!(
                 "Failed to respond to permission: {}",
-                resp.status()
+                response.status()
             )));
         }
 
@@ -688,16 +688,16 @@ impl OpenCodeClient {
 
     pub async fn search_files(&self, request: FilesSearchRequest) -> Result<Vec<String>> {
         let url = format!("{}/find/files", self.base_url);
+        
+        // Use request.directory if provided, otherwise use self.directory
+        let directory = request.directory.as_ref().unwrap_or(&self.directory);
         let mut query = vec![
-            ("directory", self.directory.clone()),
+            ("directory", directory.clone()),
             ("query", request.query.clone()),
         ];
         
         if let Some(type_filter) = &request.type_filter {
             query.push(("type", type_filter.clone()));
-        }
-        if let Some(dir) = &request.directory {
-            query.push(("directory", dir.clone()));
         }
         if let Some(limit) = request.limit {
             query.push(("limit", limit.to_string()));
