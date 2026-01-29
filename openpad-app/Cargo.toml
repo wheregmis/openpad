@@ -1,0 +1,13 @@
+[package]
+name = "openpad-app"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "openpad"
+path = "src/main.rs"
+
+[dependencies]
+makepad-widgets = "1.0.0"
+openpad-protocol = { path = "../openpad-protocol" }
+tokio = { workspace = true }
