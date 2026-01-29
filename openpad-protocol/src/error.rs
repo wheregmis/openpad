@@ -1,16 +1,21 @@
-// Error types will be implemented in Task 2
+use thiserror::Error;
 
-use std::fmt;
+#[derive(Error, Debug)]
+pub enum Error {
+    #[error("HTTP request failed: {0}")]
+    Http(#[from] reqwest::Error),
 
-#[derive(Debug)]
-pub struct Error;
+    #[error("JSON serialization failed: {0}")]
+    Json(#[from] serde_json::Error),
 
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error")
-    }
+    #[error("Connection failed: {0}")]
+    Connection(String),
+
+    #[error("SSE stream error: {0}")]
+    Sse(String),
+
+    #[error("Invalid response: {0}")]
+    InvalidResponse(String),
 }
-
-impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;
