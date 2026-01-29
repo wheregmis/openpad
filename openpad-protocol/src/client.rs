@@ -136,6 +136,8 @@ impl OpenCodeClient {
             .await?;
 
         Self::check_response(&response, action)?;
+        // Consume the response body to allow connection reuse
+        let _ = response.bytes().await?;
         Ok(true)
     }
 
@@ -164,6 +166,8 @@ impl OpenCodeClient {
             .await?;
 
         Self::check_response(&response, action)?;
+        // Consume the response body to allow connection reuse
+        let _ = response.bytes().await?;
         Ok(true)
     }
 
@@ -193,6 +197,8 @@ impl OpenCodeClient {
             .await?;
 
         Self::check_response(&response, action)?;
+        // Consume the response body to allow connection reuse
+        let _ = response.bytes().await?;
         Ok(true)
     }
 
