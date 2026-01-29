@@ -2,15 +2,25 @@ use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SessionTime {
+    pub created: i64,  // milliseconds timestamp
+    pub updated: i64,  // milliseconds timestamp
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Session {
     pub id: String,
     #[serde(default)]
+    pub slug: Option<String>,
+    #[serde(default)]
     pub title: Option<String>,
-    pub model: String,
-    #[serde(rename = "createdAt")]
-    pub created_at: DateTime<Utc>,
-    #[serde(rename = "updatedAt")]
-    pub updated_at: DateTime<Utc>,
+    #[serde(default, rename = "projectID")]
+    pub project_id: Option<String>,
+    #[serde(default)]
+    pub directory: Option<String>,
+    #[serde(default)]
+    pub version: Option<String>,
+    pub time: SessionTime,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
