@@ -3,8 +3,9 @@ use openpad_protocol::{OpenCodeClient, Session, Message, Event as OcEvent};
 use std::sync::Arc;
 
 live_design! {
-    import makepad_widgets::base::*;
-    import makepad_widgets::theme_desktop_dark::*;
+    use link::theme::*;
+    use link::shaders::*;
+    use link::widgets::*;
 
     App = {{App}} {
         ui: <Window> {
