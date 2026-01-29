@@ -153,7 +153,7 @@ impl App {
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
         for action in actions {
-            if let Some(app_action) = action.as_widget_action().cast() {
+            if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
                     AppAction::Connected => {
                         self.connected = true;
