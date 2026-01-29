@@ -1,5 +1,5 @@
 [workspace]
-members = ["openpad-protocol", "openpad-app"]
+members = ["openpad-protocol", "openpad-widgets", "openpad-app"]
 resolver = "2"
 
 [workspace.dependencies]

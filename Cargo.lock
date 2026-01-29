@@ -1227,6 +1227,7 @@ version = "0.1.0"
 dependencies = [
  "makepad-widgets",
  "openpad-protocol",
+ "openpad-widgets",
  "tokio",
 ]
 
@@ -1241,6 +1242,13 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "openpad-widgets"
+version = "0.1.0"
+dependencies = [
+ "makepad-widgets",
 ]
 
 [[package]]

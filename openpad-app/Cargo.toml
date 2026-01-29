@@ -9,5 +9,6 @@ path = "src/main.rs"
 
 [dependencies]
 makepad-widgets = "1.0.0"
+openpad-widgets = { path = "../openpad-widgets" }
 openpad-protocol = { path = "../openpad-protocol" }
 tokio = { workspace = true }
