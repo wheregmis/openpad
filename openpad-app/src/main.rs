@@ -18,7 +18,7 @@ live_design! {
 
                 // Status bar at top
                 <View> {
-                    walk: { width: Fill, height: Fit }
+                    width: Fill, height: Fit
                     flow: Right,
                     spacing: 8,
                     padding: 8,
@@ -32,17 +32,18 @@ live_design! {
 
                 // Messages area (scrollable)
                 <ScrollYView> {
-                    walk: { width: Fill, height: Fill }
+                    width: Fill, height: Fill
 
                     message_list = <PortalList> {
                         UserMsg = <View> {
-                            walk: { width: Fill, height: Fit }
+                            width: Fill, height: Fit
                             flow: Right,
                             padding: 8,
                             align: { x: 1.0 }
 
                             <View> {
-                                walk: { width: Fit, height: Fit, margin: { left: 100 } }
+                                width: Fit, height: Fit
+                                margin: { left: 100 }
                                 flow: Down,
                                 padding: 12,
                                 draw_bg: { color: #2a4a6a }
@@ -54,12 +55,13 @@ live_design! {
                         }
 
                         AssistantMsg = <View> {
-                            walk: { width: Fill, height: Fit }
+                            width: Fill, height: Fit
                             flow: Down,
                             padding: 8,
 
                             <View> {
-                                walk: { width: Fit, height: Fit, margin: { right: 100 } }
+                                width: Fit, height: Fit
+                                margin: { right: 100 }
                                 flow: Down,
                                 padding: 12,
                                 draw_bg: { color: #333 }
@@ -74,14 +76,14 @@ live_design! {
 
                 // Input area (fixed at bottom)
                 <View> {
-                    walk: { width: Fill, height: Fit }
+                    width: Fill, height: Fit
                     flow: Right,
                     spacing: 8,
                     padding: 16,
                     draw_bg: { color: #2a2a2a }
 
                     input_box = <TextInput> {
-                        walk: { width: Fill, height: Fit }
+                        width: Fill, height: Fit
                         draw_bg: { color: #333 }
                         draw_text: { color: #fff }
                         text: ""
