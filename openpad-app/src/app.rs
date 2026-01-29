@@ -13,7 +13,7 @@ live_design! {
         show_bg: true
         draw_bg: {
             color: #14161a
-            color_2: #0f1114
+            uniform color_2: #0f1114
             fn pixel(self) -> vec4 {
                 return mix(self.color, self.color_2, self.pos.y);
             }
@@ -22,15 +22,15 @@ live_design! {
 
     HeaderBar = <View> {
         width: Fill, height: Fit
-        flow: Right,
+        flow: Overlay,
         spacing: 8,
         padding: 10,
         show_bg: true
         draw_bg: {
             color: #22262c
-            border_color: #2c323a
-            border_radius: 8.0
-            border_size: 1.0
+            uniform border_color: #2c323a
+            uniform border_radius: 8.0
+            uniform border_size: 1.0
 
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
@@ -44,7 +44,6 @@ live_design! {
 
     StatusDot = <View> {
         width: 10.0, height: 10.0
-        margin: { top: 4.0 }
         show_bg: true
         draw_bg: {
             color: #6b7b8c
@@ -59,16 +58,16 @@ live_design! {
         }
     }
 
-    BubbleBase = <View> {
+    UserBubble = <View> {
         width: Fit, height: Fit
         flow: Down,
         padding: 12,
         show_bg: true
         draw_bg: {
-            color: #2c323a
-            border_color: #39414b
-            border_radius: 8.0
-            border_size: 1.0
+            color: #2a4a6a
+            uniform border_color: #3a5f84
+            uniform border_radius: 8.0
+            uniform border_size: 1.0
 
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
@@ -80,53 +79,74 @@ live_design! {
         }
     }
 
-    UserBubble = <BubbleBase> {
-        draw_bg: {
-            color: #2a4a6a
-            border_color: #3a5f84
-        }
-    }
-
-    AssistantBubble = <BubbleBase> {
+    AssistantBubble = <View> {
+        width: Fit, height: Fit
+        flow: Down,
+        padding: 12,
+        show_bg: true
         draw_bg: {
             color: #2b2f35
-            border_color: #3a414a
+            uniform border_color: #3a414a
+            uniform border_radius: 8.0
+            uniform border_size: 1.0
+
+            fn pixel(self) -> vec4 {
+                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
+                sdf.fill_keep(self.color);
+                sdf.stroke(self.border_color, self.border_size);
+                return sdf.result;
+            }
         }
     }
 
-    InputBar = <View> {
+    InputBar = <RoundedView> {
         width: Fill, height: Fit
         flow: Right,
         spacing: 8,
         padding: 12,
-        show_bg: true
+        align: { y: 0.5 }
         draw_bg: {
-            color: #20242a
-            color_2: #1a1e24
-            fn pixel(self) -> vec4 {
-                return mix(self.color, self.color_2, self.pos.y);
-            }
+            color: #1f2329
+            border_color: #2e343c
+            border_radius: 18.0
+            border_size: 1.0
         }
     }
 
     InputField = <TextInput> {
         width: Fill, height: Fit
+        empty_text: "Ask anything..."
         draw_bg: {
-            color: #2a2f36
-            border_color: #3a424c
-            border_radius: 8.0
-            border_size: 1.0
-
-            fn pixel(self) -> vec4 {
-                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
-                sdf.fill_keep(self.color);
-                sdf.stroke(self.border_color, self.border_size);
-                return sdf.result;
-            }
+            color: #0000
+            color_hover: #0000
+            color_focus: #0000
+            color_down: #0000
+            border_size: 0.0
         }
         draw_text: { color: #e6e9ee }
         text: ""
+    }
+
+    SendButton = <Button> {
+        width: 36, height: 36
+        margin: { left: 6 }
+        padding: { left: 8, right: 8, top: 8, bottom: 8 }
+        text: ""
+        icon_walk: { width: 16, height: Fit }
+        draw_icon: {
+            svg_file: dep("crate://self/resources/icons/send.svg")
+            color: #cbd3dc
+            color_hover: #ffffff
+            color_down: #aeb7c2
+        }
+        draw_bg: {
+            border_radius: 8.0
+            border_size: 0.0
+            color: #2a2f36
+            color_hover: #313843
+            color_down: #242a32
+        }
     }
 
     App = {{App}} {
@@ -141,10 +161,29 @@ live_design! {
 
                 // Status bar at top
                 <HeaderBar> {
-                    status_dot = <StatusDot> {}
-                    status_label = <Label> {
-                        text: "Connecting..."
-                        draw_text: { color: #aab3bd, text_style: { font_size: 11 } }
+                    <View> {
+                        width: Fill, height: Fit
+                        align: { x: 0.5, y: 0.5 }
+                        app_title = <Label> {
+                            text: "Openpad"
+                            draw_text: { color: #e6e9ee, text_style: { font_size: 12 } }
+                        }
+                    }
+                    <View> {
+                        width: Fill, height: Fit
+                        flow: Right,
+                        align: { x: 1.0, y: 0.5 }
+                        status_row = <View> {
+                            width: Fit, height: Fit
+                            flow: Right
+                            spacing: 8
+                            align: { y: 0.5 }
+                            status_dot = <StatusDot> {}
+                            status_label = <Label> {
+                                text: "Connecting..."
+                                draw_text: { color: #aab3bd, text_style: { font_size: 11 } }
+                            }
+                        }
                     }
                 }
 
@@ -191,6 +230,7 @@ live_design! {
                 // Input area (fixed at bottom)
                 <InputBar> {
                     input_box = <InputField> {}
+                    send_button = <SendButton> {}
                 }
             }
         }
@@ -398,6 +438,14 @@ impl AppMain for App {
 
         // Check for text input return
         if let Some((text, _modifiers)) = self.ui.text_input(id!(input_box)).returned(&actions) {
+            if !text.is_empty() {
+                self.send_message(cx, text.clone());
+                self.ui.text_input(id!(input_box)).set_text(cx, "");
+            }
+        }
+
+        if self.ui.button(id!(send_button)).clicked(&actions) {
+            let text = self.ui.text_input(id!(input_box)).text();
             if !text.is_empty() {
                 self.send_message(cx, text.clone());
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
