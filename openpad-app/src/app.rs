@@ -1,4 +1,5 @@
 use makepad_widgets::*;
+use openpad_widgets::SidePanelWidgetRefExt;
 use openpad_protocol::{Event as OcEvent, Message, OpenCodeClient, Session};
 use std::sync::Arc;
 
@@ -75,76 +76,87 @@ live_design! {
 
                 // Status bar at top
                 <HeaderBar> {
-                    <View> {
-                        width: Fill, height: Fit
-                        align: { x: 0.5, y: 0.5 }
-                        app_title = <Label> {
-                            text: "Openpad"
-                            draw_text: { color: #e6e9ee, text_style: { font_size: 12 } }
-                        }
+                    hamburger_button = <HamburgerButton> {}
+                    <View> { width: Fill }
+                    app_title = <Label> {
+                        text: "Openpad"
+                        draw_text: { color: #e6e9ee, text_style: { font_size: 12 } }
                     }
-                    <View> {
-                        width: Fill, height: Fit
-                        flow: Right,
-                        align: { x: 1.0, y: 0.5 }
-                        status_row = <View> {
-                            width: Fit, height: Fit
-                            flow: Right
-                            spacing: 8
-                            align: { y: 0.5 }
-                            status_dot = <StatusDot> {}
-                            status_label = <Label> {
-                                text: "Connecting..."
-                                draw_text: { color: #aab3bd, text_style: { font_size: 11 } }
-                            }
+                    <View> { width: Fill }
+                    status_row = <View> {
+                        width: Fit, height: Fit
+                        flow: Right
+                        spacing: 8
+                        align: { y: 0.5 }
+                        status_dot = <StatusDot> {}
+                        status_label = <Label> {
+                            text: "Connecting..."
+                            draw_text: { color: #aab3bd, text_style: { font_size: 11 } }
                         }
                     }
                 }
 
-                // Messages area (scrollable)
-                <ScrollYView> {
+                <View> {
                     width: Fill, height: Fill
+                    flow: Right,
+                    spacing: 12,
 
-                    message_list = <PortalList> {
-                        UserMsg = <View> {
-                            width: Fill, height: Fit
-                            flow: Right,
-                            padding: 8,
-                            align: { x: 1.0 }
+                    side_panel = <SidePanel> {
+                        <Label> { text: "Project" draw_text: { color: #e6e9ee } }
+                        <Label> { text: "Sessions" draw_text: { color: #aab3bd } }
+                    }
 
-                            <UserBubble> {
-                                width: Fit, height: Fit
-                                margin: { left: 100 }
-                                flow: Down,
+                    <View> {
+                        width: Fill, height: Fill
+                        flow: Down,
+                        spacing: 12,
 
-                                msg_text = <Label> {
-                                    draw_text: { color: #eef3f7, text_style: { font_size: 11 } }
+                        // Messages area (scrollable)
+                        <ScrollYView> {
+                            width: Fill, height: Fill
+
+                            message_list = <PortalList> {
+                                UserMsg = <View> {
+                                    width: Fill, height: Fit
+                                    flow: Right,
+                                    padding: 8,
+                                    align: { x: 1.0 }
+
+                                    <UserBubble> {
+                                        width: Fit, height: Fit
+                                        margin: { left: 100 }
+                                        flow: Down,
+
+                                        msg_text = <Label> {
+                                            draw_text: { color: #eef3f7, text_style: { font_size: 11 } }
+                                        }
+                                    }
+                                }
+
+                                AssistantMsg = <View> {
+                                    width: Fill, height: Fit
+                                    flow: Down,
+                                    padding: 8,
+
+                                    <AssistantBubble> {
+                                        width: Fit, height: Fit
+                                        margin: { right: 100 }
+                                        flow: Down,
+
+                                        msg_text = <Label> {
+                                            draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        AssistantMsg = <View> {
-                            width: Fill, height: Fit
-                            flow: Down,
-                            padding: 8,
-
-                            <AssistantBubble> {
-                                width: Fit, height: Fit
-                                margin: { right: 100 }
-                                flow: Down,
-
-                                msg_text = <Label> {
-                                    draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
-                                }
-                            }
+                        // Input area (fixed at bottom)
+                        <InputBar> {
+                            input_box = <InputField> {}
+                            send_button = <SendButton> {}
                         }
                     }
-                }
-
-                // Input area (fixed at bottom)
-                <InputBar> {
-                    input_box = <InputField> {}
-                    send_button = <SendButton> {}
                 }
             }
         }
@@ -174,6 +186,8 @@ pub struct App {
     connected: bool,
     #[rust]
     error_message: Option<String>,
+    #[rust]
+    sidebar_open: bool,
     #[rust]
     client: Option<Arc<OpenCodeClient>>,
     #[rust]
@@ -223,9 +237,12 @@ impl App {
                         self.connected = true;
                         self.error_message = None;
                         self.ui.label(id!(status_label)).set_text(cx, "Connected");
-                        self.ui.view(id!(status_dot)).apply_over(cx, live! {
-                            draw_bg: { color: (vec4(0.231, 0.824, 0.435, 1.0)) }
-                        });
+                        self.ui.view(id!(status_dot)).apply_over(
+                            cx,
+                            live! {
+                                draw_bg: { color: (vec4(0.231, 0.824, 0.435, 1.0)) }
+                            },
+                        );
                         cx.redraw_all();
                     }
                     AppAction::ConnectionFailed(err) => {
@@ -233,9 +250,12 @@ impl App {
                         self.ui
                             .label(id!(status_label))
                             .set_text(cx, &format!("Error: {}", err));
-                        self.ui.view(id!(status_dot)).apply_over(cx, live! {
-                            draw_bg: { color: (vec4(0.886, 0.333, 0.353, 1.0)) }
-                        });
+                        self.ui.view(id!(status_dot)).apply_over(
+                            cx,
+                            live! {
+                                draw_bg: { color: (vec4(0.886, 0.333, 0.353, 1.0)) }
+                            },
+                        );
                         cx.redraw_all();
                     }
                     AppAction::SessionCreated(session) => {
@@ -247,7 +267,7 @@ impl App {
                         cx.redraw_all();
                     }
                     AppAction::OpenCodeEvent(oc_event) => {
-                        self.handle_opencode_event(cx, &oc_event);
+                        self.handle_opencode_event(cx, oc_event);
                     }
                     AppAction::SendMessageFailed(err) => {
                         self.error_message = Some(err.clone());
@@ -361,6 +381,22 @@ impl AppMain for App {
             if !text.is_empty() {
                 self.send_message(cx, text.clone());
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
+            }
+        }
+
+        if self.ui.button(id!(hamburger_button)).clicked(&actions) {
+            self.sidebar_open = !self.sidebar_open;
+            self.ui
+                .side_panel(id!(side_panel))
+                .set_open(cx, self.sidebar_open);
+            if self.sidebar_open {
+                self.ui
+                    .view(id!(hamburger_button))
+                    .animator_play(cx, id!(open.on));
+            } else {
+                self.ui
+                    .view(id!(hamburger_button))
+                    .animator_play(cx, id!(open.off));
             }
         }
 

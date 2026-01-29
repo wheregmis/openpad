@@ -7,17 +7,18 @@ pub fn live_design(cx: &mut Cx) {
 
 pub mod openpad {
     use makepad_widgets::*;
+    use crate::SidePanel;
 
     live_design! {
         use link::theme::*;
         use link::shaders::*;
         use link::widgets::*;
-
         pub HeaderBar = <View> {
             width: Fill, height: Fit
-            flow: Overlay,
+            flow: Right,
             spacing: 8,
             padding: 10,
+            align: { y: 0.5 }
             show_bg: true
             draw_bg: {
                 color: #22262c
@@ -47,6 +48,109 @@ pub mod openpad {
                     sdf.circle(c.x, c.y, r);
                     sdf.fill(self.color);
                     return sdf.result;
+                }
+            }
+        }
+
+        pub HamburgerButton = <Button> {
+            width: 32, height: 32
+            padding: { left: 6, right: 6, top: 6, bottom: 6 }
+            text: ""
+            draw_text: { color: #0000 }
+            draw_bg: {
+                instance open: 0.0
+                instance hover: 0.0
+                instance down: 0.0
+                uniform color: #cbd3dc
+                uniform color_hover: #ffffff
+                uniform color_down: #aeb7c2
+                uniform line_thickness: 1.6
+                uniform line_gap: 5.0
+                uniform bg_color: #0000
+
+                fn pixel(self) -> vec4 {
+                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                    let c = self.rect_size * 0.5;
+                    let w = self.rect_size.x * 0.28;
+                    let h = self.line_thickness;
+                    let gap = self.line_gap;
+                    let t = self.open;
+                    let ang = t * 0.785398; // 45deg
+
+                    let base = self.color;
+                    let hover = self.color_hover;
+                    let down = self.color_down;
+                    let color = mix(mix(base, hover, self.hover), down, self.down);
+
+                    sdf.clear(self.bg_color);
+
+                    sdf.rotate(ang, c.x, c.y);
+                    sdf.rect(c.x - w, c.y - gap - h * 0.5 * (1.0 - t), w * 2.0, h);
+                    sdf.fill_keep(color);
+                    sdf.rotate(-ang, c.x, c.y);
+
+                    sdf.rect(c.x - w, c.y - h * 0.5, w * 2.0, h);
+                    sdf.fill_keep(color * (1.0 - t));
+
+                    sdf.rotate(-ang, c.x, c.y);
+                    sdf.rect(c.x - w, c.y + gap - h * 0.5 * (1.0 - t), w * 2.0, h);
+                    sdf.fill_keep(color);
+                    sdf.rotate(ang, c.x, c.y);
+
+                    return sdf.result;
+                }
+            }
+            animator: {
+                open = {
+                    default: off
+                    off = {
+                        from: { all: Forward { duration: 1.0 } }
+                        apply: { draw_bg: { open: 0.0 } }
+                    }
+                    on = {
+                        from: { all: Forward { duration: 1.0 } }
+                        apply: { draw_bg: { open: 1.0 } }
+                    }
+                }
+            }
+        }
+
+        pub SidePanelBase = {{SidePanel}} {}
+        pub SidePanel = <SidePanelBase> {
+            flow: Down,
+            padding: 16,
+            spacing: 12,
+            clip_x: true
+            show_bg: true
+            open_size: 280.0
+            close_size: 0.0
+            draw_bg: {
+                color: #1c2026
+                uniform border_color: #2b3138
+                uniform border_size: 1.0
+                fn pixel(self) -> vec4 {
+                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                    sdf.rect(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0);
+                    sdf.fill_keep(self.color);
+                    sdf.stroke(self.border_color, self.border_size);
+                    return sdf.result;
+                }
+            }
+            animator: {
+                open = {
+                    default: off,
+                    off = {
+                        redraw: true
+                        from: {all: Forward {duration: 1.0}}
+                        ease: ExpDecay {d1: 0.80, d2: 0.97}
+                        apply: {animator_panel_progress: 0.0}
+                    }
+                    on = {
+                        redraw: true
+                        from: {all: Forward {duration: 1.0}}
+                        ease: ExpDecay {d1: 0.80, d2: 0.97}
+                        apply: {animator_panel_progress: 1.0}
+                    }
                 }
             }
         }
@@ -98,6 +202,81 @@ pub mod openpad {
                 color_hover: #313843
                 color_down: #242a32
             }
+        }
+    }
+}
+
+#[derive(Live, Widget)]
+pub struct SidePanel {
+    #[deref]
+    view: View,
+
+    #[live]
+    animator_panel_progress: f32,
+
+    #[live(280.0)]
+    open_size: f32,
+
+    #[live(0.0)]
+    close_size: f32,
+
+    #[animator]
+    animator: Animator,
+}
+
+impl LiveHook for SidePanel {
+    fn after_new_from_doc(&mut self, cx: &mut Cx) {
+        if self.is_open(cx) {
+            self.animator_panel_progress = 1.0;
+        } else {
+            self.animator_panel_progress = 0.0;
+        }
+    }
+}
+
+impl Widget for SidePanel {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        if self.animator_handle_event(cx, event).must_redraw() {
+            self.redraw(cx);
+        }
+        self.view.handle_event(cx, event, scope);
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        let mut walk = walk;
+        let size_range = self.open_size - self.close_size;
+        let size = self.close_size + size_range * self.animator_panel_progress;
+        walk.width = Size::Fixed(size.into());
+        self.view.draw_walk(cx, scope, walk)
+    }
+}
+
+impl SidePanel {
+    pub fn is_open(&self, cx: &Cx) -> bool {
+        self.animator_in_state(cx, id!(open.on))
+    }
+
+    pub fn set_open(&mut self, cx: &mut Cx, open: bool) {
+        if open {
+            self.animator_play(cx, id!(open.on));
+        } else {
+            self.animator_play(cx, id!(open.off));
+        }
+    }
+}
+
+impl SidePanelRef {
+    pub fn is_open(&self, cx: &Cx) -> bool {
+        if let Some(inner) = self.borrow() {
+            inner.is_open(cx)
+        } else {
+            false
+        }
+    }
+
+    pub fn set_open(&self, cx: &mut Cx, open: bool) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.set_open(cx, open);
         }
     }
 }
