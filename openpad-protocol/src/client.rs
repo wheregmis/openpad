@@ -1,3 +1,8 @@
+//! OpenCode HTTP client implementation.
+//!
+//! This module provides a complete client for the OpenCode server API,
+//! including REST endpoints and Server-Sent Events (SSE) subscription.
+
 use crate::{Error, Result, Event, Session, Message, PartInput, Part};
 use crate::{
     HealthResponse, LogRequest, Agent, Project, PathInfo, Config, ProvidersResponse,
@@ -11,6 +16,19 @@ use reqwest::Client as HttpClient;
 use tokio::sync::broadcast;
 use std::env;
 
+/// OpenCode HTTP client.
+///
+/// Provides async methods for all OpenCode server API endpoints including:
+/// - Global APIs (health)
+/// - App APIs (log, agents)
+/// - Project APIs (list, current)
+/// - Path APIs (get)
+/// - Config APIs (get, providers)
+/// - Session APIs (create, list, get, update, delete, messages, prompts, etc.)
+/// - File/Find APIs (search text, files, symbols, read, status)
+/// - TUI APIs (control TUI interface)
+/// - Auth APIs (set credentials)
+/// - Event subscription (SSE)
 pub struct OpenCodeClient {
     http: HttpClient,
     base_url: String,
@@ -19,6 +37,17 @@ pub struct OpenCodeClient {
 }
 
 impl OpenCodeClient {
+    /// Creates a new OpenCode client.
+    ///
+    /// The client will use the current working directory as the default
+    /// `directory` parameter for all requests.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use openpad_protocol::OpenCodeClient;
+    ///
+    /// let client = OpenCodeClient::new("http://localhost:4096");
+    /// ```
     pub fn new(base_url: impl Into<String>) -> Self {
         let (event_tx, _) = broadcast::channel(256);
         let directory = env::current_dir()
@@ -34,6 +63,17 @@ impl OpenCodeClient {
         }
     }
 
+    /// Sets the directory for all API requests.
+    ///
+    /// This overrides the default current working directory.
+    ///
+    /// # Example
+    /// ```no_run
+    /// use openpad_protocol::OpenCodeClient;
+    ///
+    /// let client = OpenCodeClient::new("http://localhost:4096")
+    ///     .with_directory("/path/to/project");
+    /// ```
     pub fn with_directory(mut self, directory: impl Into<String>) -> Self {
         self.directory = directory.into();
         self

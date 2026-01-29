@@ -1,3 +1,8 @@
+//! Type definitions for the OpenCode API.
+//!
+//! This module contains all request and response types used by the OpenCode server API,
+//! organized by API category.
+
 use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
