@@ -79,87 +79,153 @@ impl OpenCodeClient {
         self
     }
 
-    pub async fn list_sessions(&self) -> Result<Vec<Session>> {
-        let url = format!("{}/session", self.base_url);
+    // ========================================================================
+    // Private helper methods to reduce code duplication
+    // ========================================================================
+
+    /// Helper to check response status and return an error if not successful.
+    fn check_response(response: &reqwest::Response, action: &str) -> Result<()> {
+        if !response.status().is_success() {
+            return Err(Error::InvalidResponse(format!(
+                "Failed to {}: {}",
+                action, response.status()
+            )));
+        }
+        Ok(())
+    }
+
+    /// Helper for GET requests that return JSON.
+    async fn get_json<T: serde::de::DeserializeOwned>(&self, endpoint: &str, action: &str) -> Result<T> {
+        let url = format!("{}{}", self.base_url, endpoint);
         let response = self.http
             .get(&url)
             .query(&[("directory", &self.directory)])
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to list sessions: {}",
-                response.status()
-            )));
-        }
+        Self::check_response(&response, action)?;
+        Ok(response.json().await?)
+    }
 
-        let sessions: Vec<Session> = response.json().await?;
-        Ok(sessions)
+    /// Helper for POST requests with JSON body that return JSON.
+    async fn post_json<B: serde::Serialize, T: serde::de::DeserializeOwned>(
+        &self, endpoint: &str, body: &B, action: &str
+    ) -> Result<T> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.http
+            .post(&url)
+            .query(&[("directory", &self.directory)])
+            .json(body)
+            .send()
+            .await?;
+
+        Self::check_response(&response, action)?;
+        Ok(response.json().await?)
+    }
+
+    /// Helper for POST requests with JSON body that return boolean (success indicator).
+    async fn post_json_bool<B: serde::Serialize>(
+        &self, endpoint: &str, body: &B, action: &str
+    ) -> Result<bool> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.http
+            .post(&url)
+            .query(&[("directory", &self.directory)])
+            .json(body)
+            .send()
+            .await?;
+
+        Self::check_response(&response, action)?;
+        // Consume the response body to allow connection reuse
+        let _ = response.bytes().await?;
+        Ok(true)
+    }
+
+    /// Helper for POST requests without body that return JSON.
+    async fn post_no_body_json<T: serde::de::DeserializeOwned>(
+        &self, endpoint: &str, action: &str
+    ) -> Result<T> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.http
+            .post(&url)
+            .query(&[("directory", &self.directory)])
+            .send()
+            .await?;
+
+        Self::check_response(&response, action)?;
+        Ok(response.json().await?)
+    }
+
+    /// Helper for POST requests without body that return boolean.
+    async fn post_no_body_bool(&self, endpoint: &str, action: &str) -> Result<bool> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.http
+            .post(&url)
+            .query(&[("directory", &self.directory)])
+            .send()
+            .await?;
+
+        Self::check_response(&response, action)?;
+        // Consume the response body to allow connection reuse
+        let _ = response.bytes().await?;
+        Ok(true)
+    }
+
+    /// Helper for PATCH requests with JSON body that return JSON.
+    async fn patch_json<B: serde::Serialize, T: serde::de::DeserializeOwned>(
+        &self, endpoint: &str, body: &B, action: &str
+    ) -> Result<T> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.http
+            .patch(&url)
+            .query(&[("directory", &self.directory)])
+            .json(body)
+            .send()
+            .await?;
+
+        Self::check_response(&response, action)?;
+        Ok(response.json().await?)
+    }
+
+    /// Helper for DELETE requests that return boolean.
+    async fn delete_bool(&self, endpoint: &str, action: &str) -> Result<bool> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self.http
+            .delete(&url)
+            .query(&[("directory", &self.directory)])
+            .send()
+            .await?;
+
+        Self::check_response(&response, action)?;
+        // Consume the response body to allow connection reuse
+        let _ = response.bytes().await?;
+        Ok(true)
+    }
+
+    // ========================================================================
+    // Public API methods
+    // ========================================================================
+
+    pub async fn list_sessions(&self) -> Result<Vec<Session>> {
+        self.get_json("/session", "list sessions").await
     }
 
     pub async fn create_session(&self) -> Result<Session> {
-        let url = format!("{}/session", self.base_url);
         let body = serde_json::json!({});
-
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&body)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to create session: {}",
-                response.status()
-            )));
-        }
-
-        let session: Session = response.json().await?;
-        Ok(session)
+        self.post_json("/session", &body, "create session").await
     }
 
     pub async fn get_session(&self, id: &str) -> Result<Session> {
-        let url = format!("{}/session/{}", self.base_url, id);
-
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get session: {}",
-                response.status()
-            )));
-        }
-
-        let session: Session = response.json().await?;
-        Ok(session)
+        let endpoint = format!("/session/{}", id);
+        self.get_json(&endpoint, "get session").await
     }
 
     pub async fn send_prompt(&self, session_id: &str, text: &str) -> Result<()> {
-        let url = format!("{}/session/{}/prompt", self.base_url, session_id);
+        let endpoint = format!("/session/{}/prompt", session_id);
         let body = serde_json::json!({
             "parts": vec![PartInput::text(text)],
         });
-
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&body)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to send prompt: {}",
-                response.status()
-            )));
-        }
-
+        self.post_json_bool(&endpoint, &body, "send prompt").await?;
         Ok(())
     }
 
@@ -173,16 +239,8 @@ impl OpenCodeClient {
     pub async fn health(&self) -> Result<HealthResponse> {
         let url = format!("{}/health", self.base_url);
         let response = self.http.get(&url).send().await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get health: {}",
-                response.status()
-            )));
-        }
-
-        let health: HealthResponse = response.json().await?;
-        Ok(health)
+        Self::check_response(&response, "get health")?;
+        Ok(response.json().await?)
     }
 
     // ========================================================================
@@ -190,41 +248,11 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn log(&self, request: LogRequest) -> Result<bool> {
-        let url = format!("{}/app/log", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to log: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_json_bool("/app/log", &request, "log").await
     }
 
     pub async fn agents(&self) -> Result<Vec<Agent>> {
-        let url = format!("{}/app/agents", self.base_url);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get agents: {}",
-                response.status()
-            )));
-        }
-
-        let agents: Vec<Agent> = response.json().await?;
-        Ok(agents)
+        self.get_json("/app/agents", "get agents").await
     }
 
     // ========================================================================
@@ -232,41 +260,11 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn list_projects(&self) -> Result<Vec<Project>> {
-        let url = format!("{}/project", self.base_url);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to list projects: {}",
-                response.status()
-            )));
-        }
-
-        let projects: Vec<Project> = response.json().await?;
-        Ok(projects)
+        self.get_json("/project", "list projects").await
     }
 
     pub async fn current_project(&self) -> Result<Project> {
-        let url = format!("{}/project/current", self.base_url);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get current project: {}",
-                response.status()
-            )));
-        }
-
-        let project: Project = response.json().await?;
-        Ok(project)
+        self.get_json("/project/current", "get current project").await
     }
 
     // ========================================================================
@@ -274,22 +272,7 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn get_path(&self) -> Result<PathInfo> {
-        let url = format!("{}/path", self.base_url);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get path: {}",
-                response.status()
-            )));
-        }
-
-        let path: PathInfo = response.json().await?;
-        Ok(path)
+        self.get_json("/path", "get path").await
     }
 
     // ========================================================================
@@ -297,41 +280,11 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn get_config(&self) -> Result<Config> {
-        let url = format!("{}/config", self.base_url);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get config: {}",
-                response.status()
-            )));
-        }
-
-        let config: Config = response.json().await?;
-        Ok(config)
+        self.get_json("/config", "get config").await
     }
 
     pub async fn get_providers(&self) -> Result<ProvidersResponse> {
-        let url = format!("{}/config/providers", self.base_url);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get providers: {}",
-                response.status()
-            )));
-        }
-
-        let providers: ProvidersResponse = response.json().await?;
-        Ok(providers)
+        self.get_json("/config/providers", "get providers").await
     }
 
     // ========================================================================
@@ -339,330 +292,87 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn create_session_with_options(&self, request: SessionCreateRequest) -> Result<Session> {
-        let url = format!("{}/session", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to create session: {}",
-                response.status()
-            )));
-        }
-
-        let session: Session = response.json().await?;
-        Ok(session)
+        self.post_json("/session", &request, "create session").await
     }
 
     pub async fn get_session_children(&self, session_id: &str) -> Result<Vec<Session>> {
-        let url = format!("{}/session/{}/children", self.base_url, session_id);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get session children: {}",
-                response.status()
-            )));
-        }
-
-        let sessions: Vec<Session> = response.json().await?;
-        Ok(sessions)
+        let endpoint = format!("/session/{}/children", session_id);
+        self.get_json(&endpoint, "get session children").await
     }
 
     pub async fn delete_session(&self, session_id: &str) -> Result<bool> {
-        let url = format!("{}/session/{}", self.base_url, session_id);
-        let response = self.http
-            .delete(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to delete session: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        let endpoint = format!("/session/{}", session_id);
+        self.delete_bool(&endpoint, "delete session").await
     }
 
     pub async fn update_session(&self, session_id: &str, request: SessionUpdateRequest) -> Result<Session> {
-        let url = format!("{}/session/{}", self.base_url, session_id);
-        let response = self.http
-            .patch(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to update session: {}",
-                response.status()
-            )));
-        }
-
-        let session: Session = response.json().await?;
-        Ok(session)
+        let endpoint = format!("/session/{}", session_id);
+        self.patch_json(&endpoint, &request, "update session").await
     }
 
     pub async fn init_session(&self, session_id: &str, request: SessionInitRequest) -> Result<bool> {
-        let url = format!("{}/session/{}/init", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to init session: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        let endpoint = format!("/session/{}/init", session_id);
+        self.post_json_bool(&endpoint, &request, "init session").await
     }
 
     pub async fn abort_session(&self, session_id: &str) -> Result<bool> {
-        let url = format!("{}/session/{}/abort", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to abort session: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        let endpoint = format!("/session/{}/abort", session_id);
+        self.post_no_body_bool(&endpoint, "abort session").await
     }
 
     pub async fn share_session(&self, session_id: &str) -> Result<Session> {
-        let url = format!("{}/session/{}/share", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to share session: {}",
-                response.status()
-            )));
-        }
-
-        let session: Session = response.json().await?;
-        Ok(session)
+        let endpoint = format!("/session/{}/share", session_id);
+        self.post_no_body_json(&endpoint, "share session").await
     }
 
     pub async fn unshare_session(&self, session_id: &str) -> Result<Session> {
-        let url = format!("{}/session/{}/unshare", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to unshare session: {}",
-                response.status()
-            )));
-        }
-
-        let session: Session = response.json().await?;
-        Ok(session)
+        let endpoint = format!("/session/{}/unshare", session_id);
+        self.post_no_body_json(&endpoint, "unshare session").await
     }
 
     pub async fn summarize_session(&self, session_id: &str, request: SessionSummarizeRequest) -> Result<bool> {
-        let url = format!("{}/session/{}/summarize", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to summarize session: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        let endpoint = format!("/session/{}/summarize", session_id);
+        self.post_json_bool(&endpoint, &request, "summarize session").await
     }
 
     pub async fn list_messages(&self, session_id: &str) -> Result<Vec<MessageWithParts>> {
-        let url = format!("{}/session/{}/messages", self.base_url, session_id);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to list messages: {}",
-                response.status()
-            )));
-        }
-
-        let messages: Vec<MessageWithParts> = response.json().await?;
-        Ok(messages)
+        let endpoint = format!("/session/{}/messages", session_id);
+        self.get_json(&endpoint, "list messages").await
     }
 
     pub async fn get_message(&self, session_id: &str, message_id: &str) -> Result<MessageWithParts> {
-        let url = format!("{}/session/{}/messages/{}", self.base_url, session_id, message_id);
-        let response = self.http
-            .get(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get message: {}",
-                response.status()
-            )));
-        }
-
-        let message: MessageWithParts = response.json().await?;
-        Ok(message)
+        let endpoint = format!("/session/{}/messages/{}", session_id, message_id);
+        self.get_json(&endpoint, "get message").await
     }
 
     pub async fn send_prompt_with_options(&self, session_id: &str, request: PromptRequest) -> Result<Message> {
-        let url = format!("{}/session/{}/prompt", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to send prompt: {}",
-                response.status()
-            )));
-        }
-
-        let message: Message = response.json().await?;
-        Ok(message)
+        let endpoint = format!("/session/{}/prompt", session_id);
+        self.post_json(&endpoint, &request, "send prompt").await
     }
 
     pub async fn send_command(&self, session_id: &str, request: CommandRequest) -> Result<MessageWithParts> {
-        let url = format!("{}/session/{}/command", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to send command: {}",
-                response.status()
-            )));
-        }
-
-        let message: MessageWithParts = response.json().await?;
-        Ok(message)
+        let endpoint = format!("/session/{}/command", session_id);
+        self.post_json(&endpoint, &request, "send command").await
     }
 
     pub async fn send_shell(&self, session_id: &str, request: ShellRequest) -> Result<Message> {
-        let url = format!("{}/session/{}/shell", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to send shell command: {}",
-                response.status()
-            )));
-        }
-
-        let message: Message = response.json().await?;
-        Ok(message)
+        let endpoint = format!("/session/{}/shell", session_id);
+        self.post_json(&endpoint, &request, "send shell command").await
     }
 
     pub async fn revert_message(&self, session_id: &str, request: RevertRequest) -> Result<Session> {
-        let url = format!("{}/session/{}/revert", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to revert message: {}",
-                response.status()
-            )));
-        }
-
-        let session: Session = response.json().await?;
-        Ok(session)
+        let endpoint = format!("/session/{}/revert", session_id);
+        self.post_json(&endpoint, &request, "revert message").await
     }
 
     pub async fn unrevert_session(&self, session_id: &str) -> Result<Session> {
-        let url = format!("{}/session/{}/unrevert", self.base_url, session_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to unrevert session: {}",
-                response.status()
-            )));
-        }
-
-        let session: Session = response.json().await?;
-        Ok(session)
+        let endpoint = format!("/session/{}/unrevert", session_id);
+        self.post_no_body_json(&endpoint, "unrevert session").await
     }
 
     pub async fn respond_to_permission(&self, session_id: &str, permission_id: &str, permission_response: PermissionResponse) -> Result<bool> {
-        let url = format!("{}/session/{}/permissions/{}", self.base_url, session_id, permission_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&permission_response)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to respond to permission: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        let endpoint = format!("/session/{}/permissions/{}", session_id, permission_id);
+        self.post_json_bool(&endpoint, &permission_response, "respond to permission").await
     }
 
     // ========================================================================
@@ -678,15 +388,8 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to search text: {}",
-                response.status()
-            )));
-        }
-
-        let results: Vec<TextSearchResult> = response.json().await?;
-        Ok(results)
+        Self::check_response(&response, "search text")?;
+        Ok(response.json().await?)
     }
 
     pub async fn search_files(&self, request: FilesSearchRequest) -> Result<Vec<String>> {
@@ -712,15 +415,8 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to search files: {}",
-                response.status()
-            )));
-        }
-
-        let files: Vec<String> = response.json().await?;
-        Ok(files)
+        Self::check_response(&response, "search files")?;
+        Ok(response.json().await?)
     }
 
     pub async fn search_symbols(&self, request: SymbolsSearchRequest) -> Result<Vec<Symbol>> {
@@ -732,15 +428,8 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to search symbols: {}",
-                response.status()
-            )));
-        }
-
-        let symbols: Vec<Symbol> = response.json().await?;
-        Ok(symbols)
+        Self::check_response(&response, "search symbols")?;
+        Ok(response.json().await?)
     }
 
     pub async fn read_file(&self, request: FileReadRequest) -> Result<FileReadResponse> {
@@ -752,15 +441,8 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to read file: {}",
-                response.status()
-            )));
-        }
-
-        let file: FileReadResponse = response.json().await?;
-        Ok(file)
+        Self::check_response(&response, "read file")?;
+        Ok(response.json().await?)
     }
 
     pub async fn get_file_status(&self, request: Option<FileStatusRequest>) -> Result<Vec<File>> {
@@ -779,15 +461,8 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to get file status: {}",
-                response.status()
-            )));
-        }
-
-        let files: Vec<File> = response.json().await?;
-        Ok(files)
+        Self::check_response(&response, "get file status")?;
+        Ok(response.json().await?)
     }
 
     // ========================================================================
@@ -795,168 +470,39 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn append_prompt(&self, request: AppendPromptRequest) -> Result<bool> {
-        let url = format!("{}/tui/appendPrompt", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to append prompt: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_json_bool("/tui/appendPrompt", &request, "append prompt").await
     }
 
     pub async fn open_help(&self) -> Result<bool> {
-        let url = format!("{}/tui/openHelp", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to open help: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_no_body_bool("/tui/openHelp", "open help").await
     }
 
     pub async fn open_sessions(&self) -> Result<bool> {
-        let url = format!("{}/tui/openSessions", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to open sessions: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_no_body_bool("/tui/openSessions", "open sessions").await
     }
 
     pub async fn open_themes(&self) -> Result<bool> {
-        let url = format!("{}/tui/openThemes", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to open themes: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_no_body_bool("/tui/openThemes", "open themes").await
     }
 
     pub async fn open_models(&self) -> Result<bool> {
-        let url = format!("{}/tui/openModels", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to open models: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_no_body_bool("/tui/openModels", "open models").await
     }
 
     pub async fn submit_prompt(&self) -> Result<bool> {
-        let url = format!("{}/tui/submitPrompt", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to submit prompt: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_no_body_bool("/tui/submitPrompt", "submit prompt").await
     }
 
     pub async fn clear_prompt(&self) -> Result<bool> {
-        let url = format!("{}/tui/clearPrompt", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to clear prompt: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_no_body_bool("/tui/clearPrompt", "clear prompt").await
     }
 
     pub async fn execute_command(&self, request: ExecuteCommandRequest) -> Result<bool> {
-        let url = format!("{}/tui/executeCommand", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to execute command: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_json_bool("/tui/executeCommand", &request, "execute command").await
     }
 
     pub async fn show_toast(&self, request: ShowToastRequest) -> Result<bool> {
-        let url = format!("{}/tui/showToast", self.base_url);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to show toast: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        self.post_json_bool("/tui/showToast", &request, "show toast").await
     }
 
     // ========================================================================
@@ -964,22 +510,8 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn set_auth(&self, provider_id: &str, request: AuthSetRequest) -> Result<bool> {
-        let url = format!("{}/auth/{}", self.base_url, provider_id);
-        let response = self.http
-            .post(&url)
-            .query(&[("directory", &self.directory)])
-            .json(&request)
-            .send()
-            .await?;
-
-        if !response.status().is_success() {
-            return Err(Error::InvalidResponse(format!(
-                "Failed to set auth: {}",
-                response.status()
-            )));
-        }
-
-        Ok(true)
+        let endpoint = format!("/auth/{}", provider_id);
+        self.post_json_bool(&endpoint, &request, "set auth").await
     }
 
     // ========================================================================
