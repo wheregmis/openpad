@@ -167,6 +167,9 @@ impl OpenCodeClient {
     // Global APIs
     // ========================================================================
 
+    /// Check server health and version.
+    ///
+    /// This is a global endpoint that does not require a directory context.
     pub async fn health(&self) -> Result<HealthResponse> {
         let url = format!("{}/health", self.base_url);
         let response = self.http.get(&url).send().await?;
@@ -690,9 +693,9 @@ impl OpenCodeClient {
         let url = format!("{}/find/files", self.base_url);
         
         // Use request.directory if provided, otherwise use self.directory
-        let directory = request.directory.as_ref().unwrap_or(&self.directory);
+        let directory = request.directory.as_ref().unwrap_or(&self.directory).to_string();
         let mut query = vec![
-            ("directory", directory.clone()),
+            ("directory", directory),
             ("query", request.query.clone()),
         ];
         

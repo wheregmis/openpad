@@ -70,6 +70,7 @@ mod tests {
         // File/Find types
         let _: TextSearchRequest;
         let _: TextSearchResult;
+        let _: SubMatch;
         let _: FilesSearchRequest;
         let _: SymbolsSearchRequest;
         let _: Symbol;
