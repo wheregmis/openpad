@@ -309,6 +309,9 @@ impl App {
                         self.connected = true;
                         self.error_message = None;
                         self.ui.label(id!(status_label)).set_text(cx, "Connected");
+                        self.ui.view(id!(status_dot)).apply_over(cx, live! {
+                            draw_bg: { color: (vec4(0.231, 0.824, 0.435, 1.0)) }
+                        });
                         cx.redraw_all();
                     }
                     AppAction::ConnectionFailed(err) => {
@@ -316,6 +319,9 @@ impl App {
                         self.ui
                             .label(id!(status_label))
                             .set_text(cx, &format!("Error: {}", err));
+                        self.ui.view(id!(status_dot)).apply_over(cx, live! {
+                            draw_bg: { color: (vec4(0.886, 0.333, 0.353, 1.0)) }
+                        });
                         cx.redraw_all();
                     }
                     AppAction::SessionCreated(session) => {
