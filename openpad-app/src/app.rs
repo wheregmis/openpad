@@ -325,11 +325,12 @@ pub struct ProjectsPanel {
     visible_items: Vec<(PanelItemKind, WidgetRef)>,
     #[rust]
     dirty: bool,
+    #[rust]
+    message_counts: HashMap<String, usize>,
 }
 
 impl ProjectsPanel {
-    fn rebuild_items(&mut self) {
-        use std::collections::HashMap;
+    fn rebuild_items(&mut self, message_counts: &HashMap<String, usize>) {
         let mut grouped: HashMap<Option<String>, Vec<Session>> = HashMap::new();
         for session in &self.sessions {
             grouped
@@ -356,26 +357,40 @@ impl ProjectsPanel {
                 project_id: project_id.clone(),
             });
 
-            if let Some(sessions) = grouped.get(&project_id) {
+            if let Some(mut sessions) = grouped.get(&project_id).cloned() {
+                // Sort by updated time, most recent first
+                sessions.sort_by(|a, b| b.time.updated.cmp(&a.time.updated));
+
                 for session in sessions {
-                    let title = if !session.title.is_empty() {
-                        session.title.clone()
-                    } else if !session.slug.is_empty() {
-                        session.slug.clone()
-                    } else {
-                        session.id.clone()
-                    };
+                    let title = generate_session_title(&session);
+                    let timestamp = format_relative_time(session.time.updated);
+                    let is_archived = session.time.archived.is_some();
+                    let is_shared = session.share.is_some();
+                    let is_forked = session.parent_id.is_some();
+                    let file_changes = session.summary.as_ref().map(|s| {
+                        (s.additions, s.deletions, s.files)
+                    });
+                    let message_count = *message_counts.get(&session.id).unwrap_or(&0);
+
                     items.push(PanelItemKind::SessionRow {
                         session_id: session.id.clone(),
                         title,
+                        timestamp,
+                        is_archived,
+                        is_shared,
+                        is_forked,
+                        file_changes,
+                        message_count,
                     });
                 }
             }
             items.push(PanelItemKind::Spacer);
         }
 
-        if let Some(sessions) = grouped.get(&None) {
+        if let Some(mut sessions) = grouped.get(&None).cloned() {
             if !sessions.is_empty() {
+                sessions.sort_by(|a, b| b.time.updated.cmp(&a.time.updated));
+
                 items.push(PanelItemKind::ProjectHeader {
                     project_id: None,
                     name: "Other".to_string(),
@@ -383,16 +398,25 @@ impl ProjectsPanel {
                 });
                 items.push(PanelItemKind::NewSession { project_id: None });
                 for session in sessions {
-                    let title = if !session.title.is_empty() {
-                        session.title.clone()
-                    } else if !session.slug.is_empty() {
-                        session.slug.clone()
-                    } else {
-                        session.id.clone()
-                    };
+                    let title = generate_session_title(&session);
+                    let timestamp = format_relative_time(session.time.updated);
+                    let is_archived = session.time.archived.is_some();
+                    let is_shared = session.share.is_some();
+                    let is_forked = session.parent_id.is_some();
+                    let file_changes = session.summary.as_ref().map(|s| {
+                        (s.additions, s.deletions, s.files)
+                    });
+                    let message_count = *message_counts.get(&session.id).unwrap_or(&0);
+
                     items.push(PanelItemKind::SessionRow {
                         session_id: session.id.clone(),
                         title,
+                        timestamp,
+                        is_archived,
+                        is_shared,
+                        is_forked,
+                        file_changes,
+                        message_count,
                     });
                 }
             }
@@ -428,7 +452,7 @@ impl Widget for ProjectsPanel {
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         if self.dirty {
-            self.rebuild_items();
+            self.rebuild_items(&self.message_counts);
         }
 
         self.visible_items.clear();
@@ -495,11 +519,13 @@ impl ProjectsPanelRef {
         projects: Vec<Project>,
         sessions: Vec<Session>,
         selected_session_id: Option<String>,
+        message_counts: HashMap<String, usize>,
     ) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.projects = projects;
             inner.sessions = sessions;
             inner.selected_session_id = selected_session_id;
+            inner.message_counts = message_counts;
             inner.dirty = true;
             inner.redraw(cx);
         }
@@ -657,6 +683,7 @@ impl App {
                             self.projects.clone(),
                             self.sessions.clone(),
                             self.selected_session_id.clone(),
+                            self.message_counts.clone(),
                         );
                     }
                     AppAction::CurrentProjectLoaded(project) => {
@@ -669,6 +696,7 @@ impl App {
                             self.projects.clone(),
                             self.sessions.clone(),
                             self.selected_session_id.clone(),
+                            self.message_counts.clone(),
                         );
                     }
                     AppAction::SessionCreated(session) => {
@@ -694,6 +722,7 @@ impl App {
                             self.projects.clone(),
                             self.sessions.clone(),
                             self.selected_session_id.clone(),
+                            self.message_counts.clone(),
                         );
                     }
                     ProjectsPanelAction::CreateSession(_project_id) => {
@@ -717,6 +746,7 @@ impl App {
                     self.projects.clone(),
                     self.sessions.clone(),
                     self.selected_session_id.clone(),
+                    self.message_counts.clone(),
                 );
             }
             OcEvent::MessageUpdated(message) => {
