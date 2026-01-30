@@ -4,6 +4,51 @@ use openpad_protocol::{
     Event as OcEvent, HealthResponse, Message, OpenCodeClient, Project, Session,
 };
 use std::sync::Arc;
+use chrono::{DateTime, Local, Utc};
+
+/// Format millisecond timestamp to relative time string
+#[allow(dead_code)]
+fn format_relative_time(timestamp_ms: i64) -> String {
+    let datetime = DateTime::<Utc>::from_timestamp(timestamp_ms / 1000, 0)
+        .unwrap_or_else(|| Utc::now());
+    let local: DateTime<Local> = datetime.into();
+    let now = Local::now();
+
+    // Check if it's the same calendar day
+    let is_today = local.date_naive() == now.date_naive();
+    let is_yesterday = local.date_naive() == now.date_naive() - chrono::Days::new(1);
+
+    let duration = now.signed_duration_since(local);
+
+    if duration.num_minutes() < 1 {
+        "just now".to_string()
+    } else if duration.num_minutes() < 60 {
+        format!("{}m ago", duration.num_minutes())
+    } else if duration.num_hours() < 24 && is_today {
+        format!("{}h ago", duration.num_hours())
+    } else if is_today {
+        format!("Today at {}", local.format("%I:%M%p").to_string().to_lowercase())
+    } else if is_yesterday {
+        format!("Yesterday at {}", local.format("%I:%M%p").to_string().to_lowercase())
+    } else {
+        format!("{}", local.format("%b %d at %I:%M%p").to_string().to_lowercase())
+    }
+}
+
+/// Generate smart session title
+#[allow(dead_code)]
+fn generate_session_title(session: &Session) -> String {
+    if !session.title.is_empty() {
+        session.title.clone()
+    } else if !session.slug.is_empty() {
+        session.slug.clone()
+    } else {
+        let datetime = DateTime::<Utc>::from_timestamp(session.time.created / 1000, 0)
+            .unwrap_or_else(|| Utc::now());
+        let local: DateTime<Local> = datetime.into();
+        format!("New session - {}", local.format("%b %d, %I:%M %p"))
+    }
+}
 
 app_main!(App);
 

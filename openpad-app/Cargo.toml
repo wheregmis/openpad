@@ -12,3 +12,4 @@ makepad-widgets = "1.0.0"
 openpad-widgets = { path = "../openpad-widgets" }
 openpad-protocol = { path = "../openpad-protocol" }
 tokio = { workspace = true }
+chrono = "0.4"
