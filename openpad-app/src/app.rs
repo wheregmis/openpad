@@ -51,6 +51,14 @@ fn generate_session_title(session: &Session) -> String {
     }
 }
 
+/// Check if timestamp is within last 24 hours
+#[allow(dead_code)]
+fn is_recent(timestamp_ms: i64) -> bool {
+    let now = Utc::now().timestamp_millis();
+    let diff_ms = now - timestamp_ms;
+    diff_ms < 24 * 60 * 60 * 1000 // 24 hours in milliseconds
+}
+
 app_main!(App);
 
 live_design! {
@@ -364,6 +372,7 @@ enum PanelItemKind {
         session_id: String,
         title: String,
         timestamp: String,
+        timestamp_ms: i64,
         is_archived: bool,
         is_shared: bool,
         is_forked: bool,
@@ -440,6 +449,7 @@ impl ProjectsPanel {
                         session_id: session.id.clone(),
                         title,
                         timestamp,
+                        timestamp_ms: session.time.updated,
                         is_archived,
                         is_shared,
                         is_forked,
@@ -476,6 +486,7 @@ impl ProjectsPanel {
                         session_id: session.id.clone(),
                         title,
                         timestamp,
+                        timestamp_ms: session.time.updated,
                         is_archived,
                         is_shared,
                         is_forked,
@@ -565,6 +576,7 @@ impl Widget for ProjectsPanel {
                             session_id,
                             title,
                             timestamp,
+                            timestamp_ms,
                             is_archived,
                             file_changes,
                             message_count,
@@ -600,11 +612,12 @@ impl Widget for ProjectsPanel {
                                 vec4(0.12, 0.14, 0.16, 1.0) // #1f2329
                             };
 
-                            // Determine status color
+                            // Determine status color based on state
                             let status_color = if *is_archived {
                                 vec4(0.42, 0.48, 0.55, 1.0) // gray #6b7b8c
+                            } else if is_recent(*timestamp_ms) {
+                                vec4(0.23, 0.65, 0.36, 1.0) // green #3ba55d
                             } else {
-                                // Check if updated in last 24h (we'll refine this)
                                 vec4(0.29, 0.56, 0.87, 1.0) // blue #4a90e2
                             };
 
