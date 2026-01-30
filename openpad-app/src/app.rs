@@ -67,7 +67,24 @@ live_design! {
                     <View> {
                         width: Fill, height: Fill
                         flow: Down,
-                        spacing: 12,
+                        spacing: 8,
+
+                        // Session context bar
+                        session_info = <RoundedView> {
+                            width: Fill, height: Fit
+                            padding: { left: 12, right: 12, top: 8, bottom: 8 }
+                            flow: Right,
+                            spacing: 8,
+                            align: { y: 0.5 }
+                            draw_bg: {
+                                color: #232830
+                                border_radius: 8.0
+                            }
+                            session_title = <Label> {
+                                text: "Select a session or start a new one"
+                                draw_text: { color: #6b7b8c, text_style: { font_size: 11 } }
+                            }
+                        }
 
                         // Messages area
                         message_list = <MessageList> {}
@@ -263,6 +280,7 @@ impl App {
                     }
                     AppAction::SessionCreated(session) => {
                         self.current_session_id = Some(session.id.clone());
+                        self.update_session_title(cx);
                         cx.redraw_all();
                     }
                     AppAction::MessagesLoaded(messages) => {
@@ -292,6 +310,7 @@ impl App {
                             self.sessions.clone(),
                             self.selected_session_id.clone(),
                         );
+                        self.update_session_title(cx);
                         self.load_messages(session_id.clone());
                     }
                     ProjectsPanelAction::CreateSession(_project_id) => {
@@ -316,6 +335,19 @@ impl App {
                     self.sessions.clone(),
                     self.selected_session_id.clone(),
                 );
+                self.update_session_title(cx);
+            }
+            OcEvent::SessionUpdated(session) => {
+                if let Some(existing) = self.sessions.iter_mut().find(|s| s.id == session.id) {
+                    *existing = session.clone();
+                }
+                self.ui.projects_panel(id!(projects_panel)).set_data(
+                    cx,
+                    self.projects.clone(),
+                    self.sessions.clone(),
+                    self.selected_session_id.clone(),
+                );
+                self.update_session_title(cx);
             }
             OcEvent::MessageUpdated(message) => {
                 // If we don't have a current session yet (race during creation),
@@ -375,6 +407,33 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    fn update_session_title(&self, cx: &mut Cx) {
+        let (title, color) = if let Some(sid) = &self.current_session_id {
+            let t = if let Some(session) = self.sessions.iter().find(|s| &s.id == sid) {
+                if !session.title.is_empty() {
+                    session.title.clone()
+                } else {
+                    session.slug.clone()
+                }
+            } else {
+                "New session".to_string()
+            };
+            (t, vec4(0.90, 0.91, 0.93, 1.0))
+        } else {
+            (
+                "Select a session or start a new one".to_string(),
+                vec4(0.42, 0.48, 0.55, 1.0),
+            )
+        };
+        self.ui.label(id!(session_title)).set_text(cx, &title);
+        self.ui.label(id!(session_title)).apply_over(
+            cx,
+            live! {
+                draw_text: { color: (color) }
+            },
+        );
     }
 
     fn load_messages(&mut self, session_id: String) {

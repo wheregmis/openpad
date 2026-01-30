@@ -116,7 +116,7 @@ impl Widget for MessageList {
                     continue;
                 }
 
-                list.set_item_range(cx, 0, self.messages.len().saturating_sub(1));
+                list.set_item_range(cx, 0, self.messages.len());
 
                 while let Some(item_id) = list.next_visible_item(cx) {
                     if item_id >= self.messages.len() {

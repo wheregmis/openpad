@@ -114,8 +114,6 @@ pub struct ProjectsPanel {
     #[rust]
     items: Vec<PanelItemKind>,
     #[rust]
-    visible_items: Vec<(PanelItemKind, WidgetRef)>,
-    #[rust]
     dirty: bool,
 }
 
@@ -126,12 +124,21 @@ impl ProjectsPanel {
                 return name.clone();
             }
         }
+        // For "." worktree, resolve to actual current directory name
+        let worktree = if project.worktree == "." {
+            std::env::current_dir()
+                .ok()
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                .unwrap_or_else(|| project.worktree.clone())
+        } else {
+            project.worktree.clone()
+        };
         // Derive name from last component of worktree path
-        std::path::Path::new(&project.worktree)
+        std::path::Path::new(&worktree)
             .file_name()
             .and_then(|n| n.to_str())
             .filter(|n| !n.is_empty())
-            .unwrap_or(&project.worktree)
+            .unwrap_or(&worktree)
             .to_string()
     }
 
@@ -146,14 +153,21 @@ impl ProjectsPanel {
 
         let mut items = Vec::new();
         for project in &self.projects {
-            // Skip projects without a meaningful worktree (e.g. global with "/")
-            if project.worktree == "/" || project.worktree == "." || project.worktree.is_empty() {
+            // Skip the global project (worktree "/") and empty worktrees
+            if project.worktree == "/" || project.worktree.is_empty() {
                 continue;
             }
 
             let project_id = Some(project.id.clone());
             let name = Self::derive_project_name(project);
-            let path = project.worktree.clone();
+            let path = if project.worktree == "." {
+                std::env::current_dir()
+                    .ok()
+                    .map(|p| p.to_string_lossy().to_string())
+                    .unwrap_or_else(|| project.worktree.clone())
+            } else {
+                project.worktree.clone()
+            };
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: project_id.clone(),
@@ -225,22 +239,46 @@ impl Widget for ProjectsPanel {
             self.view.handle_event(cx, event, scope);
         });
 
-        for (item, widget) in &self.visible_items {
-            match item {
+        let list = self.view.portal_list(id!(list));
+        let items_actions: Vec<_> = list.items_with_actions(&actions).collect();
+        if !items_actions.is_empty() {
+            eprintln!(
+                "[PANEL] items_with_actions returned {} items",
+                items_actions.len()
+            );
+        }
+        for (item_id, widget) in items_actions {
+            eprintln!(
+                "[PANEL] item_id={}, items.len={}",
+                item_id,
+                self.items.len()
+            );
+            if item_id >= self.items.len() {
+                eprintln!("[PANEL] item_id out of range, skipping");
+                continue;
+            }
+            match &self.items[item_id] {
                 PanelItemKind::NewSession { project_id } => {
+                    eprintln!("[PANEL] NewSession item clicked");
                     if widget.button(id!(new_session_button)).clicked(&actions) {
+                        eprintln!("[PANEL] new_session_button clicked!");
                         cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
                     }
                 }
-                PanelItemKind::SessionRow { session_id, .. } => {
+                PanelItemKind::SessionRow { session_id, title } => {
+                    eprintln!("[PANEL] SessionRow item: {}", title);
                     if widget.button(id!(session_button)).clicked(&actions) {
+                        eprintln!("[PANEL] session_button clicked! session_id={}", session_id);
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
                     if widget.button(id!(run_button)).clicked(&actions) {
+                        eprintln!("[PANEL] run_button clicked! session_id={}", session_id);
                         cx.action(ProjectsPanelAction::RunSession(session_id.clone()));
                     }
                 }
-                _ => {}
+                _ => {
+                    eprintln!("[PANEL] Other item type");
+                }
             }
         }
     }
@@ -250,16 +288,13 @@ impl Widget for ProjectsPanel {
             self.rebuild_items();
         }
 
-        self.visible_items.clear();
-
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
                 if self.items.is_empty() {
                     list.set_item_range(cx, 0, 0);
                     continue;
                 } else {
-                    // PortalList range end is inclusive
-                    list.set_item_range(cx, 0, self.items.len().saturating_sub(1));
+                    list.set_item_range(cx, 0, self.items.len());
                 }
                 while let Some(item_id) = list.next_visible_item(cx) {
                     if item_id >= self.items.len() {
@@ -302,7 +337,6 @@ impl Widget for ProjectsPanel {
                     }
 
                     item_widget.draw_all(cx, scope);
-                    self.visible_items.push((panel_item, item_widget));
                 }
             }
         }
