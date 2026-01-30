@@ -452,7 +452,8 @@ impl Widget for ProjectsPanel {
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         if self.dirty {
-            self.rebuild_items(&self.message_counts);
+            let message_counts = self.message_counts.clone();
+            self.rebuild_items(&message_counts);
         }
 
         self.visible_items.clear();
@@ -484,20 +485,58 @@ impl Widget for ProjectsPanel {
                             item_widget.label(id!(project_name)).set_text(cx, name);
                             item_widget.label(id!(project_path)).set_text(cx, path);
                         }
-                        PanelItemKind::SessionRow { session_id, title } => {
-                            item_widget.button(id!(session_button)).set_text(cx, title);
+                        PanelItemKind::SessionRow {
+                            session_id,
+                            title,
+                            timestamp,
+                            is_archived,
+                            file_changes,
+                            message_count,
+                            ..
+                        } => {
+                            // Set title
+                            item_widget.label(id!(session_title)).set_text(cx, title);
+
+                            // Build metadata string
+                            let mut metadata_parts = vec![timestamp.clone()];
+
+                            if let Some((additions, deletions, files)) = file_changes {
+                                metadata_parts.push(format!("+{} -{}", additions, deletions));
+                                metadata_parts.push(format!("{} files", files));
+                            }
+
+                            if *message_count > 0 {
+                                metadata_parts.push(format!("{} messages", message_count));
+                            }
+
+                            let metadata = metadata_parts.join(" • ");
+                            item_widget.label(id!(session_metadata)).set_text(cx, &metadata);
+
+                            // Set background color based on selection
                             let selected = self
                                 .selected_session_id
                                 .as_ref()
                                 .map(|id| id == session_id)
                                 .unwrap_or(false);
-                            let color = if selected {
-                                vec4(0.18, 0.22, 0.27, 1.0)
+                            let bg_color = if selected {
+                                vec4(0.14, 0.16, 0.20, 1.0) // #242a32
                             } else {
-                                vec4(0.12, 0.14, 0.17, 1.0)
+                                vec4(0.12, 0.14, 0.16, 1.0) // #1f2329
                             };
-                            item_widget.button(id!(session_button)).apply_over(cx, live! {
-                                draw_bg: { color: (color) }
+
+                            // Determine status color
+                            let status_color = if *is_archived {
+                                vec4(0.42, 0.48, 0.55, 1.0) // gray #6b7b8c
+                            } else {
+                                // Check if updated in last 24h (we'll refine this)
+                                vec4(0.29, 0.56, 0.87, 1.0) // blue #4a90e2
+                            };
+
+                            item_widget.view(id!(session_row_bg)).apply_over(cx, live! {
+                                draw_bg: {
+                                    color: (bg_color),
+                                    border_color: (status_color)
+                                }
                             });
                         }
                         _ => {}
@@ -519,13 +558,13 @@ impl ProjectsPanelRef {
         projects: Vec<Project>,
         sessions: Vec<Session>,
         selected_session_id: Option<String>,
-        message_counts: HashMap<String, usize>,
+        message_counts: &HashMap<String, usize>,
     ) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.projects = projects;
             inner.sessions = sessions;
             inner.selected_session_id = selected_session_id;
-            inner.message_counts = message_counts;
+            inner.message_counts = message_counts.clone();
             inner.dirty = true;
             inner.redraw(cx);
         }
@@ -683,7 +722,7 @@ impl App {
                             self.projects.clone(),
                             self.sessions.clone(),
                             self.selected_session_id.clone(),
-                            self.message_counts.clone(),
+                            &self.message_counts,
                         );
                     }
                     AppAction::CurrentProjectLoaded(project) => {
@@ -696,7 +735,7 @@ impl App {
                             self.projects.clone(),
                             self.sessions.clone(),
                             self.selected_session_id.clone(),
-                            self.message_counts.clone(),
+                            &self.message_counts,
                         );
                     }
                     AppAction::SessionCreated(session) => {
@@ -722,7 +761,7 @@ impl App {
                             self.projects.clone(),
                             self.sessions.clone(),
                             self.selected_session_id.clone(),
-                            self.message_counts.clone(),
+                            &self.message_counts,
                         );
                     }
                     ProjectsPanelAction::CreateSession(_project_id) => {
@@ -746,7 +785,7 @@ impl App {
                     self.projects.clone(),
                     self.sessions.clone(),
                     self.selected_session_id.clone(),
-                    self.message_counts.clone(),
+                    &self.message_counts,
                 );
             }
             OcEvent::MessageUpdated(message) => {
