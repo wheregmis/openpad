@@ -1,10 +1,9 @@
 use crate::actions::{AppAction, ProjectsPanelAction};
 use crate::components::message_list::MessageListWidgetRefExt;
-use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
+use crate::event_handlers::{self, AppState};
+use crate::network;
 use makepad_widgets::*;
-use openpad_protocol::{
-    Event as OcEvent, HealthResponse, MessageWithParts, OpenCodeClient, Project, Session,
-};
+use openpad_protocol::OpenCodeClient;
 use openpad_widgets::SidePanelWidgetRefExt;
 use std::sync::Arc;
 
@@ -107,23 +106,7 @@ pub struct App {
     ui: WidgetRef,
 
     #[rust]
-    messages_data: Vec<MessageWithParts>,
-    #[rust]
-    projects: Vec<Project>,
-    #[rust]
-    sessions: Vec<Session>,
-    #[rust]
-    current_project: Option<Project>,
-    #[rust]
-    selected_session_id: Option<String>,
-    #[rust]
-    current_session_id: Option<String>,
-    #[rust]
-    connected: bool,
-    #[rust]
-    health_ok: Option<bool>,
-    #[rust]
-    error_message: Option<String>,
+    state: AppState,
     #[rust]
     sidebar_open: bool,
     #[rust]
@@ -147,56 +130,11 @@ impl App {
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let client = Arc::new(OpenCodeClient::new("http://localhost:4096"));
-        let client_clone = client.clone();
-        let client_health = client.clone();
-        let client_load = client.clone();
 
-        runtime.spawn(async move {
-            use tokio::time::{sleep, Duration};
-
-            // Retry connecting until successful
-            let sessions = loop {
-                match client_clone.list_sessions().await {
-                    Ok(sessions) => break sessions,
-                    Err(_) => {
-                        sleep(Duration::from_secs(2)).await;
-                    }
-                }
-            };
-
-            Cx::post_action(AppAction::Connected);
-            Cx::post_action(AppAction::SessionsLoaded(sessions));
-
-            // Subscribe to SSE
-            if let Ok(mut rx) = client_clone.subscribe().await {
-                while let Ok(event) = rx.recv().await {
-                    Cx::post_action(AppAction::OpenCodeEvent(event));
-                }
-            }
-        });
-
-        runtime.spawn(async move {
-            use tokio::time::{sleep, Duration};
-            loop {
-                match client_health.health().await {
-                    Ok(health) => Cx::post_action(AppAction::HealthUpdated(health)),
-                    Err(_) => Cx::post_action(AppAction::HealthUpdated(HealthResponse {
-                        healthy: false,
-                        version: "unknown".to_string(),
-                    })),
-                }
-                sleep(Duration::from_secs(5)).await;
-            }
-        });
-
-        runtime.spawn(async move {
-            if let Ok(projects) = client_load.list_projects().await {
-                Cx::post_action(AppAction::ProjectsLoaded(projects));
-            }
-            if let Ok(current) = client_load.current_project().await {
-                Cx::post_action(AppAction::CurrentProjectLoaded(current));
-            }
-        });
+        // Spawn background tasks
+        network::spawn_sse_subscriber(&runtime, client.clone());
+        network::spawn_health_checker(&runtime, client.clone());
+        network::spawn_project_loader(&runtime, client.clone());
 
         self.client = Some(client);
         self._runtime = Some(runtime);
@@ -205,284 +143,51 @@ impl App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
         for action in actions {
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
-                match app_action {
-                    AppAction::Connected => {
-                        self.connected = true;
-                        self.error_message = None;
-                        self.ui.label(id!(status_label)).set_text(cx, "Connected");
-                        self.ui.view(id!(status_dot)).apply_over(
-                            cx,
-                            live! {
-                                draw_bg: { color: (vec4(0.231, 0.824, 0.435, 1.0)) }
-                            },
-                        );
-                        cx.redraw_all();
+                if matches!(app_action, AppAction::OpenCodeEvent(_)) {
+                    if let AppAction::OpenCodeEvent(oc_event) = app_action {
+                        event_handlers::handle_opencode_event(&mut self.state, &self.ui, cx, oc_event);
                     }
-                    AppAction::ConnectionFailed(err) => {
-                        self.error_message = Some(err.clone());
-                        self.ui
-                            .label(id!(status_label))
-                            .set_text(cx, &format!("Error: {}", err));
-                        self.ui.view(id!(status_dot)).apply_over(
-                            cx,
-                            live! {
-                                draw_bg: { color: (vec4(0.886, 0.333, 0.353, 1.0)) }
-                            },
-                        );
-                        cx.redraw_all();
-                    }
-                    AppAction::HealthUpdated(health) => {
-                        self.health_ok = Some(health.healthy);
-                        if health.healthy {
-                            self.connected = true;
-                            self.error_message = None;
-                            self.ui.label(id!(status_label)).set_text(cx, "Connected");
-                            self.ui.view(id!(status_dot)).apply_over(
-                                cx,
-                                live! {
-                                    draw_bg: { color: (vec4(0.231, 0.824, 0.435, 1.0)) }
-                                },
-                            );
-                        } else {
-                            self.connected = false;
-                            self.ui
-                                .label(id!(status_label))
-                                .set_text(cx, "Disconnected");
-                            self.ui.view(id!(status_dot)).apply_over(
-                                cx,
-                                live! {
-                                    draw_bg: { color: (vec4(0.55, 0.57, 0.60, 1.0)) }
-                                },
-                            );
-                        }
-                        cx.redraw_all();
-                    }
-                    AppAction::ProjectsLoaded(projects) => {
-                        self.projects = projects.clone();
-                        self.ui.projects_panel(id!(projects_panel)).set_data(
-                            cx,
-                            self.projects.clone(),
-                            self.sessions.clone(),
-                            self.selected_session_id.clone(),
-                        );
-                    }
-                    AppAction::CurrentProjectLoaded(project) => {
-                        self.current_project = Some(project.clone());
-                    }
-                    AppAction::SessionsLoaded(sessions) => {
-                        self.sessions = sessions.clone();
-                        self.ui.projects_panel(id!(projects_panel)).set_data(
-                            cx,
-                            self.projects.clone(),
-                            self.sessions.clone(),
-                            self.selected_session_id.clone(),
-                        );
-                    }
-                    AppAction::SessionCreated(session) => {
-                        self.current_session_id = Some(session.id.clone());
-                        self.update_session_title(cx);
-                        cx.redraw_all();
-                    }
-                    AppAction::MessagesLoaded(messages) => {
-                        self.messages_data = messages.clone();
-                        self.ui
-                            .message_list(id!(message_list))
-                            .set_messages(cx, &self.messages_data);
-                    }
-                    AppAction::OpenCodeEvent(oc_event) => {
-                        self.handle_opencode_event(cx, oc_event);
-                    }
-                    AppAction::SendMessageFailed(err) => {
-                        self.error_message = Some(err.clone());
-                        cx.redraw_all();
-                    }
-                    _ => {}
-                }
-            }
-            // Note: ProjectsPanelAction is handled in captured actions below
-        }
-    }
-
-    fn handle_opencode_event(&mut self, cx: &mut Cx, event: &OcEvent) {
-        match event {
-            OcEvent::SessionCreated(session) => {
-                if self.current_session_id.is_none() {
-                    self.current_session_id = Some(session.id.clone());
-                }
-                self.sessions.push(session.clone());
-                self.ui.projects_panel(id!(projects_panel)).set_data(
-                    cx,
-                    self.projects.clone(),
-                    self.sessions.clone(),
-                    self.selected_session_id.clone(),
-                );
-                self.update_session_title(cx);
-            }
-            OcEvent::SessionUpdated(session) => {
-                if let Some(existing) = self.sessions.iter_mut().find(|s| s.id == session.id) {
-                    *existing = session.clone();
-                }
-                self.ui.projects_panel(id!(projects_panel)).set_data(
-                    cx,
-                    self.projects.clone(),
-                    self.sessions.clone(),
-                    self.selected_session_id.clone(),
-                );
-                self.update_session_title(cx);
-            }
-            OcEvent::MessageUpdated(message) => {
-                // If we don't have a current session yet (race during creation),
-                // accept the message and set the session
-                if self.current_session_id.is_none() {
-                    self.current_session_id = Some(message.session_id().to_string());
-                }
-                // Only process messages for the current session
-                let current_sid = self.current_session_id.as_deref().unwrap_or("");
-                if message.session_id() != current_sid {
-                    return;
-                }
-                // Find existing or add new MessageWithParts entry
-                if let Some(existing) = self
-                    .messages_data
-                    .iter_mut()
-                    .find(|m| m.info.id() == message.id())
-                {
-                    existing.info = message.clone();
                 } else {
-                    self.messages_data.push(MessageWithParts {
-                        info: message.clone(),
-                        parts: Vec::new(),
-                    });
-                }
-                self.ui
-                    .message_list(id!(message_list))
-                    .set_messages(cx, &self.messages_data);
-            }
-            OcEvent::PartUpdated { part, .. } => {
-                if let (Some(_), Some(msg_id)) = (part.text_content(), part.message_id()) {
-                    if let Some(mwp) = self
-                        .messages_data
-                        .iter_mut()
-                        .find(|m| m.info.id() == msg_id)
-                    {
-                        let part_id = match &part {
-                            openpad_protocol::Part::Text { id, .. } => id.as_str(),
-                            _ => "",
-                        };
-                        if !part_id.is_empty() {
-                            if let Some(existing) = mwp.parts.iter_mut().find(|p| {
-                                matches!(p, openpad_protocol::Part::Text { id, .. } if id == part_id)
-                            }) {
-                                *existing = part.clone();
-                            } else {
-                                mwp.parts.push(part.clone());
-                            }
-                        } else {
-                            mwp.parts.push(part.clone());
-                        }
-                        self.ui
-                            .message_list(id!(message_list))
-                            .set_messages(cx, &self.messages_data);
-                    }
+                    event_handlers::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                 }
             }
-            _ => {}
         }
-    }
-
-    fn update_session_title(&self, cx: &mut Cx) {
-        let (title, color) = if let Some(sid) = &self.current_session_id {
-            let t = if let Some(session) = self.sessions.iter().find(|s| &s.id == sid) {
-                if !session.title.is_empty() {
-                    session.title.clone()
-                } else {
-                    session.slug.clone()
-                }
-            } else {
-                "New session".to_string()
-            };
-            (t, vec4(0.90, 0.91, 0.93, 1.0))
-        } else {
-            (
-                "Select a session or start a new one".to_string(),
-                vec4(0.42, 0.48, 0.55, 1.0),
-            )
-        };
-        self.ui.label(id!(session_title)).set_text(cx, &title);
-        self.ui.label(id!(session_title)).apply_over(
-            cx,
-            live! {
-                draw_text: { color: (color) }
-            },
-        );
     }
 
     fn load_messages(&mut self, session_id: String) {
         let Some(client) = self.client.clone() else {
             return;
         };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
 
-        self._runtime.as_ref().unwrap().spawn(async move {
-            match client.list_messages(&session_id).await {
-                Ok(messages) => {
-                    Cx::post_action(AppAction::MessagesLoaded(messages));
-                }
-                Err(_) => {}
-            }
-        });
+        network::spawn_message_loader(runtime, client, session_id);
     }
 
     fn send_message(&mut self, _cx: &mut Cx, text: String) {
         let Some(client) = self.client.clone() else {
-            self.error_message = Some("Not connected".to_string());
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
 
-        let session_id = self.current_session_id.clone();
-
-        self._runtime.as_ref().unwrap().spawn(async move {
-            // Create session if needed
-            let sid = if let Some(id) = session_id {
-                id
-            } else {
-                match client.create_session().await {
-                    Ok(session) => {
-                        Cx::post_action(AppAction::SessionCreated(session.clone()));
-                        session.id
-                    }
-                    Err(e) => {
-                        Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
-                        return;
-                    }
-                }
-            };
-
-            // Send prompt
-            if let Err(e) = client.send_prompt(&sid, &text).await {
-                Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
-            }
-        });
+        let session_id = self.state.current_session_id.clone();
+        network::spawn_message_sender(runtime, client, session_id, text);
     }
 
     fn create_session(&mut self, _cx: &mut Cx) {
         let Some(client) = self.client.clone() else {
-            self.error_message = Some("Not connected".to_string());
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
 
-        self._runtime.as_ref().unwrap().spawn(async move {
-            match client.create_session().await {
-                Ok(session) => {
-                    Cx::post_action(AppAction::SessionCreated(session));
-                    if let Ok(sessions) = client.list_sessions().await {
-                        Cx::post_action(AppAction::SessionsLoaded(sessions));
-                    }
-                }
-                Err(e) => {
-                    Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
-                }
-            }
-        });
+        network::spawn_session_creator(runtime, client);
     }
 }
 
@@ -508,19 +213,14 @@ impl AppMain for App {
             if let Some(panel_action) = action.downcast_ref::<ProjectsPanelAction>() {
                 match panel_action {
                     ProjectsPanelAction::SelectSession(session_id) => {
-                        self.selected_session_id = Some(session_id.clone());
-                        self.current_session_id = Some(session_id.clone());
-                        self.messages_data.clear();
+                        self.state.selected_session_id = Some(session_id.clone());
+                        self.state.current_session_id = Some(session_id.clone());
+                        self.state.messages_data.clear();
                         self.ui
                             .message_list(id!(message_list))
-                            .set_messages(cx, &self.messages_data);
-                        self.ui.projects_panel(id!(projects_panel)).set_data(
-                            cx,
-                            self.projects.clone(),
-                            self.sessions.clone(),
-                            self.selected_session_id.clone(),
-                        );
-                        self.update_session_title(cx);
+                            .set_messages(cx, &self.state.messages_data);
+                        self.state.update_projects_panel(&self.ui, cx);
+                        self.state.update_session_title_ui(&self.ui, cx);
                         self.load_messages(session_id.clone());
                     }
                     ProjectsPanelAction::CreateSession(_project_id) => {
