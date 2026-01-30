@@ -240,45 +240,25 @@ impl Widget for ProjectsPanel {
         });
 
         let list = self.view.portal_list(id!(list));
-        let items_actions: Vec<_> = list.items_with_actions(&actions).collect();
-        if !items_actions.is_empty() {
-            eprintln!(
-                "[PANEL] items_with_actions returned {} items",
-                items_actions.len()
-            );
-        }
-        for (item_id, widget) in items_actions {
-            eprintln!(
-                "[PANEL] item_id={}, items.len={}",
-                item_id,
-                self.items.len()
-            );
+        for (item_id, widget) in list.items_with_actions(&actions) {
             if item_id >= self.items.len() {
-                eprintln!("[PANEL] item_id out of range, skipping");
                 continue;
             }
             match &self.items[item_id] {
                 PanelItemKind::NewSession { project_id } => {
-                    eprintln!("[PANEL] NewSession item clicked");
                     if widget.button(id!(new_session_button)).clicked(&actions) {
-                        eprintln!("[PANEL] new_session_button clicked!");
                         cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
                     }
                 }
-                PanelItemKind::SessionRow { session_id, title } => {
-                    eprintln!("[PANEL] SessionRow item: {}", title);
+                PanelItemKind::SessionRow { session_id, .. } => {
                     if widget.button(id!(session_button)).clicked(&actions) {
-                        eprintln!("[PANEL] session_button clicked! session_id={}", session_id);
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
                     if widget.button(id!(run_button)).clicked(&actions) {
-                        eprintln!("[PANEL] run_button clicked! session_id={}", session_id);
                         cx.action(ProjectsPanelAction::RunSession(session_id.clone()));
                     }
                 }
-                _ => {
-                    eprintln!("[PANEL] Other item type");
-                }
+                _ => {}
             }
         }
     }

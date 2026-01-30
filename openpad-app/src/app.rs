@@ -299,26 +299,7 @@ impl App {
                     _ => {}
                 }
             }
-            if let Some(panel_action) = action.downcast_ref::<ProjectsPanelAction>() {
-                match panel_action {
-                    ProjectsPanelAction::SelectSession(session_id) => {
-                        self.selected_session_id = Some(session_id.clone());
-                        self.current_session_id = Some(session_id.clone());
-                        self.ui.projects_panel(id!(projects_panel)).set_data(
-                            cx,
-                            self.projects.clone(),
-                            self.sessions.clone(),
-                            self.selected_session_id.clone(),
-                        );
-                        self.update_session_title(cx);
-                        self.load_messages(session_id.clone());
-                    }
-                    ProjectsPanelAction::CreateSession(_project_id) => {
-                        self.create_session(cx);
-                    }
-                    _ => {}
-                }
-            }
+            // Note: ProjectsPanelAction is handled in captured actions below
         }
     }
 
@@ -521,6 +502,34 @@ impl AppMain for App {
         let actions = cx.capture_actions(|cx| {
             self.ui.handle_event(cx, event, &mut Scope::empty());
         });
+
+        // Process widget actions (e.g. ProjectsPanelAction from sidebar clicks)
+        for action in &actions {
+            if let Some(panel_action) = action.downcast_ref::<ProjectsPanelAction>() {
+                match panel_action {
+                    ProjectsPanelAction::SelectSession(session_id) => {
+                        self.selected_session_id = Some(session_id.clone());
+                        self.current_session_id = Some(session_id.clone());
+                        self.messages_data.clear();
+                        self.ui
+                            .message_list(id!(message_list))
+                            .set_messages(cx, &self.messages_data);
+                        self.ui.projects_panel(id!(projects_panel)).set_data(
+                            cx,
+                            self.projects.clone(),
+                            self.sessions.clone(),
+                            self.selected_session_id.clone(),
+                        );
+                        self.update_session_title(cx);
+                        self.load_messages(session_id.clone());
+                    }
+                    ProjectsPanelAction::CreateSession(_project_id) => {
+                        self.create_session(cx);
+                    }
+                    _ => {}
+                }
+            }
+        }
 
         // Check for text input return
         if let Some((text, _modifiers)) = self.ui.text_input(id!(input_box)).returned(&actions) {
