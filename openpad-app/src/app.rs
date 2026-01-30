@@ -156,19 +156,39 @@ live_design! {
                     flow: Right
                     show_bg: true
                     draw_bg: {
+                        instance hover: 0.0
                         color: #1f2329
+                        uniform color_hover: #1f252c
                         uniform border_color: #4a90e2
                         uniform border_size: 3.0
 
                         fn pixel(self) -> vec4 {
                             let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                            let bg = mix(self.color, self.color_hover, self.hover);
+
                             // Left status bar
                             sdf.rect(0.0, 0.0, self.border_size, self.rect_size.y);
                             sdf.fill(self.border_color);
+
                             // Background
                             sdf.rect(self.border_size, 0.0, self.rect_size.x - self.border_size, self.rect_size.y);
-                            sdf.fill(self.color);
+                            sdf.fill(bg);
+
                             return sdf.result;
+                        }
+                    }
+
+                    animator: {
+                        hover = {
+                            default: off
+                            off = {
+                                from: { all: Forward { duration: 0.15 } }
+                                apply: { draw_bg: { hover: 0.0 } }
+                            }
+                            on = {
+                                from: { all: Forward { duration: 0.15 } }
+                                apply: { draw_bg: { hover: 1.0 } }
+                            }
                         }
                     }
 
@@ -485,8 +505,20 @@ impl Widget for ProjectsPanel {
                     }
                 }
                 PanelItemKind::SessionRow { session_id, .. } => {
-                    if widget.button(id!(session_button)).clicked(&actions) {
+                    // Handle click
+                    if widget.view(id!(session_row_bg)).finger_down(&actions).is_some() {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
+                    }
+
+                    // Animate hover
+                    match event.hits(cx, widget.view(id!(session_row_bg)).area()) {
+                        Hit::FingerHoverIn(_) => {
+                            widget.view(id!(session_row_bg)).animator_play(cx, id!(hover.on));
+                        }
+                        Hit::FingerHoverOut(_) => {
+                            widget.view(id!(session_row_bg)).animator_play(cx, id!(hover.off));
+                        }
+                        _ => {}
                     }
                 }
                 _ => {}
