@@ -158,6 +158,18 @@ live_design! {
             SessionRow = <View> {
                 width: Fill, height: Fit
                 padding: 0
+                show_bg: true
+                draw_bg: {
+                    color: #0000
+                    uniform separator_color: #22262c
+                    fn pixel(self) -> vec4 {
+                        let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                        // Bottom separator line
+                        sdf.rect(0.0, self.rect_size.y - 1.0, self.rect_size.x, 1.0);
+                        sdf.fill(self.separator_color);
+                        return sdf.result;
+                    }
+                }
 
                 session_row_bg = <View> {
                     width: Fill, height: 52
@@ -611,16 +623,23 @@ impl Widget for ProjectsPanel {
 
                             item_widget.label(id!(session_icons)).set_text(cx, &icons);
 
-                            // Build metadata string
+                            // Build metadata string with colored parts
                             let mut metadata_parts = vec![timestamp.clone()];
 
                             if let Some((additions, deletions, files)) = file_changes {
+                                // We can't color individual parts in a single Label easily
+                                // For MVP, keep plain text formatting
                                 metadata_parts.push(format!("+{} -{}", additions, deletions));
                                 metadata_parts.push(format!("{} files", files));
                             }
 
                             if *message_count > 0 {
-                                metadata_parts.push(format!("{} messages", message_count));
+                                let msg_text = if *message_count == 1 {
+                                    "1 message".to_string()
+                                } else {
+                                    format!("{} messages", message_count)
+                                };
+                                metadata_parts.push(msg_text);
                             }
 
                             let metadata = metadata_parts.join(" • ");
@@ -638,6 +657,12 @@ impl Widget for ProjectsPanel {
                                 vec4(0.12, 0.14, 0.16, 1.0) // #1f2329
                             };
 
+                            let title_color = if selected {
+                                vec4(1.0, 1.0, 1.0, 1.0) // #ffffff
+                            } else {
+                                vec4(0.90, 0.91, 0.93, 1.0) // #e6e9ee
+                            };
+
                             // Determine status color based on state
                             let status_color = if *is_archived {
                                 vec4(0.42, 0.48, 0.55, 1.0) // gray #6b7b8c
@@ -646,6 +671,10 @@ impl Widget for ProjectsPanel {
                             } else {
                                 vec4(0.29, 0.56, 0.87, 1.0) // blue #4a90e2
                             };
+
+                            item_widget.label(id!(session_title)).apply_over(cx, live! {
+                                draw_text: { color: (title_color) }
+                            });
 
                             item_widget.view(id!(session_row_bg)).apply_over(cx, live! {
                                 draw_bg: {
