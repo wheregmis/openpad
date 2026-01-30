@@ -833,12 +833,25 @@ impl App {
                 );
             }
             OcEvent::MessageUpdated(message) => {
+                // Track message count
+                let session_id = message.session_id().to_string();
+                *self.message_counts.entry(session_id.clone()).or_insert(0) += 1;
+
                 // Find existing message or add new
                 if let Some(existing) = self.messages.iter_mut().find(|m| m.id() == message.id()) {
                     *existing = message.clone();
                 } else {
                     self.messages.push(message.clone());
                 }
+
+                // Update panel to show new count
+                self.ui.projects_panel(id!(projects_panel)).set_data(
+                    cx,
+                    self.projects.clone(),
+                    self.sessions.clone(),
+                    self.selected_session_id.clone(),
+                    &self.message_counts,
+                );
 
                 cx.redraw_all();
             }
