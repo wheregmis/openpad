@@ -1,8 +1,9 @@
 use crate::actions::{AppAction, ProjectsPanelAction};
+use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
 use makepad_widgets::*;
 use openpad_protocol::{
-    Event as OcEvent, HealthResponse, Message, OpenCodeClient, Project, Session,
+    Event as OcEvent, HealthResponse, MessageWithParts, OpenCodeClient, Project, Session,
 };
 use openpad_widgets::SidePanelWidgetRefExt;
 use std::sync::Arc;
@@ -20,6 +21,7 @@ live_design! {
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
     use crate::components::projects_panel::ProjectsPanel;
+    use crate::components::message_list::MessageList;
 
     App = {{App}} {
         ui: <Window> {
@@ -67,53 +69,8 @@ live_design! {
                         flow: Down,
                         spacing: 12,
 
-                        // Messages area (scrollable)
-                        <ScrollYView> {
-                            width: Fill, height: Fill
-
-                            message_list = <PortalList> {
-                                width: Fill, height: Fill
-
-                                UserMsg = <View> {
-                                    width: Fill, height: Fit
-                                    flow: Right,
-                                    padding: 8,
-                                    align: { x: 1.0 }
-
-                                    <UserBubble> {
-                                        width: Fill, height: Fit
-                                        max_width: 600.0
-                                        margin: { left: 80 }
-                                        flow: Down,
-
-                                        msg_text = <Label> {
-                                            width: Fill, height: Fit
-                                            wrap: Word
-                                            draw_text: { color: #eef3f7, text_style: { font_size: 11 } }
-                                        }
-                                    }
-                                }
-
-                                AssistantMsg = <View> {
-                                    width: Fill, height: Fit
-                                    flow: Down,
-                                    padding: 8,
-
-                                    <AssistantBubble> {
-                                        width: Fill, height: Fit
-                                        max_width: 600.0
-                                        margin: { right: 80 }
-                                        flow: Down,
-
-                                        msg_text = <Label> {
-                                            width: Fill, height: Fit
-                                            wrap: Word
-                                            draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        // Messages area
+                        message_list = <MessageList> {}
 
                         // Input area (fixed at bottom)
                         <InputBar> {
@@ -133,7 +90,7 @@ pub struct App {
     ui: WidgetRef,
 
     #[rust]
-    messages: Vec<Message>,
+    messages_data: Vec<MessageWithParts>,
     #[rust]
     projects: Vec<Project>,
     #[rust]
@@ -165,6 +122,7 @@ impl LiveRegister for App {
         crate::components::user_bubble::live_design(cx);
         crate::components::assistant_bubble::live_design(cx);
         crate::components::projects_panel::live_design(cx);
+        crate::components::message_list::live_design(cx);
     }
 }
 
@@ -307,6 +265,12 @@ impl App {
                         self.current_session_id = Some(session.id.clone());
                         cx.redraw_all();
                     }
+                    AppAction::MessagesLoaded(messages) => {
+                        self.messages_data = messages.clone();
+                        self.ui
+                            .message_list(id!(message_list))
+                            .set_messages(cx, &self.messages_data);
+                    }
                     AppAction::OpenCodeEvent(oc_event) => {
                         self.handle_opencode_event(cx, oc_event);
                     }
@@ -321,12 +285,14 @@ impl App {
                 match panel_action {
                     ProjectsPanelAction::SelectSession(session_id) => {
                         self.selected_session_id = Some(session_id.clone());
+                        self.current_session_id = Some(session_id.clone());
                         self.ui.projects_panel(id!(projects_panel)).set_data(
                             cx,
                             self.projects.clone(),
                             self.sessions.clone(),
                             self.selected_session_id.clone(),
                         );
+                        self.load_messages(session_id.clone());
                     }
                     ProjectsPanelAction::CreateSession(_project_id) => {
                         self.create_session(cx);
@@ -352,20 +318,78 @@ impl App {
                 );
             }
             OcEvent::MessageUpdated(message) => {
-                // Find existing message or add new
-                if let Some(existing) = self.messages.iter_mut().find(|m| m.id() == message.id()) {
-                    *existing = message.clone();
-                } else {
-                    self.messages.push(message.clone());
+                // If we don't have a current session yet (race during creation),
+                // accept the message and set the session
+                if self.current_session_id.is_none() {
+                    self.current_session_id = Some(message.session_id().to_string());
                 }
-
-                cx.redraw_all();
+                // Only process messages for the current session
+                let current_sid = self.current_session_id.as_deref().unwrap_or("");
+                if message.session_id() != current_sid {
+                    return;
+                }
+                // Find existing or add new MessageWithParts entry
+                if let Some(existing) = self
+                    .messages_data
+                    .iter_mut()
+                    .find(|m| m.info.id() == message.id())
+                {
+                    existing.info = message.clone();
+                } else {
+                    self.messages_data.push(MessageWithParts {
+                        info: message.clone(),
+                        parts: Vec::new(),
+                    });
+                }
+                self.ui
+                    .message_list(id!(message_list))
+                    .set_messages(cx, &self.messages_data);
             }
-            OcEvent::PartUpdated { .. } => {
-                // Current protocol does not include message id; ignore for now.
+            OcEvent::PartUpdated { part, .. } => {
+                if let (Some(_), Some(msg_id)) = (part.text_content(), part.message_id()) {
+                    if let Some(mwp) = self
+                        .messages_data
+                        .iter_mut()
+                        .find(|m| m.info.id() == msg_id)
+                    {
+                        let part_id = match &part {
+                            openpad_protocol::Part::Text { id, .. } => id.as_str(),
+                            _ => "",
+                        };
+                        if !part_id.is_empty() {
+                            if let Some(existing) = mwp.parts.iter_mut().find(|p| {
+                                matches!(p, openpad_protocol::Part::Text { id, .. } if id == part_id)
+                            }) {
+                                *existing = part.clone();
+                            } else {
+                                mwp.parts.push(part.clone());
+                            }
+                        } else {
+                            mwp.parts.push(part.clone());
+                        }
+                        self.ui
+                            .message_list(id!(message_list))
+                            .set_messages(cx, &self.messages_data);
+                    }
+                }
             }
             _ => {}
         }
+    }
+
+    fn load_messages(&mut self, session_id: String) {
+        let Some(client) = self.client.clone() else {
+            return;
+        };
+
+        self._runtime.as_ref().unwrap().spawn(async move {
+            match client.list_messages(&session_id).await {
+                Ok(messages) => {
+                    Cx::post_action(AppAction::MessagesLoaded(messages));
+                }
+                Err(_) => {}
+            }
+        });
     }
 
     fn send_message(&mut self, _cx: &mut Cx, text: String) {

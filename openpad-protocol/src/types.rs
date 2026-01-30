@@ -273,6 +273,7 @@ pub struct SessionSummary {
     /// Number of files modified
     pub files: i64,
     /// Detailed diff information for each file
+    #[serde(default)]
     pub diffs: Vec<FileDiff>,
 }
 
@@ -496,17 +497,17 @@ pub struct UserMessage {
     /// ID of the session this message belongs to
     #[serde(rename = "sessionID")]
     pub session_id: String,
-    /// Message role (always "user")
-    pub role: String,
     /// When the message was created and completed
     pub time: MessageTime,
     /// Optional summary of the message and its effects
     #[serde(default)]
     pub summary: Option<MessageSummary>,
     /// Agent that handled this message
+    #[serde(default)]
     pub agent: String,
     /// Model specification used for this message
-    pub model: ModelSpec,
+    #[serde(default)]
+    pub model: Option<ModelSpec>,
     /// Optional system prompt override
     #[serde(default)]
     pub system: Option<String>,
@@ -522,10 +523,13 @@ pub struct UserMessage {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MessageSummary {
     /// Brief title summarizing the message
+    #[serde(default)]
     pub title: String,
     /// Detailed description of what the message accomplished
+    #[serde(default)]
     pub body: String,
     /// File changes resulting from this message
+    #[serde(default)]
     pub diffs: Vec<FileDiff>,
 }
 
@@ -537,35 +541,38 @@ pub struct AssistantMessage {
     /// ID of the session this message belongs to
     #[serde(rename = "sessionID")]
     pub session_id: String,
-    /// Message role (always "assistant")
-    pub role: String,
     /// When the message was created and completed
     pub time: MessageTime,
     /// Error information if the message generation failed
     #[serde(default)]
     pub error: Option<AssistantError>,
     /// ID of the parent message this is responding to
-    #[serde(rename = "parentID")]
+    #[serde(default, rename = "parentID")]
     pub parent_id: String,
     /// Model ID that generated this message
-    #[serde(rename = "modelID")]
+    #[serde(default, rename = "modelID")]
     pub model_id: String,
     /// Provider ID for the model
-    #[serde(rename = "providerID")]
+    #[serde(default, rename = "providerID")]
     pub provider_id: String,
     /// Execution mode (e.g., "agentic", "chat")
+    #[serde(default)]
     pub mode: String,
     /// Agent that handled this message
+    #[serde(default)]
     pub agent: String,
     /// Path information for where the message was generated
-    pub path: MessagePath,
+    #[serde(default)]
+    pub path: Option<MessagePath>,
     /// Whether this message has been summarized/compacted
     #[serde(default)]
     pub summary: Option<bool>,
     /// Estimated cost in USD for this message
+    #[serde(default)]
     pub cost: f64,
     /// Token usage statistics
-    pub tokens: TokenUsage,
+    #[serde(default)]
+    pub tokens: Option<TokenUsage>,
     /// How the message generation finished (e.g., "stop", "length")
     #[serde(default)]
     pub finish: Option<String>,
@@ -606,13 +613,40 @@ impl Message {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "kebab-case")]
 pub enum Part {
     #[serde(rename = "text")]
-    Text { text: String },
-    // MVP: Other variants ignored but need to not break parsing
+    Text {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        #[serde(default)]
+        text: String,
+    },
+    // Other part types — we don't render them but must not break parsing
     #[serde(other)]
     Unknown,
+}
+
+impl Part {
+    /// Extract displayable text content, if any.
+    pub fn text_content(&self) -> Option<&str> {
+        match self {
+            Part::Text { text, .. } if !text.is_empty() => Some(text),
+            _ => None,
+        }
+    }
+
+    /// Get the message ID this part belongs to, if available.
+    pub fn message_id(&self) -> Option<&str> {
+        match self {
+            Part::Text { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
