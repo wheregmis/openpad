@@ -1,4 +1,6 @@
 use crate::actions::ProjectsPanelAction;
+use crate::constants::{COLOR_SESSION_NORMAL, COLOR_SESSION_SELECTED};
+use crate::network;
 use makepad_widgets::*;
 use openpad_protocol::{Project, Session};
 use std::collections::HashMap;
@@ -177,13 +179,7 @@ impl ProjectsPanel {
 
             if let Some(sessions) = grouped.get(&project_id) {
                 for session in sessions {
-                    let title = if !session.title.is_empty() {
-                        session.title.clone()
-                    } else if !session.slug.is_empty() {
-                        session.slug.clone()
-                    } else {
-                        session.id.clone()
-                    };
+                    let title = network::get_session_title(session);
                     items.push(PanelItemKind::SessionRow {
                         session_id: session.id.clone(),
                         title,
@@ -213,13 +209,7 @@ impl ProjectsPanel {
                 path: "".to_string(),
             });
             for session in ungrouped {
-                let title = if !session.title.is_empty() {
-                    session.title.clone()
-                } else if !session.slug.is_empty() {
-                    session.slug.clone()
-                } else {
-                    session.id.clone()
-                };
+                let title = network::get_session_title(session);
                 items.push(PanelItemKind::SessionRow {
                     session_id: session.id.clone(),
                     title,
@@ -302,9 +292,9 @@ impl Widget for ProjectsPanel {
                                 .map(|id| id == session_id)
                                 .unwrap_or(false);
                             let color = if selected {
-                                vec4(0.18, 0.22, 0.27, 1.0)
+                                COLOR_SESSION_SELECTED
                             } else {
-                                vec4(0.12, 0.14, 0.17, 1.0)
+                                COLOR_SESSION_NORMAL
                             };
                             item_widget.button(id!(session_button)).apply_over(
                                 cx,

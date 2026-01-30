@@ -9,6 +9,10 @@ pub const COLOR_STATUS_DISCONNECTED: Vec4 = vec4(0.55, 0.57, 0.60, 1.0); // Gray
 pub const COLOR_TEXT_TITLE_ACTIVE: Vec4 = vec4(0.90, 0.91, 0.93, 1.0); // Bright white
 pub const COLOR_TEXT_TITLE_INACTIVE: Vec4 = vec4(0.42, 0.48, 0.55, 1.0); // Muted gray
 
+// Session selection colors (for projects panel)
+pub const COLOR_SESSION_SELECTED: Vec4 = vec4(0.18, 0.22, 0.27, 1.0); // Darker blue-gray
+pub const COLOR_SESSION_NORMAL: Vec4 = vec4(0.12, 0.14, 0.17, 1.0); // Dark gray
+
 // Status text messages
 pub const STATUS_CONNECTING: &str = "Connecting...";
 pub const STATUS_CONNECTED: &str = "Connected";
