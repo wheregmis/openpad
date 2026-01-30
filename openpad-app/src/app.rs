@@ -70,7 +70,6 @@ live_design! {
                         // Messages area (scrollable)
                         <ScrollYView> {
                             width: Fill, height: Fill
-                            scroll_bars: true
 
                             message_list = <PortalList> {
                                 width: Fill, height: Fill
