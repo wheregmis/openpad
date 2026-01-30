@@ -120,6 +120,21 @@ pub struct ProjectsPanel {
 }
 
 impl ProjectsPanel {
+    fn derive_project_name(project: &Project) -> String {
+        if let Some(name) = &project.name {
+            if !name.is_empty() {
+                return name.clone();
+            }
+        }
+        // Derive name from last component of worktree path
+        std::path::Path::new(&project.worktree)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .filter(|n| !n.is_empty())
+            .unwrap_or(&project.worktree)
+            .to_string()
+    }
+
     fn rebuild_items(&mut self) {
         let mut grouped: HashMap<Option<String>, Vec<Session>> = HashMap::new();
         for session in &self.sessions {
@@ -131,17 +146,19 @@ impl ProjectsPanel {
 
         let mut items = Vec::new();
         for project in &self.projects {
+            // Skip projects without a meaningful worktree (e.g. global with "/")
+            if project.worktree == "/" || project.worktree == "." || project.worktree.is_empty() {
+                continue;
+            }
+
             let project_id = Some(project.id.clone());
-            let name = project.name.clone().unwrap_or_else(|| project.id.clone());
-            let path = project.path.clone().unwrap_or_default();
+            let name = Self::derive_project_name(project);
+            let path = project.worktree.clone();
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: project_id.clone(),
                 name,
                 path,
-            });
-            items.push(PanelItemKind::NewSession {
-                project_id: project_id.clone(),
             });
 
             if let Some(sessions) = grouped.get(&project_id) {
@@ -159,31 +176,42 @@ impl ProjectsPanel {
                     });
                 }
             }
+
+            items.push(PanelItemKind::NewSession {
+                project_id: project_id.clone(),
+            });
             items.push(PanelItemKind::Spacer);
         }
 
-        if let Some(sessions) = grouped.get(&None) {
-            if !sessions.is_empty() {
-                items.push(PanelItemKind::ProjectHeader {
-                    project_id: None,
-                    name: "Other".to_string(),
-                    path: "".to_string(),
+        // Collect ungrouped sessions (no matching project)
+        let project_ids: std::collections::HashSet<String> =
+            self.projects.iter().map(|p| p.id.clone()).collect();
+        let ungrouped: Vec<&Session> = self
+            .sessions
+            .iter()
+            .filter(|s| !project_ids.contains(&s.project_id))
+            .collect();
+
+        if !ungrouped.is_empty() {
+            items.push(PanelItemKind::ProjectHeader {
+                project_id: None,
+                name: "Other".to_string(),
+                path: "".to_string(),
+            });
+            for session in ungrouped {
+                let title = if !session.title.is_empty() {
+                    session.title.clone()
+                } else if !session.slug.is_empty() {
+                    session.slug.clone()
+                } else {
+                    session.id.clone()
+                };
+                items.push(PanelItemKind::SessionRow {
+                    session_id: session.id.clone(),
+                    title,
                 });
-                items.push(PanelItemKind::NewSession { project_id: None });
-                for session in sessions {
-                    let title = if !session.title.is_empty() {
-                        session.title.clone()
-                    } else if !session.slug.is_empty() {
-                        session.slug.clone()
-                    } else {
-                        session.id.clone()
-                    };
-                    items.push(PanelItemKind::SessionRow {
-                        session_id: session.id.clone(),
-                        title,
-                    });
-                }
             }
+            items.push(PanelItemKind::NewSession { project_id: None });
         }
 
         self.items = items;

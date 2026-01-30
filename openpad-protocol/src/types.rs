@@ -43,10 +43,9 @@ pub struct Agent {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Project {
     pub id: String,
+    pub worktree: String,
     #[serde(default)]
     pub name: Option<String>,
-    #[serde(default)]
-    pub path: Option<String>,
 }
 
 // ============================================================================
@@ -124,11 +123,11 @@ pub struct SubMatch {
 pub struct FilesSearchRequest {
     pub query: String,
     #[serde(default, rename = "type")]
-    pub type_filter: Option<String>,  // "file" or "directory"
+    pub type_filter: Option<String>, // "file" or "directory"
     #[serde(default)]
     pub directory: Option<String>,
     #[serde(default)]
-    pub limit: Option<usize>,  // 1-200
+    pub limit: Option<usize>, // 1-200
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -160,7 +159,7 @@ pub struct FileReadRequest {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FileReadResponse {
     #[serde(rename = "type")]
-    pub type_name: String,  // "raw" or "patch"
+    pub type_name: String, // "raw" or "patch"
     pub content: String,
 }
 
@@ -195,7 +194,7 @@ pub struct ExecuteCommandRequest {
 pub struct ShowToastRequest {
     pub message: String,
     #[serde(default)]
-    pub variant: Option<String>,  // e.g., "success", "error", "info"
+    pub variant: Option<String>, // e.g., "success", "error", "info"
 }
 
 // ============================================================================
@@ -205,7 +204,7 @@ pub struct ShowToastRequest {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct AuthSetRequest {
     #[serde(rename = "type")]
-    pub auth_type: String,  // "api"
+    pub auth_type: String, // "api"
     pub key: String,
 }
 
@@ -597,7 +596,7 @@ impl Message {
             Message::Assistant(msg) => &msg.id,
         }
     }
-    
+
     pub fn session_id(&self) -> &str {
         match self {
             Message::User(msg) => &msg.session_id,
