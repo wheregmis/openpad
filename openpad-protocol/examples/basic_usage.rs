@@ -53,10 +53,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n3. Creating session...");
     let session = client.create_session_with_options(SessionCreateRequest {
         title: Some("Example Session".to_string()),
+        parent_id: None,
+        permission: None,
     }).await?;
     println!("   ✓ Session created");
     println!("   ID: {}", session.id);
-    println!("   Title: {:?}", session.title);
+    println!("   Title: {}", session.title);
 
     // 4. Subscribe to events
     println!("\n4. Subscribing to events...");
@@ -141,7 +143,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sessions = client.list_sessions().await?;
     println!("   Found {} session(s)", sessions.len());
     for s in &sessions {
-        println!("   - {} ({})", s.id, s.title.as_deref().unwrap_or("Untitled"));
+        println!("   - {} ({})", s.id, s.title);
     }
 
     println!("\n✓ Example completed successfully!");
