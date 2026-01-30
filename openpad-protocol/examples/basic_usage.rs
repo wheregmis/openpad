@@ -13,8 +13,8 @@
 //! ```
 
 use openpad_protocol::{
-    OpenCodeClient, Event, PromptRequest, PartInput, ModelSpec,
-    SessionCreateRequest, LogRequest, Part,
+    Event, LogRequest, ModelSpec, OpenCodeClient, Part, PartInput, PromptRequest,
+    SessionCreateRequest,
 };
 
 #[tokio::main]
@@ -42,20 +42,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 2. Log a message
     println!("\n2. Writing log entry...");
-    client.log(LogRequest {
-        service: "basic_usage_example".to_string(),
-        level: "info".to_string(),
-        message: "Starting basic usage example".to_string(),
-    }).await?;
+    client
+        .log(LogRequest {
+            service: "basic_usage_example".to_string(),
+            level: "info".to_string(),
+            message: "Starting basic usage example".to_string(),
+        })
+        .await?;
     println!("   ✓ Log entry written");
 
     // 3. Create a session
     println!("\n3. Creating session...");
-    let session = client.create_session_with_options(SessionCreateRequest {
-        title: Some("Example Session".to_string()),
-        parent_id: None,
-        permission: None,
-    }).await?;
+    let session = client
+        .create_session_with_options(SessionCreateRequest {
+            title: Some("Example Session".to_string()),
+            parent_id: None,
+            permission: None,
+        })
+        .await?;
     println!("   ✓ Session created");
     println!("   ID: {}", session.id);
     println!("   Title: {}", session.title);
@@ -72,10 +76,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             provider_id: "anthropic".to_string(),
             model_id: "claude-3-5-sonnet-20241022".to_string(),
         }),
-        parts: vec![PartInput::text("Hello! Can you help me with Rust programming?")],
+        parts: vec![PartInput::text(
+            "Hello! Can you help me with Rust programming?",
+        )],
         no_reply: None,
     };
-    
+
     match client.send_prompt_with_options(&session.id, prompt).await {
         Ok(message) => {
             println!("   ✓ Prompt sent");
@@ -117,12 +123,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Event::PartUpdated { part, delta } => {
                                 println!("   → Part updated (delta: {})", delta.is_some());
                                 match part {
-                                    Part::Text { text } => println!("      Text: {}...", text.chars().take(50).collect::<String>()),
+                                    Part::Text { text, .. } => println!("      Text: {}...", text.chars().take(50).collect::<String>()),
                                     Part::Unknown => println!("      Unknown part type"),
                                 }
                             }
                             Event::PartRemoved { session_id, message_id, part_id } => {
-                                println!("   → Part {} removed from message {} (session {})", 
+                                println!("   → Part {} removed from message {} (session {})",
                                     part_id, message_id, session_id);
                             }
                             Event::SessionError { session_id, error } => {
@@ -135,7 +141,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 println!("   → Unknown event: {}", event_type);
                             }
                         }
-                        
+
                         if count >= 10 {
                             println!("   Received 10 events, stopping...");
                             break;
