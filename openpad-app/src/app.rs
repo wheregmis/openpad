@@ -1,6 +1,8 @@
 use makepad_widgets::*;
 use openpad_widgets::SidePanelWidgetRefExt;
-use openpad_protocol::{Event as OcEvent, Message, OpenCodeClient, Session};
+use openpad_protocol::{
+    Event as OcEvent, HealthResponse, Message, OpenCodeClient, Project, Session,
+};
 use std::sync::Arc;
 
 app_main!(App);
@@ -64,6 +66,61 @@ live_design! {
         }
     }
 
+    ProjectsPanel = {{ProjectsPanel}} {
+        width: Fill, height: Fill
+        list = <PortalList> {
+            scroll_bar: <ScrollBar> {}
+
+            ProjectHeader = <View> {
+                width: Fill, height: Fit
+                flow: Down,
+                padding: { top: 6, bottom: 6 }
+                project_name = <Label> {
+                    draw_text: { color: #e6e9ee, text_style: { font_size: 12 } }
+                }
+                project_path = <Label> {
+                    draw_text: { color: #aab3bd, text_style: { font_size: 10 } }
+                }
+            }
+
+            NewSessionRow = <View> {
+                width: Fill, height: Fit
+                padding: { top: 6, bottom: 8 }
+                new_session_button = <Button> {
+                    width: Fill, height: 36
+                    text: "+  New session"
+                    draw_bg: {
+                        color: #232830
+                        color_hover: #2a313b
+                        border_radius: 8.0
+                        border_size: 1.0
+                        border_color_1: #313842
+                        border_color_2: #2a3039
+                    }
+                    draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
+                }
+            }
+
+            SessionRow = <View> {
+                width: Fill, height: Fit
+                padding: { top: 2, bottom: 2 }
+                session_button = <Button> {
+                    width: Fill, height: 34
+                    text: "Session"
+                    draw_bg: {
+                        color: #1f2329
+                        color_hover: #242a32
+                        border_radius: 8.0
+                        border_size: 0.0
+                    }
+                    draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
+                }
+            }
+
+            Spacer = <View> { width: Fill, height: 12 }
+        }
+    }
+
     App = {{App}} {
         ui: <Window> {
             window: { inner_size: vec2(1200, 800) }
@@ -102,8 +159,7 @@ live_design! {
                     spacing: 12,
 
                     side_panel = <SidePanel> {
-                        <Label> { text: "Project" draw_text: { color: #e6e9ee } }
-                        <Label> { text: "Sessions" draw_text: { color: #aab3bd } }
+                        projects_panel = <ProjectsPanel> {}
                     }
 
                     <View> {
@@ -168,9 +224,234 @@ pub enum AppAction {
     None,
     Connected,
     ConnectionFailed(String),
+    HealthUpdated(HealthResponse),
+    ProjectsLoaded(Vec<Project>),
+    CurrentProjectLoaded(Project),
+    SessionsLoaded(Vec<Session>),
     SessionCreated(Session),
     OpenCodeEvent(OcEvent),
     SendMessageFailed(String),
+}
+
+#[derive(Clone, Debug, DefaultNone)]
+pub enum ProjectsPanelAction {
+    None,
+    SelectSession(String),
+    CreateSession(Option<String>),
+}
+
+#[derive(Clone, Debug)]
+enum PanelItemKind {
+    ProjectHeader {
+        project_id: Option<String>,
+        name: String,
+        path: String,
+    },
+    NewSession {
+        project_id: Option<String>,
+    },
+    SessionRow {
+        session_id: String,
+        title: String,
+    },
+    Spacer,
+}
+
+#[derive(Live, LiveHook, Widget)]
+pub struct ProjectsPanel {
+    #[deref]
+    view: View,
+    #[rust]
+    projects: Vec<Project>,
+    #[rust]
+    sessions: Vec<Session>,
+    #[rust]
+    selected_session_id: Option<String>,
+    #[rust]
+    items: Vec<PanelItemKind>,
+    #[rust]
+    visible_items: Vec<(PanelItemKind, WidgetRef)>,
+    #[rust]
+    dirty: bool,
+}
+
+impl ProjectsPanel {
+    fn rebuild_items(&mut self) {
+        use std::collections::HashMap;
+        let mut grouped: HashMap<Option<String>, Vec<Session>> = HashMap::new();
+        for session in &self.sessions {
+            grouped
+                .entry(Some(session.project_id.clone()))
+                .or_default()
+                .push(session.clone());
+        }
+
+        let mut items = Vec::new();
+        for project in &self.projects {
+            let project_id = Some(project.id.clone());
+            let name = project
+                .name
+                .clone()
+                .unwrap_or_else(|| project.id.clone());
+            let path = project.path.clone().unwrap_or_default();
+
+            items.push(PanelItemKind::ProjectHeader {
+                project_id: project_id.clone(),
+                name,
+                path,
+            });
+            items.push(PanelItemKind::NewSession {
+                project_id: project_id.clone(),
+            });
+
+            if let Some(sessions) = grouped.get(&project_id) {
+                for session in sessions {
+                    let title = if !session.title.is_empty() {
+                        session.title.clone()
+                    } else if !session.slug.is_empty() {
+                        session.slug.clone()
+                    } else {
+                        session.id.clone()
+                    };
+                    items.push(PanelItemKind::SessionRow {
+                        session_id: session.id.clone(),
+                        title,
+                    });
+                }
+            }
+            items.push(PanelItemKind::Spacer);
+        }
+
+        if let Some(sessions) = grouped.get(&None) {
+            if !sessions.is_empty() {
+                items.push(PanelItemKind::ProjectHeader {
+                    project_id: None,
+                    name: "Other".to_string(),
+                    path: "".to_string(),
+                });
+                items.push(PanelItemKind::NewSession { project_id: None });
+                for session in sessions {
+                    let title = if !session.title.is_empty() {
+                        session.title.clone()
+                    } else if !session.slug.is_empty() {
+                        session.slug.clone()
+                    } else {
+                        session.id.clone()
+                    };
+                    items.push(PanelItemKind::SessionRow {
+                        session_id: session.id.clone(),
+                        title,
+                    });
+                }
+            }
+        }
+
+        self.items = items;
+        self.dirty = false;
+    }
+}
+
+impl Widget for ProjectsPanel {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        let actions = cx.capture_actions(|cx| {
+            self.view.handle_event(cx, event, scope);
+        });
+
+        for (item, widget) in &self.visible_items {
+            match item {
+                PanelItemKind::NewSession { project_id } => {
+                    if widget.button(id!(new_session_button)).clicked(&actions) {
+                        cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
+                    }
+                }
+                PanelItemKind::SessionRow { session_id, .. } => {
+                    if widget.button(id!(session_button)).clicked(&actions) {
+                        cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        if self.dirty {
+            self.rebuild_items();
+        }
+
+        self.visible_items.clear();
+
+        while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
+            if let Some(mut list) = item.as_portal_list().borrow_mut() {
+                if self.items.is_empty() {
+                    list.set_item_range(cx, 0, 0);
+                    continue;
+                } else {
+                    // PortalList range end is inclusive
+                    list.set_item_range(cx, 0, self.items.len().saturating_sub(1));
+                }
+                while let Some(item_id) = list.next_visible_item(cx) {
+                    if item_id >= self.items.len() {
+                        continue;
+                    }
+                    let panel_item = self.items[item_id].clone();
+                    let template = match panel_item {
+                        PanelItemKind::ProjectHeader { .. } => live_id!(ProjectHeader),
+                        PanelItemKind::NewSession { .. } => live_id!(NewSessionRow),
+                        PanelItemKind::SessionRow { .. } => live_id!(SessionRow),
+                        PanelItemKind::Spacer => live_id!(Spacer),
+                    };
+                    let item_widget = list.item(cx, item_id, template);
+
+                    match &panel_item {
+                        PanelItemKind::ProjectHeader { name, path, .. } => {
+                            item_widget.label(id!(project_name)).set_text(cx, name);
+                            item_widget.label(id!(project_path)).set_text(cx, path);
+                        }
+                        PanelItemKind::SessionRow { session_id, title } => {
+                            item_widget.button(id!(session_button)).set_text(cx, title);
+                            let selected = self
+                                .selected_session_id
+                                .as_ref()
+                                .map(|id| id == session_id)
+                                .unwrap_or(false);
+                            let color = if selected {
+                                vec4(0.18, 0.22, 0.27, 1.0)
+                            } else {
+                                vec4(0.12, 0.14, 0.17, 1.0)
+                            };
+                            item_widget.button(id!(session_button)).apply_over(cx, live! {
+                                draw_bg: { color: (color) }
+                            });
+                        }
+                        _ => {}
+                    }
+
+                    item_widget.draw_all(cx, scope);
+                    self.visible_items.push((panel_item, item_widget));
+                }
+            }
+        }
+        DrawStep::done()
+    }
+}
+
+impl ProjectsPanelRef {
+    pub fn set_data(
+        &self,
+        cx: &mut Cx,
+        projects: Vec<Project>,
+        sessions: Vec<Session>,
+        selected_session_id: Option<String>,
+    ) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.projects = projects;
+            inner.sessions = sessions;
+            inner.selected_session_id = selected_session_id;
+            inner.dirty = true;
+            inner.redraw(cx);
+        }
+    }
 }
 
 #[derive(Live, LiveHook)]
@@ -181,9 +462,19 @@ pub struct App {
     #[rust]
     messages: Vec<Message>,
     #[rust]
+    projects: Vec<Project>,
+    #[rust]
+    sessions: Vec<Session>,
+    #[rust]
+    current_project: Option<Project>,
+    #[rust]
+    selected_session_id: Option<String>,
+    #[rust]
     current_session_id: Option<String>,
     #[rust]
     connected: bool,
+    #[rust]
+    health_ok: Option<bool>,
     #[rust]
     error_message: Option<String>,
     #[rust]
@@ -205,12 +496,15 @@ impl App {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let client = Arc::new(OpenCodeClient::new("http://localhost:4096"));
         let client_clone = client.clone();
+        let client_health = client.clone();
+        let client_load = client.clone();
 
         runtime.spawn(async move {
             // Try to connect by listing sessions
             match client_clone.list_sessions().await {
-                Ok(_) => {
+                Ok(sessions) => {
                     Cx::post_action(AppAction::Connected);
+                    Cx::post_action(AppAction::SessionsLoaded(sessions));
 
                     // Subscribe to SSE
                     if let Ok(mut rx) = client_clone.subscribe().await {
@@ -222,6 +516,29 @@ impl App {
                 Err(e) => {
                     Cx::post_action(AppAction::ConnectionFailed(e.to_string()));
                 }
+            }
+        });
+
+        runtime.spawn(async move {
+            use tokio::time::{sleep, Duration};
+            loop {
+                match client_health.health().await {
+                    Ok(health) => Cx::post_action(AppAction::HealthUpdated(health)),
+                    Err(_) => Cx::post_action(AppAction::HealthUpdated(HealthResponse {
+                        healthy: false,
+                        version: "unknown".to_string(),
+                    })),
+                }
+                sleep(Duration::from_secs(10)).await;
+            }
+        });
+
+        runtime.spawn(async move {
+            if let Ok(projects) = client_load.list_projects().await {
+                Cx::post_action(AppAction::ProjectsLoaded(projects));
+            }
+            if let Ok(current) = client_load.current_project().await {
+                Cx::post_action(AppAction::CurrentProjectLoaded(current));
             }
         });
 
@@ -258,12 +575,50 @@ impl App {
                         );
                         cx.redraw_all();
                     }
+                    AppAction::HealthUpdated(health) => {
+                        self.health_ok = Some(health.healthy);
+                        if health.healthy || self.connected {
+                            self.ui.label(id!(status_label)).set_text(cx, "Connected");
+                            self.ui.view(id!(status_dot)).apply_over(
+                                cx,
+                                live! {
+                                    draw_bg: { color: (vec4(0.231, 0.824, 0.435, 1.0)) }
+                                },
+                            );
+                        } else {
+                            self.ui.label(id!(status_label)).set_text(cx, "Disconnected");
+                            self.ui.view(id!(status_dot)).apply_over(
+                                cx,
+                                live! {
+                                    draw_bg: { color: (vec4(0.55, 0.57, 0.60, 1.0)) }
+                                },
+                            );
+                        }
+                        cx.redraw_all();
+                    }
+                    AppAction::ProjectsLoaded(projects) => {
+                        self.projects = projects.clone();
+                        self.ui.projects_panel(id!(projects_panel)).set_data(
+                            cx,
+                            self.projects.clone(),
+                            self.sessions.clone(),
+                            self.selected_session_id.clone(),
+                        );
+                    }
+                    AppAction::CurrentProjectLoaded(project) => {
+                        self.current_project = Some(project.clone());
+                    }
+                    AppAction::SessionsLoaded(sessions) => {
+                        self.sessions = sessions.clone();
+                        self.ui.projects_panel(id!(projects_panel)).set_data(
+                            cx,
+                            self.projects.clone(),
+                            self.sessions.clone(),
+                            self.selected_session_id.clone(),
+                        );
+                    }
                     AppAction::SessionCreated(session) => {
                         self.current_session_id = Some(session.id.clone());
-                        self.ui.label(id!(status_label)).set_text(
-                            cx,
-                            &format!("Session: {} | {} messages", session.id, self.messages.len()),
-                        );
                         cx.redraw_all();
                     }
                     AppAction::OpenCodeEvent(oc_event) => {
@@ -276,6 +631,23 @@ impl App {
                     _ => {}
                 }
             }
+            if let Some(panel_action) = action.downcast_ref::<ProjectsPanelAction>() {
+                match panel_action {
+                    ProjectsPanelAction::SelectSession(session_id) => {
+                        self.selected_session_id = Some(session_id.clone());
+                        self.ui.projects_panel(id!(projects_panel)).set_data(
+                            cx,
+                            self.projects.clone(),
+                            self.sessions.clone(),
+                            self.selected_session_id.clone(),
+                        );
+                    }
+                    ProjectsPanelAction::CreateSession(_project_id) => {
+                        self.create_session(cx);
+                    }
+                    _ => {}
+                }
+            }
         }
     }
 
@@ -284,13 +656,16 @@ impl App {
             OcEvent::SessionCreated(session) => {
                 if self.current_session_id.is_none() {
                     self.current_session_id = Some(session.id.clone());
-                    self.ui.label(id!(status_label)).set_text(
-                        cx,
-                        &format!("Session: {} | {} messages", session.id, self.messages.len()),
-                    );
                 }
+                self.sessions.push(session.clone());
+                self.ui.projects_panel(id!(projects_panel)).set_data(
+                    cx,
+                    self.projects.clone(),
+                    self.sessions.clone(),
+                    self.selected_session_id.clone(),
+                );
             }
-            OcEvent::MessageUpdated { message, .. } => {
+            OcEvent::MessageUpdated(message) => {
                 // Find existing message or add new
                 if let Some(existing) = self.messages.iter_mut().find(|m| m.id() == message.id()) {
                     *existing = message.clone();
@@ -298,29 +673,10 @@ impl App {
                     self.messages.push(message.clone());
                 }
 
-                if let Some(session_id) = &self.current_session_id {
-                    self.ui.label(id!(status_label)).set_text(
-                        cx,
-                        &format!("Session: {} | {} messages", session_id, self.messages.len()),
-                    );
-                }
                 cx.redraw_all();
             }
-            OcEvent::PartUpdated {
-                message_id,
-                part_index,
-                part,
-                ..
-            } => {
-                if let Some(msg) = self.messages.iter_mut().find(|m| m.id() == message_id) {
-                    let parts = msg.parts_mut();
-                    if *part_index < parts.len() {
-                        parts[*part_index] = part.clone();
-                    } else {
-                        parts.push(part.clone());
-                    }
-                    cx.redraw_all();
-                }
+            OcEvent::PartUpdated { .. } => {
+                // Current protocol does not include message id; ignore for now.
             }
             _ => {}
         }
@@ -354,6 +710,27 @@ impl App {
             // Send prompt
             if let Err(e) = client.send_prompt(&sid, &text).await {
                 Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
+            }
+        });
+    }
+
+    fn create_session(&mut self, _cx: &mut Cx) {
+        let Some(client) = self.client.clone() else {
+            self.error_message = Some("Not connected".to_string());
+            return;
+        };
+
+        self._runtime.as_ref().unwrap().spawn(async move {
+            match client.create_session().await {
+                Ok(session) => {
+                    Cx::post_action(AppAction::SessionCreated(session));
+                    if let Ok(sessions) = client.list_sessions().await {
+                        Cx::post_action(AppAction::SessionsLoaded(sessions));
+                    }
+                }
+                Err(e) => {
+                    Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
+                }
             }
         });
     }
