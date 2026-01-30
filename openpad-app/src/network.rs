@@ -141,7 +141,9 @@ pub fn spawn_session_creator(
 pub fn get_session_title(session: &Session) -> String {
     if !session.title.is_empty() {
         session.title.clone()
-    } else {
+    } else if !session.slug.is_empty() {
         session.slug.clone()
+    } else {
+        session.id.clone()
     }
 }

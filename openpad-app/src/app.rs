@@ -143,10 +143,8 @@ impl App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
         for action in actions {
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
-                if matches!(app_action, AppAction::OpenCodeEvent(_)) {
-                    if let AppAction::OpenCodeEvent(oc_event) = app_action {
-                        event_handlers::handle_opencode_event(&mut self.state, &self.ui, cx, oc_event);
-                    }
+                if let AppAction::OpenCodeEvent(oc_event) = app_action {
+                    event_handlers::handle_opencode_event(&mut self.state, &self.ui, cx, oc_event);
                 } else {
                     event_handlers::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                 }
