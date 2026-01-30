@@ -215,12 +215,23 @@ live_design! {
                             align: { y: 0.5 }
 
                             session_title = <Label> {
-                                width: Fill
+                                width: Fit
                                 draw_text: {
                                     color: #e6e9ee
                                     text_style: { font_size: 11 }
                                 }
                             }
+
+                            // Status icons
+                            session_icons = <Label> {
+                                width: Fit
+                                draw_text: {
+                                    color: #7a8591
+                                    text_style: { font_size: 10 }
+                                }
+                            }
+
+                            <View> { width: Fill } // Spacer
                         }
 
                         // Line 2: Metadata
@@ -578,12 +589,27 @@ impl Widget for ProjectsPanel {
                             timestamp,
                             timestamp_ms,
                             is_archived,
+                            is_shared,
+                            is_forked,
                             file_changes,
                             message_count,
-                            ..
                         } => {
                             // Set title
                             item_widget.label(id!(session_title)).set_text(cx, title);
+
+                            // Build status icons string
+                            let mut icons = String::new();
+                            if *is_shared {
+                                icons.push_str("🔗 ");
+                            }
+                            if *is_forked {
+                                icons.push_str("↗ ");
+                            }
+                            if *is_archived {
+                                icons.push_str("📦");
+                            }
+
+                            item_widget.label(id!(session_icons)).set_text(cx, &icons);
 
                             // Build metadata string
                             let mut metadata_parts = vec![timestamp.clone()];
