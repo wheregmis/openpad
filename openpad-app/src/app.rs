@@ -149,17 +149,61 @@ live_design! {
 
             SessionRow = <View> {
                 width: Fill, height: Fit
-                padding: { top: 2, bottom: 2 }
-                session_button = <Button> {
-                    width: Fill, height: 34
-                    text: "Session"
+                padding: 0
+
+                session_row_bg = <View> {
+                    width: Fill, height: 52
+                    flow: Right
+                    show_bg: true
                     draw_bg: {
                         color: #1f2329
-                        color_hover: #242a32
-                        border_radius: 8.0
-                        border_size: 0.0
+                        uniform border_color: #4a90e2
+                        uniform border_size: 3.0
+
+                        fn pixel(self) -> vec4 {
+                            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                            // Left status bar
+                            sdf.rect(0.0, 0.0, self.border_size, self.rect_size.y);
+                            sdf.fill(self.border_color);
+                            // Background
+                            sdf.rect(self.border_size, 0.0, self.rect_size.x - self.border_size, self.rect_size.y);
+                            sdf.fill(self.color);
+                            return sdf.result;
+                        }
                     }
-                    draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
+
+                    // Main content area
+                    <View> {
+                        width: Fill, height: Fill
+                        flow: Down
+                        padding: { left: 12, right: 12, top: 8, bottom: 8 }
+                        spacing: 4
+
+                        // Line 1: Title + icons
+                        <View> {
+                            width: Fill, height: Fit
+                            flow: Right
+                            spacing: 6
+                            align: { y: 0.5 }
+
+                            session_title = <Label> {
+                                width: Fill
+                                draw_text: {
+                                    color: #e6e9ee
+                                    text_style: { font_size: 11 }
+                                }
+                            }
+                        }
+
+                        // Line 2: Metadata
+                        session_metadata = <Label> {
+                            width: Fill
+                            draw_text: {
+                                color: #7a8591
+                                text_style: { font_size: 10 }
+                            }
+                        }
+                    }
                 }
             }
 
