@@ -536,16 +536,25 @@ impl PartInput {
 #[derive(Debug, Clone)]
 pub enum Event {
     SessionCreated(Session),
-    SessionDeleted(String),
-    MessageUpdated {
-        session_id: String,
-        message: Message,
-    },
-    PartUpdated {
+    SessionUpdated(Session),
+    SessionDeleted(Session),
+    MessageUpdated(Message),
+    MessageRemoved {
         session_id: String,
         message_id: String,
-        part_index: usize,
+    },
+    PartUpdated {
         part: Part,
+        delta: Option<String>,
+    },
+    PartRemoved {
+        session_id: String,
+        message_id: String,
+        part_id: String,
+    },
+    SessionError {
+        session_id: String,
+        error: AssistantError,
     },
     Error(String),
     Unknown(String),

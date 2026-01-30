@@ -14,7 +14,7 @@
 
 use openpad_protocol::{
     OpenCodeClient, Event, PromptRequest, PartInput, ModelSpec,
-    SessionCreateRequest, LogRequest,
+    SessionCreateRequest, LogRequest, Part,
 };
 
 #[tokio::main]
@@ -102,15 +102,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Event::SessionCreated(s) => {
                                 println!("   → Session created: {}", s.id);
                             }
-                            Event::MessageUpdated { session_id, message } => {
-                                println!("   → Message updated in session {}: {}", session_id, message.id());
+                            Event::SessionUpdated(s) => {
+                                println!("   → Session updated: {}", s.id);
                             }
-                            Event::PartUpdated { session_id, message_id, part_index, .. } => {
-                                println!("   → Part {} updated in message {} (session {})", 
-                                    part_index, message_id, session_id);
+                            Event::SessionDeleted(s) => {
+                                println!("   → Session deleted: {}", s.id);
                             }
-                            Event::SessionDeleted(id) => {
-                                println!("   → Session deleted: {}", id);
+                            Event::MessageUpdated(message) => {
+                                println!("   → Message updated: {} (session {})", message.id(), message.session_id());
+                            }
+                            Event::MessageRemoved { session_id, message_id } => {
+                                println!("   → Message {} removed from session {}", message_id, session_id);
+                            }
+                            Event::PartUpdated { part, delta } => {
+                                println!("   → Part updated (delta: {})", delta.is_some());
+                                match part {
+                                    Part::Text { text } => println!("      Text: {}...", text.chars().take(50).collect::<String>()),
+                                    Part::Unknown => println!("      Unknown part type"),
+                                }
+                            }
+                            Event::PartRemoved { session_id, message_id, part_id } => {
+                                println!("   → Part {} removed from message {} (session {})", 
+                                    part_id, message_id, session_id);
+                            }
+                            Event::SessionError { session_id, error } => {
+                                eprintln!("   → Session {} error: {:?}", session_id, error);
                             }
                             Event::Error(err) => {
                                 eprintln!("   → Error event: {}", err);
