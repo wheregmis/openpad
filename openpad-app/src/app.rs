@@ -1,10 +1,10 @@
-use makepad_widgets::*;
-use openpad_widgets::SidePanelWidgetRefExt;
 use crate::actions::{AppAction, ProjectsPanelAction};
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
+use makepad_widgets::*;
 use openpad_protocol::{
     Event as OcEvent, HealthResponse, Message, OpenCodeClient, Project, Session,
 };
+use openpad_widgets::SidePanelWidgetRefExt;
 use std::sync::Arc;
 
 app_main!(App);
@@ -14,7 +14,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
-    
+
     // Import component DSL definitions
     use crate::components::app_bg::AppBg;
     use crate::components::user_bubble::UserBubble;
@@ -73,7 +73,7 @@ live_design! {
 
                             message_list = <PortalList> {
                                 width: Fill, height: Fill
-                                
+
                                 UserMsg = <View> {
                                     width: Fill, height: Fit
                                     flow: Right,
@@ -177,21 +177,25 @@ impl App {
         let client_load = client.clone();
 
         runtime.spawn(async move {
-            // Try to connect by listing sessions
-            match client_clone.list_sessions().await {
-                Ok(sessions) => {
-                    Cx::post_action(AppAction::Connected);
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
+            use tokio::time::{sleep, Duration};
 
-                    // Subscribe to SSE
-                    if let Ok(mut rx) = client_clone.subscribe().await {
-                        while let Ok(event) = rx.recv().await {
-                            Cx::post_action(AppAction::OpenCodeEvent(event));
-                        }
+            // Retry connecting until successful
+            let sessions = loop {
+                match client_clone.list_sessions().await {
+                    Ok(sessions) => break sessions,
+                    Err(_) => {
+                        sleep(Duration::from_secs(2)).await;
                     }
                 }
-                Err(e) => {
-                    Cx::post_action(AppAction::ConnectionFailed(e.to_string()));
+            };
+
+            Cx::post_action(AppAction::Connected);
+            Cx::post_action(AppAction::SessionsLoaded(sessions));
+
+            // Subscribe to SSE
+            if let Ok(mut rx) = client_clone.subscribe().await {
+                while let Ok(event) = rx.recv().await {
+                    Cx::post_action(AppAction::OpenCodeEvent(event));
                 }
             }
         });
@@ -206,7 +210,7 @@ impl App {
                         version: "unknown".to_string(),
                     })),
                 }
-                sleep(Duration::from_secs(10)).await;
+                sleep(Duration::from_secs(5)).await;
             }
         });
 
@@ -254,7 +258,9 @@ impl App {
                     }
                     AppAction::HealthUpdated(health) => {
                         self.health_ok = Some(health.healthy);
-                        if health.healthy || self.connected {
+                        if health.healthy {
+                            self.connected = true;
+                            self.error_message = None;
                             self.ui.label(id!(status_label)).set_text(cx, "Connected");
                             self.ui.view(id!(status_dot)).apply_over(
                                 cx,
@@ -263,7 +269,10 @@ impl App {
                                 },
                             );
                         } else {
-                            self.ui.label(id!(status_label)).set_text(cx, "Disconnected");
+                            self.connected = false;
+                            self.ui
+                                .label(id!(status_label))
+                                .set_text(cx, "Disconnected");
                             self.ui.view(id!(status_dot)).apply_over(
                                 cx,
                                 live! {

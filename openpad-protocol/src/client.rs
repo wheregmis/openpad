@@ -3,18 +3,18 @@
 //! This module provides a complete client for the OpenCode server API,
 //! including REST endpoints and Server-Sent Events (SSE) subscription.
 
-use crate::{Error, Result, Event, Session, Message, PartInput, Part, AssistantError};
 use crate::{
-    HealthResponse, LogRequest, Agent, Project, PathInfo, Config, ProvidersResponse,
-    TextSearchRequest, TextSearchResult, FilesSearchRequest, SymbolsSearchRequest, Symbol,
-    FileReadRequest, FileReadResponse, FileStatusRequest, File,
-    AppendPromptRequest, ExecuteCommandRequest, ShowToastRequest, AuthSetRequest,
-    SessionCreateRequest, SessionUpdateRequest, SessionInitRequest, SessionSummarizeRequest,
-    MessageWithParts, PromptRequest, CommandRequest, ShellRequest, RevertRequest, PermissionResponse,
+    Agent, AppendPromptRequest, AuthSetRequest, CommandRequest, Config, ExecuteCommandRequest,
+    File, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest, HealthResponse,
+    LogRequest, MessageWithParts, PathInfo, PermissionResponse, Project, PromptRequest,
+    ProvidersResponse, RevertRequest, SessionCreateRequest, SessionInitRequest,
+    SessionSummarizeRequest, SessionUpdateRequest, ShellRequest, ShowToastRequest, Symbol,
+    SymbolsSearchRequest, TextSearchRequest, TextSearchResult,
 };
+use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
 use reqwest::Client as HttpClient;
-use tokio::sync::broadcast;
 use std::env;
+use tokio::sync::broadcast;
 
 /// OpenCode HTTP client.
 ///
@@ -88,16 +88,22 @@ impl OpenCodeClient {
         if !response.status().is_success() {
             return Err(Error::InvalidResponse(format!(
                 "Failed to {}: {}",
-                action, response.status()
+                action,
+                response.status()
             )));
         }
         Ok(())
     }
 
     /// Helper for GET requests that return JSON.
-    async fn get_json<T: serde::de::DeserializeOwned>(&self, endpoint: &str, action: &str) -> Result<T> {
+    async fn get_json<T: serde::de::DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        action: &str,
+    ) -> Result<T> {
         let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.http
+        let response = self
+            .http
             .get(&url)
             .query(&[("directory", &self.directory)])
             .send()
@@ -109,10 +115,14 @@ impl OpenCodeClient {
 
     /// Helper for POST requests with JSON body that return JSON.
     async fn post_json<B: serde::Serialize, T: serde::de::DeserializeOwned>(
-        &self, endpoint: &str, body: &B, action: &str
+        &self,
+        endpoint: &str,
+        body: &B,
+        action: &str,
     ) -> Result<T> {
         let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.http
+        let response = self
+            .http
             .post(&url)
             .query(&[("directory", &self.directory)])
             .json(body)
@@ -125,10 +135,14 @@ impl OpenCodeClient {
 
     /// Helper for POST requests with JSON body that return boolean (success indicator).
     async fn post_json_bool<B: serde::Serialize>(
-        &self, endpoint: &str, body: &B, action: &str
+        &self,
+        endpoint: &str,
+        body: &B,
+        action: &str,
     ) -> Result<bool> {
         let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.http
+        let response = self
+            .http
             .post(&url)
             .query(&[("directory", &self.directory)])
             .json(body)
@@ -143,10 +157,13 @@ impl OpenCodeClient {
 
     /// Helper for POST requests without body that return JSON.
     async fn post_no_body_json<T: serde::de::DeserializeOwned>(
-        &self, endpoint: &str, action: &str
+        &self,
+        endpoint: &str,
+        action: &str,
     ) -> Result<T> {
         let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.http
+        let response = self
+            .http
             .post(&url)
             .query(&[("directory", &self.directory)])
             .send()
@@ -159,7 +176,8 @@ impl OpenCodeClient {
     /// Helper for POST requests without body that return boolean.
     async fn post_no_body_bool(&self, endpoint: &str, action: &str) -> Result<bool> {
         let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.http
+        let response = self
+            .http
             .post(&url)
             .query(&[("directory", &self.directory)])
             .send()
@@ -173,10 +191,14 @@ impl OpenCodeClient {
 
     /// Helper for PATCH requests with JSON body that return JSON.
     async fn patch_json<B: serde::Serialize, T: serde::de::DeserializeOwned>(
-        &self, endpoint: &str, body: &B, action: &str
+        &self,
+        endpoint: &str,
+        body: &B,
+        action: &str,
     ) -> Result<T> {
         let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.http
+        let response = self
+            .http
             .patch(&url)
             .query(&[("directory", &self.directory)])
             .json(body)
@@ -190,7 +212,8 @@ impl OpenCodeClient {
     /// Helper for DELETE requests that return boolean.
     async fn delete_bool(&self, endpoint: &str, action: &str) -> Result<bool> {
         let url = format!("{}{}", self.base_url, endpoint);
-        let response = self.http
+        let response = self
+            .http
             .delete(&url)
             .query(&[("directory", &self.directory)])
             .send()
@@ -221,7 +244,7 @@ impl OpenCodeClient {
     }
 
     pub async fn send_prompt(&self, session_id: &str, text: &str) -> Result<()> {
-        let endpoint = format!("/session/{}/prompt", session_id);
+        let endpoint = format!("/session/{}/message", session_id);
         let body = serde_json::json!({
             "parts": vec![PartInput::text(text)],
         });
@@ -235,9 +258,9 @@ impl OpenCodeClient {
 
     /// Check server health and version.
     ///
-    /// This is a global endpoint that does not require a directory context.
+    /// Uses the `/global/health` endpoint.
     pub async fn health(&self) -> Result<HealthResponse> {
-        let url = format!("{}/health", self.base_url);
+        let url = format!("{}/global/health", self.base_url);
         let response = self.http.get(&url).send().await?;
         Self::check_response(&response, "get health")?;
         Ok(response.json().await?)
@@ -264,7 +287,8 @@ impl OpenCodeClient {
     }
 
     pub async fn current_project(&self) -> Result<Project> {
-        self.get_json("/project/current", "get current project").await
+        self.get_json("/project/current", "get current project")
+            .await
     }
 
     // ========================================================================
@@ -291,7 +315,10 @@ impl OpenCodeClient {
     // Extended Session APIs
     // ========================================================================
 
-    pub async fn create_session_with_options(&self, request: SessionCreateRequest) -> Result<Session> {
+    pub async fn create_session_with_options(
+        &self,
+        request: SessionCreateRequest,
+    ) -> Result<Session> {
         self.post_json("/session", &request, "create session").await
     }
 
@@ -305,14 +332,23 @@ impl OpenCodeClient {
         self.delete_bool(&endpoint, "delete session").await
     }
 
-    pub async fn update_session(&self, session_id: &str, request: SessionUpdateRequest) -> Result<Session> {
+    pub async fn update_session(
+        &self,
+        session_id: &str,
+        request: SessionUpdateRequest,
+    ) -> Result<Session> {
         let endpoint = format!("/session/{}", session_id);
         self.patch_json(&endpoint, &request, "update session").await
     }
 
-    pub async fn init_session(&self, session_id: &str, request: SessionInitRequest) -> Result<bool> {
+    pub async fn init_session(
+        &self,
+        session_id: &str,
+        request: SessionInitRequest,
+    ) -> Result<bool> {
         let endpoint = format!("/session/{}/init", session_id);
-        self.post_json_bool(&endpoint, &request, "init session").await
+        self.post_json_bool(&endpoint, &request, "init session")
+            .await
     }
 
     pub async fn abort_session(&self, session_id: &str) -> Result<bool> {
@@ -330,37 +366,59 @@ impl OpenCodeClient {
         self.post_no_body_json(&endpoint, "unshare session").await
     }
 
-    pub async fn summarize_session(&self, session_id: &str, request: SessionSummarizeRequest) -> Result<bool> {
+    pub async fn summarize_session(
+        &self,
+        session_id: &str,
+        request: SessionSummarizeRequest,
+    ) -> Result<bool> {
         let endpoint = format!("/session/{}/summarize", session_id);
-        self.post_json_bool(&endpoint, &request, "summarize session").await
+        self.post_json_bool(&endpoint, &request, "summarize session")
+            .await
     }
 
     pub async fn list_messages(&self, session_id: &str) -> Result<Vec<MessageWithParts>> {
-        let endpoint = format!("/session/{}/messages", session_id);
+        let endpoint = format!("/session/{}/message", session_id);
         self.get_json(&endpoint, "list messages").await
     }
 
-    pub async fn get_message(&self, session_id: &str, message_id: &str) -> Result<MessageWithParts> {
-        let endpoint = format!("/session/{}/messages/{}", session_id, message_id);
+    pub async fn get_message(
+        &self,
+        session_id: &str,
+        message_id: &str,
+    ) -> Result<MessageWithParts> {
+        let endpoint = format!("/session/{}/message/{}", session_id, message_id);
         self.get_json(&endpoint, "get message").await
     }
 
-    pub async fn send_prompt_with_options(&self, session_id: &str, request: PromptRequest) -> Result<Message> {
-        let endpoint = format!("/session/{}/prompt", session_id);
+    pub async fn send_prompt_with_options(
+        &self,
+        session_id: &str,
+        request: PromptRequest,
+    ) -> Result<Message> {
+        let endpoint = format!("/session/{}/message", session_id);
         self.post_json(&endpoint, &request, "send prompt").await
     }
 
-    pub async fn send_command(&self, session_id: &str, request: CommandRequest) -> Result<MessageWithParts> {
+    pub async fn send_command(
+        &self,
+        session_id: &str,
+        request: CommandRequest,
+    ) -> Result<MessageWithParts> {
         let endpoint = format!("/session/{}/command", session_id);
         self.post_json(&endpoint, &request, "send command").await
     }
 
     pub async fn send_shell(&self, session_id: &str, request: ShellRequest) -> Result<Message> {
         let endpoint = format!("/session/{}/shell", session_id);
-        self.post_json(&endpoint, &request, "send shell command").await
+        self.post_json(&endpoint, &request, "send shell command")
+            .await
     }
 
-    pub async fn revert_message(&self, session_id: &str, request: RevertRequest) -> Result<Session> {
+    pub async fn revert_message(
+        &self,
+        session_id: &str,
+        request: RevertRequest,
+    ) -> Result<Session> {
         let endpoint = format!("/session/{}/revert", session_id);
         self.post_json(&endpoint, &request, "revert message").await
     }
@@ -370,9 +428,15 @@ impl OpenCodeClient {
         self.post_no_body_json(&endpoint, "unrevert session").await
     }
 
-    pub async fn respond_to_permission(&self, session_id: &str, permission_id: &str, permission_response: PermissionResponse) -> Result<bool> {
+    pub async fn respond_to_permission(
+        &self,
+        session_id: &str,
+        permission_id: &str,
+        permission_response: PermissionResponse,
+    ) -> Result<bool> {
         let endpoint = format!("/session/{}/permissions/{}", session_id, permission_id);
-        self.post_json_bool(&endpoint, &permission_response, "respond to permission").await
+        self.post_json_bool(&endpoint, &permission_response, "respond to permission")
+            .await
     }
 
     // ========================================================================
@@ -381,7 +445,8 @@ impl OpenCodeClient {
 
     pub async fn search_text(&self, request: TextSearchRequest) -> Result<Vec<TextSearchResult>> {
         let url = format!("{}/find/text", self.base_url);
-        let response = self.http
+        let response = self
+            .http
             .get(&url)
             .query(&[("directory", &self.directory)])
             .query(&[("pattern", &request.pattern)])
@@ -394,14 +459,15 @@ impl OpenCodeClient {
 
     pub async fn search_files(&self, request: FilesSearchRequest) -> Result<Vec<String>> {
         let url = format!("{}/find/files", self.base_url);
-        
+
         // Use request.directory if provided, otherwise use self.directory
-        let directory = request.directory.as_ref().unwrap_or(&self.directory).to_string();
-        let mut query = vec![
-            ("directory", directory),
-            ("query", request.query.clone()),
-        ];
-        
+        let directory = request
+            .directory
+            .as_ref()
+            .unwrap_or(&self.directory)
+            .to_string();
+        let mut query = vec![("directory", directory), ("query", request.query.clone())];
+
         if let Some(type_filter) = &request.type_filter {
             query.push(("type", type_filter.clone()));
         }
@@ -409,11 +475,7 @@ impl OpenCodeClient {
             query.push(("limit", limit.to_string()));
         }
 
-        let response = self.http
-            .get(&url)
-            .query(&query)
-            .send()
-            .await?;
+        let response = self.http.get(&url).query(&query).send().await?;
 
         Self::check_response(&response, "search files")?;
         Ok(response.json().await?)
@@ -421,7 +483,8 @@ impl OpenCodeClient {
 
     pub async fn search_symbols(&self, request: SymbolsSearchRequest) -> Result<Vec<Symbol>> {
         let url = format!("{}/find/symbols", self.base_url);
-        let response = self.http
+        let response = self
+            .http
             .get(&url)
             .query(&[("directory", &self.directory)])
             .query(&[("query", &request.query)])
@@ -434,7 +497,8 @@ impl OpenCodeClient {
 
     pub async fn read_file(&self, request: FileReadRequest) -> Result<FileReadResponse> {
         let url = format!("{}/file/read", self.base_url);
-        let response = self.http
+        let response = self
+            .http
             .get(&url)
             .query(&[("directory", &self.directory)])
             .query(&[("path", &request.path)])
@@ -448,18 +512,14 @@ impl OpenCodeClient {
     pub async fn get_file_status(&self, request: Option<FileStatusRequest>) -> Result<Vec<File>> {
         let url = format!("{}/file/status", self.base_url);
         let mut query = vec![("directory", self.directory.clone())];
-        
+
         if let Some(req) = request {
             if let Some(path) = req.path {
                 query.push(("path", path));
             }
         }
 
-        let response = self.http
-            .get(&url)
-            .query(&query)
-            .send()
-            .await?;
+        let response = self.http.get(&url).query(&query).send().await?;
 
         Self::check_response(&response, "get file status")?;
         Ok(response.json().await?)
@@ -470,7 +530,8 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn append_prompt(&self, request: AppendPromptRequest) -> Result<bool> {
-        self.post_json_bool("/tui/appendPrompt", &request, "append prompt").await
+        self.post_json_bool("/tui/appendPrompt", &request, "append prompt")
+            .await
     }
 
     pub async fn open_help(&self) -> Result<bool> {
@@ -478,31 +539,38 @@ impl OpenCodeClient {
     }
 
     pub async fn open_sessions(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/openSessions", "open sessions").await
+        self.post_no_body_bool("/tui/openSessions", "open sessions")
+            .await
     }
 
     pub async fn open_themes(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/openThemes", "open themes").await
+        self.post_no_body_bool("/tui/openThemes", "open themes")
+            .await
     }
 
     pub async fn open_models(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/openModels", "open models").await
+        self.post_no_body_bool("/tui/openModels", "open models")
+            .await
     }
 
     pub async fn submit_prompt(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/submitPrompt", "submit prompt").await
+        self.post_no_body_bool("/tui/submitPrompt", "submit prompt")
+            .await
     }
 
     pub async fn clear_prompt(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/clearPrompt", "clear prompt").await
+        self.post_no_body_bool("/tui/clearPrompt", "clear prompt")
+            .await
     }
 
     pub async fn execute_command(&self, request: ExecuteCommandRequest) -> Result<bool> {
-        self.post_json_bool("/tui/executeCommand", &request, "execute command").await
+        self.post_json_bool("/tui/executeCommand", &request, "execute command")
+            .await
     }
 
     pub async fn show_toast(&self, request: ShowToastRequest) -> Result<bool> {
-        self.post_json_bool("/tui/showToast", &request, "show toast").await
+        self.post_json_bool("/tui/showToast", &request, "show toast")
+            .await
     }
 
     // ========================================================================
@@ -518,12 +586,12 @@ impl OpenCodeClient {
     // SSE Event Subscription
     // ========================================================================
 
-
     pub async fn subscribe(&self) -> Result<broadcast::Receiver<Event>> {
         use futures_util::StreamExt;
 
-        let url = format!("{}/event", self.base_url);
-        let response = self.http
+        let url = format!("{}/global/event", self.base_url);
+        let response = self
+            .http
             .get(&url)
             .query(&[("directory", &self.directory)])
             .send()
@@ -576,8 +644,11 @@ impl OpenCodeClient {
 fn parse_sse_event(data: &str) -> Option<Event> {
     let value: serde_json::Value = serde_json::from_str(data).ok()?;
 
-    let event_type = value.get("type")?.as_str()?;
-    let props = value.get("properties")?;
+    // SSE events are wrapped in a "payload" envelope
+    let payload = value.get("payload").unwrap_or(&value);
+
+    let event_type = payload.get("type")?.as_str()?;
+    let props = payload.get("properties")?;
 
     match event_type {
         "session.created" => {
@@ -599,18 +670,28 @@ fn parse_sse_event(data: &str) -> Option<Event> {
         "message.removed" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
             let message_id = props.get("messageID")?.as_str()?.to_string();
-            Some(Event::MessageRemoved { session_id, message_id })
+            Some(Event::MessageRemoved {
+                session_id,
+                message_id,
+            })
         }
         "message.part.updated" => {
             let part: Part = serde_json::from_value(props.get("part")?.clone()).ok()?;
-            let delta = props.get("delta").and_then(|v| v.as_str()).map(|s| s.to_string());
+            let delta = props
+                .get("delta")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
             Some(Event::PartUpdated { part, delta })
         }
         "message.part.removed" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
             let message_id = props.get("messageID")?.as_str()?.to_string();
             let part_id = props.get("partID")?.as_str()?.to_string();
-            Some(Event::PartRemoved { session_id, message_id, part_id })
+            Some(Event::PartRemoved {
+                session_id,
+                message_id,
+                part_id,
+            })
         }
         "session.error" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();

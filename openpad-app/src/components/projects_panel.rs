@@ -47,6 +47,9 @@ live_design! {
             SessionRow = <View> {
                 width: Fill, height: Fit
                 padding: { top: 2, bottom: 2 }
+                flow: Right,
+                spacing: 4,
+
                 session_button = <Button> {
                     width: Fill, height: 34
                     text: "Session"
@@ -57,6 +60,22 @@ live_design! {
                         border_size: 0.0
                     }
                     draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
+                }
+
+                run_button = <Button> {
+                    width: 34, height: 34
+                    text: "▶"
+                    draw_bg: {
+                        color: #1f2329
+                        color_hover: #3b82f6
+                        border_radius: 8.0
+                        border_size: 0.0
+                    }
+                    draw_text: {
+                        color: #6b7b8c
+                        color_hover: #ffffff
+                        text_style: { font_size: 10 }
+                    }
                 }
             }
 
@@ -188,6 +207,9 @@ impl Widget for ProjectsPanel {
                 PanelItemKind::SessionRow { session_id, .. } => {
                     if widget.button(id!(session_button)).clicked(&actions) {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
+                    }
+                    if widget.button(id!(run_button)).clicked(&actions) {
+                        cx.action(ProjectsPanelAction::RunSession(session_id.clone()));
                     }
                 }
                 _ => {}
