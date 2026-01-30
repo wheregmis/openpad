@@ -91,6 +91,10 @@ mod tests {
         // Session types
         let _: Session;
         let _: SessionTime;
+        let _: SessionShare;
+        let _: SessionSummary;
+        let _: SessionRevert;
+        let _: FileDiff;
         let _: SessionCreateRequest;
         let _: SessionUpdateRequest;
         let _: SessionInitRequest;
@@ -102,10 +106,19 @@ mod tests {
         let _: ShellRequest;
         let _: RevertRequest;
         let _: PermissionResponse;
+        let _: PermissionRule;
+        let _: PermissionAction;
         
         // Message types
         let _: Message;
+        let _: UserMessage;
+        let _: AssistantMessage;
         let _: MessageTime;
+        let _: MessageSummary;
+        let _: MessagePath;
+        let _: TokenUsage;
+        let _: CacheUsage;
+        let _: AssistantError;
         let _: Part;
         let _: PartInput;
         

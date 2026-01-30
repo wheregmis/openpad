@@ -3,7 +3,7 @@
 //! This module provides a complete client for the OpenCode server API,
 //! including REST endpoints and Server-Sent Events (SSE) subscription.
 
-use crate::{Error, Result, Event, Session, Message, PartInput, Part};
+use crate::{Error, Result, Event, Session, Message, PartInput, Part, AssistantError};
 use crate::{
     HealthResponse, LogRequest, Agent, Project, PathInfo, Config, ProvidersResponse,
     TextSearchRequest, TextSearchResult, FilesSearchRequest, SymbolsSearchRequest, Symbol,
@@ -581,28 +581,41 @@ fn parse_sse_event(data: &str) -> Option<Event> {
 
     match event_type {
         "session.created" => {
-            let session: Session = serde_json::from_value(props.clone()).ok()?;
+            let session: Session = serde_json::from_value(props.get("info")?.clone()).ok()?;
             Some(Event::SessionCreated(session))
         }
+        "session.updated" => {
+            let session: Session = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            Some(Event::SessionUpdated(session))
+        }
         "session.deleted" => {
-            let id = props.get("id")?.as_str()?.to_string();
-            Some(Event::SessionDeleted(id))
+            let session: Session = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            Some(Event::SessionDeleted(session))
         }
         "message.updated" => {
-            let session_id = props.get("sessionId")?.as_str()?.to_string();
-            let message: Message = serde_json::from_value(props.get("message")?.clone()).ok()?;
-            Some(Event::MessageUpdated { session_id, message })
+            let message: Message = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            Some(Event::MessageUpdated(message))
+        }
+        "message.removed" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let message_id = props.get("messageID")?.as_str()?.to_string();
+            Some(Event::MessageRemoved { session_id, message_id })
         }
         "message.part.updated" => {
-            let session_id = props.get("sessionId")?.as_str()?.to_string();
-            let message_id = props.get("messageId")?.as_str()?.to_string();
-            let part_index = props.get("index")?.as_u64()? as usize;
             let part: Part = serde_json::from_value(props.get("part")?.clone()).ok()?;
-            Some(Event::PartUpdated { session_id, message_id, part_index, part })
+            let delta = props.get("delta").and_then(|v| v.as_str()).map(|s| s.to_string());
+            Some(Event::PartUpdated { part, delta })
+        }
+        "message.part.removed" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let message_id = props.get("messageID")?.as_str()?.to_string();
+            let part_id = props.get("partID")?.as_str()?.to_string();
+            Some(Event::PartRemoved { session_id, message_id, part_id })
         }
         "session.error" => {
-            let error = props.get("error")?.as_str()?.to_string();
-            Some(Event::Error(error))
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let error: AssistantError = serde_json::from_value(props.get("error")?.clone()).ok()?;
+            Some(Event::SessionError { session_id, error })
         }
         _ => Some(Event::Unknown(event_type.to_string())),
     }
