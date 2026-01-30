@@ -3,6 +3,7 @@ use openpad_widgets::SidePanelWidgetRefExt;
 use openpad_protocol::{
     Event as OcEvent, HealthResponse, Message, OpenCodeClient, Project, Session,
 };
+use std::collections::HashMap;
 use std::sync::Arc;
 use chrono::{DateTime, Local, Utc};
 
@@ -298,6 +299,12 @@ enum PanelItemKind {
     SessionRow {
         session_id: String,
         title: String,
+        timestamp: String,
+        is_archived: bool,
+        is_shared: bool,
+        is_forked: bool,
+        file_changes: Option<(i64, i64, i64)>, // (additions, deletions, files)
+        message_count: usize,
     },
     Spacer,
 }
@@ -528,6 +535,8 @@ pub struct App {
     client: Option<Arc<OpenCodeClient>>,
     #[rust]
     _runtime: Option<tokio::runtime::Runtime>,
+    #[rust]
+    message_counts: HashMap<String, usize>,
 }
 
 impl LiveRegister for App {
