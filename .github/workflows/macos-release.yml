@@ -1,0 +1,56 @@
+name: macOS Release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  build-macos:
+    name: Build macOS DMG
+    runs-on: macos-latest
+    permissions:
+      contents: read
+    env:
+      CARGO_TARGET_DIR: target
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache cargo registry and index
+        uses: actions/cache@v4
+        with:
+          path:
+            - ~/.cargo/registry
+            - ~/.cargo/git
+          key: cargo-registry-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: cargo-target-${{ runner.os }}-${{ hashFiles('Cargo.lock') }}
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Install packager tooling
+        run: |
+          cargo install --locked cargo-packager
+          cargo install --locked --version 0.2.0 --git https://github.com/project-robius/robius-packaging-commands.git robius-packaging-commands
+
+      - name: Build macOS package
+        run: |
+          set -euo pipefail
+          cargo packager --release --formats dmg
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: openpad-macos
+          path: dist/*.dmg
