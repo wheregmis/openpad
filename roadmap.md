@@ -137,6 +137,19 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 
 ### Phase 5: Advanced Features
 
+#### Embedded Terminal
+- [x] PTY-based terminal with shell integration (portable-pty)
+- [x] ANSI escape sequence parsing (colors, SGR, CSI private modes)
+- [x] Shell command input via TextInput inside PortalList
+- [x] Output rendering with PortalList virtualization
+- [x] Prompt detection and filtering
+- [x] Backspace handling in shell echo
+- [ ] Clear terminal output (Ctrl+L or clear command)
+- [ ] Terminal resize support (dynamic rows/cols)
+- [ ] Command history (up/down arrow keys)
+- [ ] Multiple terminal tabs
+- [ ] Proper thread cleanup on widget drop
+
 #### Command Execution
 - [ ] Send shell commands (`send_command()`, `send_shell()`)
 - [ ] Display command output in chat
