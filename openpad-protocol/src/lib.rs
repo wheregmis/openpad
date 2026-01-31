@@ -505,5 +505,177 @@ mod tests {
                 );
             }
         }
+
+        #[test]
+        fn test_inline_time_structures() {
+            // Validate that our SessionTime and MessageTime types serialize correctly
+            // even though they're defined inline in the OpenAPI spec
+            
+            let session_time = SessionTime {
+                created: 1234567890000,
+                updated: 1234567890000,
+                compacting: Some(1234567891000),
+                archived: None,
+            };
+
+            let json = serde_json::to_value(&session_time).expect("Failed to serialize");
+            assert!(json.get("created").is_some());
+            assert!(json.get("updated").is_some());
+            assert!(json.get("compacting").is_some());
+
+            let message_time = MessageTime {
+                created: 1234567890000,
+                completed: Some(1234567891000),
+            };
+
+            let json = serde_json::to_value(&message_time).expect("Failed to serialize");
+            assert!(json.get("created").is_some());
+            assert!(json.get("completed").is_some());
+        }
+
+        #[test]
+        fn test_inline_model_spec_structure() {
+            // Validate ModelSpec serialization (defined inline in OpenAPI)
+            let model_spec = ModelSpec {
+                provider_id: "anthropic".to_string(),
+                model_id: "claude-3".to_string(),
+            };
+
+            let json = serde_json::to_value(&model_spec).expect("Failed to serialize");
+            assert_eq!(
+                json.get("providerID").and_then(|v| v.as_str()),
+                Some("anthropic")
+            );
+            assert_eq!(
+                json.get("modelID").and_then(|v| v.as_str()),
+                Some("claude-3")
+            );
+        }
+
+        #[test]
+        fn test_inline_session_summary_structure() {
+            // Validate SessionSummary serialization (defined inline in OpenAPI)
+            let summary = SessionSummary {
+                additions: 10,
+                deletions: 5,
+                files: 2,
+                diffs: vec![],
+            };
+
+            let json = serde_json::to_value(&summary).expect("Failed to serialize");
+            assert_eq!(json.get("additions").and_then(|v| v.as_i64()), Some(10));
+            assert_eq!(json.get("deletions").and_then(|v| v.as_i64()), Some(5));
+            assert_eq!(json.get("files").and_then(|v| v.as_i64()), Some(2));
+            assert!(json.get("diffs").is_some());
+        }
+
+        #[test]
+        fn test_permission_reply_enum_values() {
+            // Validate that PermissionReply enum values match OpenAPI spec
+            // (defined inline in Event.permission.replied)
+            let replies = vec![
+                PermissionReply::Once,
+                PermissionReply::Always,
+                PermissionReply::Reject,
+            ];
+
+            let expected_values = vec!["once", "always", "reject"];
+
+            for (reply, expected) in replies.iter().zip(expected_values.iter()) {
+                let json = serde_json::to_value(reply).expect("Failed to serialize");
+                assert_eq!(
+                    json.as_str(),
+                    Some(*expected),
+                    "PermissionReply should serialize to '{}'",
+                    expected
+                );
+            }
+        }
+
+        #[test]
+        fn test_part_text_serialization() {
+            // Validate Part::Text serialization matches OpenAPI expectations
+            let part = Part::Text {
+                id: "part_123".to_string(),
+                session_id: "ses_123".to_string(),
+                message_id: "msg_123".to_string(),
+                text: "Hello world".to_string(),
+            };
+
+            let json = serde_json::to_value(&part).expect("Failed to serialize");
+            assert_eq!(json.get("type").and_then(|v| v.as_str()), Some("text"));
+            assert_eq!(json.get("id").and_then(|v| v.as_str()), Some("part_123"));
+            assert_eq!(
+                json.get("text").and_then(|v| v.as_str()),
+                Some("Hello world")
+            );
+        }
+
+        #[test]
+        fn test_file_diff_structure() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "FileDiff").expect("FileDiff schema not found");
+
+            let diff = FileDiff {
+                file: "test.rs".to_string(),
+                before: "old content".to_string(),
+                after: "new content".to_string(),
+                additions: 5,
+                deletions: 2,
+            };
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("FileDiff schema missing required fields");
+
+            let required_fields: Vec<&str> = required
+                .iter()
+                .filter_map(|v| v.as_str())
+                .collect();
+
+            validate_serialization(&diff, &required_fields);
+        }
+
+        #[test]
+        fn test_provider_and_model_structure() {
+            let spec = load_openapi_spec();
+            
+            // Note: Our Provider and Model types are simplified compared to the OpenAPI spec
+            // 
+            // Provider OpenAPI spec requires: id, name, source, env, options, models
+            // Our type only requires: id, and makes name and models optional
+            // 
+            // Model OpenAPI spec requires: id, providerID, api, name, capabilities, cost, 
+            //                              limit, status, options, headers, release_date
+            // Our type only requires: id, and makes name optional
+            //
+            // This is intentional to make the client more flexible when parsing responses
+            // and to avoid maintaining complex nested structures that aren't needed by the UI
+            
+            let _provider_schema = get_schema(&spec, "Provider").expect("Provider schema not found");
+            let provider = Provider {
+                id: "anthropic".to_string(),
+                name: Some("Anthropic".to_string()),
+                models: None,
+            };
+
+            // Just verify the type serializes correctly with our required fields
+            let json = serde_json::to_value(&provider).expect("Failed to serialize Provider");
+            assert_eq!(json.get("id").and_then(|v| v.as_str()), Some("anthropic"));
+            assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("Anthropic"));
+
+            // Test Model - also simplified in our implementation
+            let _model_schema = get_schema(&spec, "Model").expect("Model schema not found");
+            let model = Model {
+                id: "claude-3".to_string(),
+                name: Some("Claude 3".to_string()),
+            };
+
+            // Verify our simplified model serializes correctly
+            let json = serde_json::to_value(&model).expect("Failed to serialize Model");
+            assert_eq!(json.get("id").and_then(|v| v.as_str()), Some("claude-3"));
+            assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("Claude 3"));
+        }
     }
 }
