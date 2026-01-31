@@ -11,6 +11,43 @@ use openpad_protocol::{
     Session,
 };
 
+#[derive(Clone)]
+pub struct ModelDropdownEntry {
+    pub label: String,
+    pub provider_id: Option<String>,
+    pub model_id: Option<String>,
+    pub selectable: bool,
+}
+
+impl ModelDropdownEntry {
+    pub fn default_option() -> Self {
+        Self {
+            label: "Default".to_string(),
+            provider_id: None,
+            model_id: None,
+            selectable: true,
+        }
+    }
+
+    pub fn provider_header(label: String) -> Self {
+        Self {
+            label,
+            provider_id: None,
+            model_id: None,
+            selectable: false,
+        }
+    }
+
+    pub fn model_option(provider_id: String, model_id: String, label: String) -> Self {
+        Self {
+            label,
+            provider_id: Some(provider_id),
+            model_id: Some(model_id),
+            selectable: true,
+        }
+    }
+}
+
 /// Data structure holding application state for event handling
 #[derive(Default)]
 pub struct AppState {
@@ -26,24 +63,56 @@ pub struct AppState {
     pub pending_permissions: Vec<PermissionRequest>,
     pub providers: Vec<Provider>,
     pub agents: Vec<Agent>,
-    /// Flat list of (provider_id, model_id, display_label) for the model dropdown
-    pub model_list: Vec<(String, String, String)>,
-    pub selected_model_idx: Option<usize>,
+    pub model_entries: Vec<ModelDropdownEntry>,
+    pub selected_model_entry: usize,
     pub selected_agent_idx: Option<usize>,
 }
 
 impl AppState {
     /// Get the currently selected ModelSpec, if any
     pub fn selected_model_spec(&self) -> Option<ModelSpec> {
-        self.selected_model_idx.and_then(|idx| {
-            self.model_list
-                .get(idx)
-                .map(|(provider_id, model_id, _)| ModelSpec {
-                    provider_id: provider_id.clone(),
-                    model_id: model_id.clone(),
+        self.model_entries
+            .get(self.selected_model_entry)
+            .and_then(|entry| {
+                if !entry.selectable {
+                    return None;
+                }
+                entry.provider_id.as_ref().and_then(|provider_id| {
+                    entry.model_id.as_ref().map(|model_id| ModelSpec {
+                        provider_id: provider_id.clone(),
+                        model_id: model_id.clone(),
+                    })
                 })
-        })
+            })
     }
+}
+
+fn build_model_entries(providers: &[Provider]) -> Vec<ModelDropdownEntry> {
+    let mut entries = vec![ModelDropdownEntry::default_option()];
+    for provider in providers {
+        if let Some(models) = provider.models.as_ref() {
+            if models.is_empty() {
+                continue;
+            }
+            let provider_label = provider.name.as_deref().unwrap_or(&provider.id).to_string();
+            let mut model_items: Vec<_> = models.iter().collect();
+            model_items.sort_by(|a, b| {
+                let a_label = a.1.name.as_deref().unwrap_or(&a.1.id).to_string();
+                let b_label = b.1.name.as_deref().unwrap_or(&b.1.id).to_string();
+                a_label.cmp(&b_label)
+            });
+            entries.push(ModelDropdownEntry::provider_header(provider_label.clone()));
+            for (_key, model) in model_items {
+                let model_label = format!("  {}", model.name.as_deref().unwrap_or(&model.id));
+                entries.push(ModelDropdownEntry::model_option(
+                    provider.id.clone(),
+                    model.id.clone(),
+                    model_label,
+                ));
+            }
+        }
+    }
+    entries
 }
 
 impl AppState {
@@ -212,30 +281,15 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 providers_response.providers.len()
             );
             state.providers = providers_response.providers.clone();
-            // Build flat model list for dropdown
-            state.model_list.clear();
-            for provider in &state.providers {
-                if let Some(models) = &provider.models {
-                    for (_key, model) in models {
-                        let display_name = model.name.as_deref().unwrap_or(&model.id);
-                        let label = format!(
-                            "{}/{}",
-                            provider.name.as_deref().unwrap_or(&provider.id),
-                            display_name
-                        );
-                        state
-                            .model_list
-                            .push((provider.id.clone(), model.id.clone(), label));
-                    }
-                }
-            }
-            // Populate model dropdown labels
-            let mut labels: Vec<String> = vec!["Default".to_string()];
-            labels.extend(state.model_list.iter().map(|(_, _, label)| label.clone()));
-            log!("Setting model dropdown labels: {} items", labels.len());
+            state.model_entries = build_model_entries(&state.providers);
+            state.selected_model_entry = 0;
+            let labels: Vec<String> = state
+                .model_entries
+                .iter()
+                .map(|entry| entry.label.clone())
+                .collect();
             ui.drop_down(id!(model_dropdown)).set_labels(cx, labels);
             ui.drop_down(id!(model_dropdown)).set_selected_item(cx, 0);
-            state.selected_model_idx = None;
             cx.redraw_all();
         }
         AppAction::AgentsLoaded(agents) => {

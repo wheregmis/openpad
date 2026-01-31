@@ -196,7 +196,7 @@ live_design! {
                                             labels: ["Agent"]
                                         }
                                         model_dropdown = <InputBarDropDown> {
-                                            width: 120
+                                            width: 150
                                             labels: ["Model"]
                                         }
                                         <View> { width: Fill }
@@ -664,8 +664,15 @@ impl AppMain for App {
 
         // Handle dropdown selections
         if let Some(idx) = self.ui.drop_down(id!(model_dropdown)).changed(&actions) {
-            // idx 0 = "Default" (no model override), idx >= 1 maps to model_list[idx-1]
-            self.state.selected_model_idx = if idx > 0 { Some(idx - 1) } else { None };
+            if let Some(entry) = self.state.model_entries.get(idx) {
+                if entry.selectable {
+                    self.state.selected_model_entry = idx;
+                } else if self.state.model_entries.len() > self.state.selected_model_entry {
+                    self.ui
+                        .drop_down(id!(model_dropdown))
+                        .set_selected_item(cx, self.state.selected_model_entry);
+                }
+            }
         }
         if let Some(idx) = self.ui.drop_down(id!(agent_dropdown)).changed(&actions) {
             self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
