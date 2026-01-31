@@ -206,7 +206,7 @@ impl MessageList {
 
 impl Widget for MessageList {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        use crate::actions::MessageListAction;
+        use crate::state::actions::MessageListAction;
 
         let actions = cx.capture_actions(|cx| {
             self.view.handle_event(cx, event, scope);
@@ -253,7 +253,7 @@ impl Widget for MessageList {
 
                     // Set timestamp if available
                     if let Some(timestamp) = msg.timestamp {
-                        let formatted = crate::utils::format_timestamp(timestamp);
+                        let formatted = crate::ui::formatters::format_timestamp(timestamp);
                         item_widget
                             .label(id!(timestamp_label))
                             .set_text(cx, &formatted);

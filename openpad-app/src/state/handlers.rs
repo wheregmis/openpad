@@ -1,10 +1,10 @@
-use crate::actions::AppAction;
+use crate::state::actions::AppAction;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
 use crate::constants::*;
-use crate::network;
-use crate::ui_state;
+use crate::async_runtime::tasks;
+use crate::ui::state_updates;
 use makepad_widgets::*;
 use openpad_protocol::{Event as OcEvent, MessageWithParts, PermissionRequest, Project, Session};
 
@@ -28,7 +28,7 @@ impl AppState {
     pub fn get_session_title(&self) -> (String, bool) {
         if let Some(sid) = &self.current_session_id {
             let title = if let Some(session) = self.sessions.iter().find(|s| &s.id == sid) {
-                network::get_session_title(session)
+                tasks::get_session_title(session)
             } else {
                 SESSION_TITLE_NEW.to_string()
             };
@@ -51,11 +51,11 @@ impl AppState {
     /// Updates UI to reflect current session title
     pub fn update_session_title_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
         let (title, is_active) = self.get_session_title();
-        ui_state::update_session_title_ui(ui, cx, &title, is_active);
+        state_updates::update_session_title_ui(ui, cx, &title, is_active);
 
         // Update revert indicator
         let is_reverted = self.is_current_session_reverted();
-        ui_state::update_revert_indicator(ui, cx, is_reverted);
+        state_updates::update_revert_indicator(ui, cx, is_reverted);
     }
 
     /// Updates projects panel with current data
@@ -82,12 +82,12 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         AppAction::Connected => {
             state.connected = true;
             state.error_message = None;
-            ui_state::set_status_connected(ui, cx);
+            state_updates::set_status_connected(ui, cx);
             cx.redraw_all();
         }
         AppAction::ConnectionFailed(err) => {
             state.error_message = Some(err.clone());
-            ui_state::set_status_error(ui, cx, err);
+            state_updates::set_status_error(ui, cx, err);
             cx.redraw_all();
         }
         AppAction::HealthUpdated(health) => {
@@ -95,10 +95,10 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             if health.healthy {
                 state.connected = true;
                 state.error_message = None;
-                ui_state::set_status_connected(ui, cx);
+                state_updates::set_status_connected(ui, cx);
             } else {
                 state.connected = false;
-                ui_state::set_status_disconnected(ui, cx);
+                state_updates::set_status_disconnected(ui, cx);
             }
             cx.redraw_all();
         }
@@ -150,7 +150,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
-            ui_state::set_status_error(ui, cx, err);
+            state_updates::set_status_error(ui, cx, err);
             cx.redraw_all();
         }
         AppAction::PendingPermissionsLoaded(permissions) => {

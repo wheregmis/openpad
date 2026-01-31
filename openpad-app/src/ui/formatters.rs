@@ -38,7 +38,7 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
 
     // Simple formatting using chrono-like calculations
     // Days since epoch
-    let days = timestamp_secs / 86400;
+    let _days = timestamp_secs / 86400;
     let time_of_day_secs = timestamp_secs % 86400;
     let hours = (time_of_day_secs / 3600) as u8;
     let minutes = ((time_of_day_secs % 3600) / 60) as u8;

@@ -1,4 +1,4 @@
-use crate::actions::AppAction;
+use crate::state::actions::AppAction;
 use makepad_widgets::Cx;
 use openpad_protocol::{
     OpenCodeClient, PermissionAction, PermissionReply, PermissionReplyRequest, PermissionRule,

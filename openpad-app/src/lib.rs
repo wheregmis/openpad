@@ -1,8 +1,6 @@
-pub mod actions;
 pub mod app;
+pub mod async_runtime;
 pub mod components;
 pub mod constants;
-pub mod event_handlers;
-pub mod network;
-pub mod ui_state;
-pub mod utils;
+pub mod state;
+pub mod ui;
