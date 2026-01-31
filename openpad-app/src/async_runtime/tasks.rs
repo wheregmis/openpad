@@ -145,6 +145,8 @@ pub fn spawn_session_creator(
         match session_result {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
+                // Use the original client to list sessions, which uses the startup directory
+                // Note: The newly created session will also appear via SSE SessionCreated event
                 if let Ok(sessions) = client.list_sessions().await {
                     Cx::post_action(AppAction::SessionsLoaded(sessions));
                 }
