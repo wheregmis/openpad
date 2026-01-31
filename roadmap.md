@@ -29,6 +29,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Stream assistant responses via SSE `message.part.updated` events
 - [x] User/Assistant message bubbles with distinct styling
 - [x] Message list with PortalList virtualization
+- [x] Inline permission prompt embedded in chat panel
 
 ### Sidebar & Navigation
 - [x] Animated side panel (hamburger menu toggle)
@@ -61,9 +62,10 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Link rendering
 
 #### Permission System
-- [ ] Wire `PermissionRequested` SSE events to show PermissionDialog
-- [ ] PermissionDialog component exists — connect Accept/Reject to `respond_to_permission()` API
-- [ ] Display permission type, pattern, and context
+- [x] Wire `PermissionRequested` SSE events to show PermissionDialog
+- [x] PermissionDialog actions wired to permission reply API
+- [x] Display permission type, pattern, and context
+- [x] Inline permission UI (non-modal)
 
 #### Error Handling
 - [ ] Surface `AssistantError` details (ProviderAuthError, APIError, etc.)
@@ -183,6 +185,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 | `POST /session/:id/revert` | ✅ | ❌ |
 | `POST /session/:id/unrevert` | ✅ | ❌ |
 | `POST /session/:id/permissions/:pid` | ✅ | ❌ |
+| `POST /permission/:pid/reply` | ✅ | ✅ |
 | `GET /project` | ✅ | ✅ |
 | `GET /project/current` | ✅ | ✅ |
 | `GET /config` | ✅ | ❌ |
