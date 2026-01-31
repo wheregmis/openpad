@@ -35,7 +35,7 @@ live_design! {
                 TerminalTab = <Button> {
                     width: Fit, height: 32
                     padding: { left: 12, right: 28, top: 8, bottom: 8 }
-                    text: "zsh"
+                    text: "user — zsh"
                     draw_bg: {
                         instance selected: 0.0
                         color: #1a1a1a
@@ -168,7 +168,7 @@ impl TerminalInstance {
     fn new(id: usize) -> Self {
         Self {
             id,
-            shell_name: Self::get_shell_name(),
+            shell_name: Self::get_tab_label(),
             output_lines: Vec::new(),
             partial_spans: Vec::new(),
             current_color: Vec4 {
@@ -194,6 +194,12 @@ impl TerminalInstance {
                 .and_then(|s| std::path::Path::new(&s).file_name().map(|n| n.to_string_lossy().to_string()))
                 .unwrap_or_else(|| "sh".to_string())
         }
+    }
+
+    fn get_tab_label() -> String {
+        let user = std::env::var("USER").unwrap_or_else(|_| "user".into());
+        let shell = Self::get_shell_name();
+        format!("{} — {}", user, shell)
     }
 }
 
