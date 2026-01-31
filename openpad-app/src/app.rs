@@ -398,13 +398,30 @@ impl App {
                     .sessions
                     .iter()
                     .find(|session| &session.id == sid)
-                    .map(|session| session.directory.clone())
+                    .map(|session| {
+                        log!(
+                            "Sending message to session: id={}, directory={}, project_id={}",
+                            session.id,
+                            session.directory,
+                            session.project_id
+                        );
+                        session.directory.clone()
+                    })
             })
             .or_else(|| {
                 self.state
                     .current_project
                     .as_ref()
-                    .map(|project| Self::normalize_project_directory(&project.worktree))
+                    .map(|project| {
+                        let dir = Self::normalize_project_directory(&project.worktree);
+                        log!(
+                            "No session - using current_project: id={}, worktree={}, normalized_dir={}",
+                            project.id,
+                            project.worktree,
+                            dir
+                        );
+                        dir
+                    })
             });
         let model_spec = self.state.selected_model_spec();
         async_runtime::spawn_message_sender(
@@ -430,8 +447,9 @@ impl App {
                 .map(|p| {
                     let normalized = Self::normalize_project_directory(&p.worktree);
                     log!(
-                        "Create session: project_id={:?} worktree={} directory={}",
+                        "Creating session for project: id={}, name={:?}, worktree={}, normalized_directory={}",
                         pid,
+                        p.name,
                         p.worktree,
                         normalized
                     );
