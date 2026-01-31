@@ -20,12 +20,12 @@ live_design! {
         terminal_header = <View> {
             width: Fill, height: Fit
             flow: Right
-            padding: { left: 14, right: 14, top: 10, bottom: 10 }
+            padding: { left: 16, right: 16, top: 4, bottom: 4 }
             spacing: 10
             align: { y: 0.5 }
             show_bg: true
             draw_bg: {
-                color: #181c22
+                color: #252526
             }
 
             <Label> {
@@ -60,7 +60,7 @@ live_design! {
             scroll_bars: <ScrollBars> {}
             show_bg: true
             draw_bg: {
-                color: #0d1117
+                color: #1e1e1e
             }
 
             output_label = <Label> {
@@ -81,7 +81,7 @@ live_design! {
             spacing: 8
             show_bg: true
             draw_bg: {
-                color: #181c22
+                color: #1e1e1e
             }
 
             input_field = <TextInput> {

@@ -131,15 +131,15 @@ pub mod openpad {
         pub SidePanelBase = {{SidePanel}} {}
         pub SidePanel = <SidePanelBase> {
             flow: Down,
-            padding: 16,
-            spacing: 12,
+            padding: 0,
+            spacing: 0,
             clip_x: true
             show_bg: true
             open_size: 280.0
             close_size: 0.0
             draw_bg: {
-                color: #1c2026
-                uniform border_color: #2b3138
+                color: #1e1e1e
+                uniform border_color: #333
                 uniform border_size: 1.0
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);

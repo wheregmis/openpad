@@ -14,11 +14,11 @@ pub const COLOR_PROJECT_BADGE_DEFAULT: Vec4 = vec4(0.12, 0.16, 0.21, 1.0);
 pub const COLOR_PROJECT_BADGE_ACTIVE: Vec4 = vec4(0.16, 0.20, 0.27, 1.0);
 pub const COLOR_PROJECT_BADGE_TEXT_ACTIVE: Vec4 = vec4(0.90, 0.91, 0.93, 1.0);
 pub const COLOR_PROJECT_BADGE_TEXT_INACTIVE: Vec4 = vec4(0.64, 0.70, 0.78, 1.0);
-pub const COLOR_PROJECT_PATH_TEXT: Vec4 = vec4(0.63, 0.72, 0.83, 1.0);
+pub const COLOR_PROJECT_PATH_TEXT: Vec4 = vec4(0.3, 0.3, 0.3, 1.0);
 
 // Session selection colors (for projects panel)
-pub const COLOR_SESSION_SELECTED: Vec4 = vec4(0.18, 0.22, 0.27, 1.0); // Darker blue-gray
-pub const COLOR_SESSION_NORMAL: Vec4 = vec4(0.12, 0.14, 0.17, 1.0); // Dark gray
+pub const COLOR_SESSION_SELECTED: Vec4 = vec4(0.145, 0.145, 0.149, 1.0); // #252526
+pub const COLOR_SESSION_NORMAL: Vec4 = vec4(0.0, 0.0, 0.0, 0.0); // Transparent
 
 // Status text messages
 pub const STATUS_CONNECTING: &str = "Connecting...";

@@ -14,32 +14,51 @@ live_design! {
 
             UserMsg = <View> {
                 width: Fill, height: Fit
-                flow: Right,
-                padding: 8,
+                flow: Down,
+                padding: { top: 12, bottom: 12, left: 24, right: 24 }
                 align: { x: 1.0 }
 
                 <UserBubble> {
                     width: Fill, height: Fit
                     margin: { left: 100 }
                     flow: Down,
+                    align: { x: 1.0 }
 
-                    // Timestamp at top
-                    timestamp_label = <Label> {
+                    // Metadata row
+                    <View> {
                         width: Fit, height: Fit
+                        flow: Right,
+                        spacing: 8,
                         margin: { bottom: 4 }
-                        draw_text: {
-                            color: #7a8ea5,
-                            text_style: <THEME_FONT_REGULAR> { font_size: 9 },
+                        align: { y: 0.5 }
+
+                        timestamp_label = <Label> {
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: #444,
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 },
+                            }
+                            text: "..."
                         }
-                        text: "..."
+
+                        <Label> {
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: #555,
+                                text_style: <THEME_FONT_BOLD> { font_size: 8 },
+                            }
+                            text: "YOU"
+                        }
+
                     }
 
                     msg_text = <Label> {
                         width: Fill, height: Fit
                         draw_text: {
-                            color: #eef3f7,
-                            text_style: <THEME_FONT_REGULAR> { font_size: 11, line_spacing: 1.5 },
-                            word: Wrap
+                            color: #ddd,
+                            text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 },
+                            word: Wrap,
+                            align: { x: 1.0 }
                         }
                     }
                 }
@@ -48,34 +67,34 @@ live_design! {
             AssistantMsg = <View> {
                 width: Fill, height: Fit
                 flow: Down,
-                padding: 8,
+                padding: { top: 12, bottom: 12, left: 24, right: 24 }
 
                 <AssistantBubble> {
                     width: Fill, height: Fit
-                    margin: { right: 100 }
                     flow: Down,
 
-                    // Metadata row (model + timestamp on same line)
+                    // Metadata row
                     <View> {
                         width: Fit, height: Fit
                         flow: Right,
-                        spacing: 12,
+                        spacing: 8,
                         margin: { bottom: 4 }
+                        align: { y: 0.5 }
 
                         model_label = <Label> {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: #7a8894,
-                                text_style: <THEME_FONT_REGULAR> { font_size: 9 },
+                                color: #555,
+                                text_style: <THEME_FONT_BOLD> { font_size: 8 },
                             }
-                            text: "..."
+                            text: "ASSISTANT"
                         }
 
                         timestamp_label = <Label> {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: #626970,
-                                text_style: <THEME_FONT_REGULAR> { font_size: 9 },
+                                color: #444,
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 },
                             }
                             text: "..."
                         }
@@ -83,58 +102,49 @@ live_design! {
 
                     msg_text = <Markdown> {
                         width: Fill, height: Fit
-                        font_size: 11
-                        font_color: #e6e9ee
+                        font_size: 10
+                        font_color: #ccc
                         paragraph_spacing: 8
                         pre_code_spacing: 6
                         use_code_block_widget: false
 
                         draw_normal: {
-                            text_style: <THEME_FONT_REGULAR> { font_size: 11 }
-                            color: #e6e9ee
+                            text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 }
+                            color: #ccc
                         }
                         draw_italic: {
-                            text_style: <THEME_FONT_ITALIC> { font_size: 11 }
-                            color: #e6e9ee
+                            text_style: <THEME_FONT_ITALIC> { font_size: 10 }
+                            color: #ccc
                         }
                         draw_bold: {
-                            text_style: <THEME_FONT_BOLD> { font_size: 11 }
-                            color: #e6e9ee
-                        }
-                        draw_bold_italic: {
-                            text_style: <THEME_FONT_BOLD_ITALIC> { font_size: 11 }
-                            color: #e6e9ee
+                            text_style: <THEME_FONT_BOLD> { font_size: 10 }
+                            color: #eee
                         }
                         draw_fixed: {
-                            text_style: <THEME_FONT_CODE> { font_size: 10 }
-                            color: #d7dce2
+                            text_style: <THEME_FONT_CODE> { font_size: 9 }
+                            color: #9cdcfe
                         }
-
                     }
 
-                    // Add action buttons for messages
                     msg_actions = <View> {
                         width: Fit, height: Fit
                         flow: Right,
                         spacing: 6,
-                        margin: { top: 6 }
+                        margin: { top: 8 }
 
                         revert_button = <Button> {
-                            width: Fit, height: 24
-                            padding: { left: 8, right: 8 }
-                            text: "Revert to here"
+                            width: Fit, height: 20
+                            text: "Revert"
                             draw_bg: {
-                                color: #262b33
-                                color_hover: #f59e0b
+                                color: #0000
+                                color_hover: #333
                                 border_radius: 4.0
-                                border_size: 1.0
-                                border_color_1: #3a414a
-                                border_color_2: #3a414a
+                                border_size: 0.0
                             }
                             draw_text: {
-                                color: #6b7b8c
-                                color_hover: #ffffff
-                                text_style: <THEME_FONT_REGULAR> { font_size: 9 }
+                                color: #666
+                                color_hover: #aaa
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
                             }
                         }
                     }

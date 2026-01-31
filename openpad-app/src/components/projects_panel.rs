@@ -22,52 +22,47 @@ live_design! {
 
             ProjectHeader = <View> {
                 width: Fill, height: Fit
-                flow: Down,
-                padding: { top: 6, bottom: 6 }
+                flow: Right, align: {y: 0.5}
+                padding: { top: 12, bottom: 4, left: 16 }
                 project_name = <Label> {
-                    draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 12 } }
-                }
-                project_path = <Label> {
-                    draw_text: { color: #aab3bd, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                    draw_text: { color: #888, text_style: <THEME_FONT_BOLD> { font_size: 10 } }
                 }
             }
 
             NewSessionRow = <View> {
                 width: Fill, height: Fit
-                padding: { top: 6, bottom: 8 }
+                padding: { top: 4, bottom: 8, left: 16 }
                 new_session_button = <Button> {
-                    width: Fill, height: 36
-                    text: "+  New session"
+                    width: Fit, height: 24
+                    text: "+ New session"
                     draw_bg: {
-                        color: #232830
-                        color_hover: #2a313b
-                        border_radius: 8.0
-                        border_size: 1.0
-                        border_color_1: #313842
-                        border_color_2: #2a3039
+                        color: #0000
+                        color_hover: #333
+                        border_radius: 4.0
+                        border_size: 0.0
                     }
-                    draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                    draw_text: { color: #666, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                 }
             }
 
             SessionRow = <View> {
                 width: Fill, height: Fit
-                padding: { top: 2, bottom: 2 }
+                padding: { top: 1, bottom: 1, left: 16 }
                 flow: Right,
                 spacing: 4,
                 align: { y: 0.5 }
 
                 session_button = <Button> {
-                    width: Fill, height: 34
+                    width: Fill, height: 24
                     margin: { right: 8 }
                     text: "Session"
-                  draw_bg: {
-                        color: #1f2329
-                        color_hover: #242a32
-                        border_radius: 8.0
+                    draw_bg: {
+                        color: #0000
+                        color_hover: #2d2d2d
+                        border_radius: 4.0
                         border_size: 0.0
                     }
-                    draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                    draw_text: { color: #ccc, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                 }
 
                 // Action buttons container
@@ -81,18 +76,18 @@ live_design! {
                     abort_button = <Button> {
                         width: 28, height: 28
                         visible: false
-                    text: ""
-                    icon_walk: { width: 12, height: 12 }
-                    label_walk: { width: 0, height: 0 }
-                    align: { x: 0.5, y: 0.5 }
+                        text: ""
+                        icon_walk: { width: 12, height: 12 }
+                        label_walk: { width: 0, height: 0 }
+                        align: { x: 0.5, y: 0.5 }
                         draw_icon: {
                             svg_file: dep("crate://self/resources/icons/stop.svg")
-                            color: #6b7b8c
-                            color_hover: #ffffff
-                            color_down: #ffffff
+                            color: #444
+                            color_hover: #666
+                            color_down: #666
                         }
                         draw_bg: {
-                            color: #1f2329
+                            color: #0000
                             color_hover: #ef4444
                             border_radius: 6.0
                             border_size: 0.0
@@ -102,18 +97,18 @@ live_design! {
 
                     rename_button = <Button> {
                         width: 28, height: 28
-                    text: ""
-                    icon_walk: { width: 12, height: 12 }
-                    label_walk: { width: 0, height: 0 }
-                    align: { x: 0.5, y: 0.5 }
+                        text: ""
+                        icon_walk: { width: 12, height: 12 }
+                        label_walk: { width: 0, height: 0 }
+                        align: { x: 0.5, y: 0.5 }
                         draw_icon: {
                             svg_file: dep("crate://self/resources/icons/pencil.svg")
-                            color: #6b7b8c
-                            color_hover: #ffffff
-                            color_down: #ffffff
+                            color: #444
+                            color_hover: #666
+                            color_down: #666
                         }
                         draw_bg: {
-                            color: #1f2329
+                            color: #0000
                             color_hover: #3b82f6
                             border_radius: 6.0
                             border_size: 0.0
@@ -123,18 +118,18 @@ live_design! {
 
                     branch_button = <Button> {
                         width: 28, height: 28
-                    text: ""
-                    icon_walk: { width: 12, height: 12 }
-                    label_walk: { width: 0, height: 0 }
-                    align: { x: 0.5, y: 0.5 }
+                        text: ""
+                        icon_walk: { width: 12, height: 12 }
+                        label_walk: { width: 0, height: 0 }
+                        align: { x: 0.5, y: 0.5 }
                         draw_icon: {
                             svg_file: dep("crate://self/resources/icons/branch.svg")
-                            color: #6b7b8c
-                            color_hover: #ffffff
-                            color_down: #ffffff
+                            color: #444
+                            color_hover: #666
+                            color_down: #666
                         }
                         draw_bg: {
-                            color: #1f2329
+                            color: #0000
                             color_hover: #8b5cf6
                             border_radius: 6.0
                             border_size: 0.0
@@ -144,18 +139,18 @@ live_design! {
 
                     delete_button = <Button> {
                         width: 28, height: 28
-                    text: ""
-                    icon_walk: { width: 12, height: 12 }
-                    label_walk: { width: 0, height: 0 }
-                    align: { x: 0.5, y: 0.5 }
+                        text: ""
+                        icon_walk: { width: 12, height: 12 }
+                        label_walk: { width: 0, height: 0 }
+                        align: { x: 0.5, y: 0.5 }
                         draw_icon: {
                             svg_file: dep("crate://self/resources/icons/trash.svg")
-                            color: #6b7b8c
-                            color_hover: #ffffff
-                            color_down: #ffffff
+                            color: #444
+                            color_hover: #666
+                            color_down: #666
                         }
                         draw_bg: {
-                            color: #1f2329
+                            color: #0000
                             color_hover: #ef4444
                             border_radius: 6.0
                             border_size: 0.0
@@ -177,7 +172,6 @@ pub enum PanelItemKind {
     ProjectHeader {
         project_id: Option<String>,
         name: String,
-        path: String,
     },
     NewSession {
         project_id: Option<String>,
@@ -248,19 +242,10 @@ impl ProjectsPanel {
 
             let project_id = Some(project.id.clone());
             let name = Self::derive_project_name(project);
-            let path = if project.worktree == "." {
-                std::env::current_dir()
-                    .ok()
-                    .map(|p| p.to_string_lossy().to_string())
-                    .unwrap_or_else(|| project.worktree.clone())
-            } else {
-                project.worktree.clone()
-            };
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: project_id.clone(),
                 name,
-                path,
             });
 
             if let Some(sessions) = grouped.get(&project_id) {
@@ -292,7 +277,6 @@ impl ProjectsPanel {
             items.push(PanelItemKind::ProjectHeader {
                 project_id: None,
                 name: "Other".to_string(),
-                path: "".to_string(),
             });
             for session in ungrouped {
                 let title = async_runtime::get_session_title(session);
@@ -376,9 +360,8 @@ impl Widget for ProjectsPanel {
                     let item_widget = list.item(cx, item_id, template);
 
                     match &panel_item {
-                        PanelItemKind::ProjectHeader { name, path, .. } => {
+                        PanelItemKind::ProjectHeader { name, .. } => {
                             item_widget.label(id!(project_name)).set_text(cx, name);
-                            item_widget.label(id!(project_path)).set_text(cx, path);
                         }
                         PanelItemKind::SessionRow { session_id, title } => {
                             item_widget.button(id!(session_button)).set_text(cx, title);

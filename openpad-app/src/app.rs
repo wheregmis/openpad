@@ -39,200 +39,173 @@ live_design! {
                 <AppBg> {
                 width: Fill, height: Fill
                 flow: Down,
-                spacing: 12,
-                padding: 12,
-
-                // Status bar at top
-                <HeaderBar> {
-                    hamburger_button = <HamburgerButton> {}
-                    <View> { width: Fill }
-                    app_title = <Label> {
-                        text: "Openpad"
-                        draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 12 } }
-                    }
-                    <View> { width: Fill }
-                    status_row = <View> {
-                        width: Fit, height: Fit
-                        flow: Right
-                        spacing: 8
-                        align: { y: 0.5 }
-                        status_dot = <StatusDot> {}
-                        status_label = <Label> {
-                            text: "Connecting..."
-                            draw_text: { color: #aab3bd, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
-                        }
-                    }
-                }
+                spacing: 0,
+                padding: 0,
 
                 <View> {
                     width: Fill, height: Fill
                     flow: Right,
-                    spacing: 12,
+                    spacing: 0,
 
-                    side_panel = <SidePanel> {
-                        projects_panel = <ProjectsPanel> {}
+                    side_panel_wrap = <View> {
+                        width: 260, height: Fill
+                        flow: Down
+                        clip_x: true
+                        // Sidebar Header (Space for traffic lights when open)
+                        <HeaderBar> {
+                            height: 36
+                            width: 260
+                            padding: { left: 80, right: 10 }
+                            draw_bg: {
+                                color: #1e1e1e
+                                border_color: #333
+                                border_radius: 0.0
+                            }
+                        }
+
+                        side_panel = <SidePanel> {
+                            open_size: 260.0
+                            draw_bg: { border_size: 0.0 }
+                            projects_panel = <ProjectsPanel> {}
+                        }
                     }
+
+                    // Vertical Separator
+                    vertical_separator = <View> { width: 1, height: Fill, show_bg: true, draw_bg: { color: #333 } }
 
                     <View> {
                         width: Fill, height: Fill
                         flow: Down,
-                        spacing: 8,
+                        spacing: 0,
 
-                        // Session context bar with active project badge
-                        session_info = <RoundedView> {
-                            width: Fill, height: Fit
-                            padding: { left: 12, right: 12, top: 10, bottom: 12 }
-                            flow: Down,
-                            spacing: 6,
-                            align: { y: 0.5 }
+                        // Main Header
+                        main_header = <HeaderBar> {
+                            height: 36
+                            padding: { left: 16, right: 10 }
                             draw_bg: {
-                                color: #232830
-                                border_radius: 8.0
+                                color: #1e1e1e
+                                border_color: #333
+                                border_radius: 0.0
                             }
-
-                            project_row = <View> {
-                                width: Fill, height: Fit
-                                flow: Down
-                                spacing: 2
-
-                                project_name_row = <View> {
-                                    width: Fill, height: Fit
-                                    flow: Right
-                                    spacing: 8
-                                    align: { y: 0.5 }
-
-                                    project_badge = <RoundedView> {
-                                        height: Fit
-                                        padding: { left: 10, right: 10, top: 3, bottom: 3 }
-                                        show_bg: true
-                                        draw_bg: {
-                                            color: #1f262f
-                                            border_radius: 999.0
-                                        }
-                                        animator: {
-                                            hover = {
-                                                default: off
-                                                off = {
-                                                    from: { all: Forward { duration: 0.18 } }
-                                                    apply: {
-                                                        draw_bg: { color: #1f262f }
-                                                    }
-                                                }
-                                                on = {
-                                                    from: { all: Forward { duration: 0.18 } }
-                                                    apply: {
-                                                        draw_bg: { color: #29323c }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        project_badge_label = <Label> {
-                                            text: "No active project"
-                                            draw_text: { color: #9aa4b2, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
-                                        }
-                                    }
-
-                                    <View> { width: Fill }
-                                }
-
-                                project_path_label = <Label> {
-                                    text: ""
-                                    draw_text: { color: #7a8794, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
-                                }
+                            hamburger_button = <HamburgerButton> {
+                                width: 32, height: 32
                             }
-
-                            session_row = <View> {
-                                width: Fill, height: Fit
+                            <View> { width: 4 }
+                            app_title = <Label> {
+                                text: "Openpad"
+                                draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                            }
+                            <View> { width: Fill }
+                            status_row = <View> {
+                                width: Fit, height: Fit
                                 flow: Right
                                 spacing: 8
                                 align: { y: 0.5 }
-
-                                session_title = <Label> {
-                                    text: "Select a session or start a new one"
-                                    draw_text: { color: #6b7b8c, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
-                                }
-                                <View> { width: Fill }
-                                revert_indicator = <View> {
-                                    visible: false
-                                    width: Fit, height: Fit
-
-                                    revert_indicator_label = <Label> {
-                                        text: "⟲ Reverted"
-                                        draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
-                                    }
-                                }
-                                unrevert_wrap = <View> {
-                                    visible: false
-                                    width: Fit, height: Fit
-
-                                    unrevert_button = <Button> {
-                                        width: Fit, height: 28
-                                        text: "↻ Unrevert"
-                                        draw_bg: {
-                                            color: #3b82f6
-                                            color_hover: #1d4fed
-                                            border_radius: 6.0
-                                            border_size: 0.0
-                                        }
-                                        draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
-                                    }
+                                status_dot = <StatusDot> {}
+                                status_label = <Label> {
+                                    text: "Connected"
+                                    draw_text: { color: #555, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
                         }
 
-                        // Chat area (messages + input)
-                        <RoundedView> {
+                        // Slim Breadcrumbs Bar
+                        session_info = <View> {
+                            width: Fill, height: 32
+                            padding: { left: 16, right: 16 }
+                            flow: Right,
+                            spacing: 8,
+                            align: { y: 0.5 }
+                            show_bg: true
+                            draw_bg: { color: #1e1e1e }
+
+                            project_row = <View> {
+                                width: Fit, height: Fit
+                                flow: Right, spacing: 4, align: {y: 0.5}
+                                project_badge = <View> {
+                                    width: Fit, height: Fit
+                                    project_badge_label = <Label> {
+                                        text: "No project"
+                                        draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                    }
+                                }
+                            }
+                            
+                            <Label> { text: "/", draw_text: { color: #444, text_style: <THEME_FONT_REGULAR> { font_size: 10 } } }
+
+                            session_row = <View> {
+                                width: Fit, height: Fit
+                                session_title = <Label> {
+                                    text: "New Session"
+                                    draw_text: { color: #aaa, text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                                }
+                            }
+
+                            project_path_wrap = <View> {
+                                visible: false
+                                project_path_label = <Label> { text: "" }
+                            }
+                            
+                            <View> { width: Fill }
+
+                            revert_indicator = <View> {
+                                visible: false
+                                revert_indicator_label = <Label> {
+                                    text: "⟲ Reverted"
+                                    draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                }
+                            }
+                            unrevert_wrap = <View> {
+                                visible: false
+                                unrevert_button = <Button> {
+                                    width: Fit, height: 20
+                                    text: "Unrevert"
+                                    draw_text: { color: #3b82f6, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                }
+                            }
+                        }
+                        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: #2a2a2a } }
+
+                        // Chat area - Unified
+                        <View> {
                             width: Fill, height: Fill
                             flow: Down
                             spacing: 0
                             show_bg: true
-                            draw_bg: {
-                                color: #1c2026
-                                border_radius: 8.0
-                            }
+                            draw_bg: { color: #1e1e1e }
 
-                            // Messages area with padding
                             <View> {
                                 width: Fill, height: Fill
-                                padding: 12
                                 message_list = <MessageList> { width: Fill, height: Fill }
                             }
 
-                            // Inline permission prompt (shown only when needed)
                             permission_dialog = <PermissionDialog> { width: Fill }
 
-                            // Input area (fixed at bottom of chat)
                             input_row = <View> {
                                 width: Fill, height: Fit
-                                padding: { left: 12, right: 12, top: 8, bottom: 12 }
+                                padding: { left: 32, right: 32, top: 12, bottom: 20 }
                                 flow: Right
                                 align: { y: 0.5 }
-                                show_bg: true
-                                draw_bg: {
-                                    color: #181c22
-                                }
-
                                 <InputBar> {
                                     width: Fill
                                     input_box = <InputField> {}
-                                    send_button = <SendButton> {}
+                                    send_button = <SendButton> {
+                                        margin: { left: 0 }
+                                        width: 32, height: 32
+                                    }
                                 }
                             }
                         }
 
-                        // Terminal panel - IDE style with better separation
-                        <RoundedView> {
-                            width: Fill
-                            height: 220
-                            margin: { top: 8 }
+                        // Integrated Terminal
+                        <View> {
+                            width: Fill, height: 250
                             flow: Down
-                            spacing: 0
                             show_bg: true
-                            draw_bg: {
-                                color: #1c2026
-                                border_radius: 8.0
-                            }
+                            draw_bg: { color: #1e1e1e }
+                            
+                            // Separator line
+                            <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: #333 } }
 
                             terminal_panel = <Terminal> {
                                 width: Fill
@@ -514,6 +487,11 @@ impl AppMain for App {
                 self.connect_to_opencode(cx);
                 // Initialize terminal
                 self.ui.terminal(id!(terminal_panel)).init_pty(cx);
+                
+                // Initialize sidebar to open
+                self.sidebar_open = true;
+                self.ui.side_panel(id!(side_panel)).set_open(cx, true);
+                self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.on));
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
@@ -623,17 +601,20 @@ impl AppMain for App {
 
         if self.ui.button(id!(hamburger_button)).clicked(&actions) {
             self.sidebar_open = !self.sidebar_open;
-            self.ui
-                .side_panel(id!(side_panel))
-                .set_open(cx, self.sidebar_open);
+            
+            // Toggle sidebar visibility
+            self.ui.side_panel(id!(side_panel)).set_open(cx, self.sidebar_open);
+            self.ui.view(id!(side_panel_wrap)).set_visible(cx, self.sidebar_open);
+            
+            // Adjust layout widths and padding
             if self.sidebar_open {
-                self.ui
-                    .view(id!(hamburger_button))
-                    .animator_play(cx, id!(open.on));
+                self.ui.view(id!(vertical_separator)).set_visible(cx, true);
+                self.ui.view(id!(main_header)).apply_over(cx, live!{ padding: { left: 16 } });
+                self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.on));
             } else {
-                self.ui
-                    .view(id!(hamburger_button))
-                    .animator_play(cx, id!(open.off));
+                self.ui.view(id!(vertical_separator)).set_visible(cx, false);
+                self.ui.view(id!(main_header)).apply_over(cx, live!{ padding: { left: 80 } });
+                self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.off));
             }
         }
 

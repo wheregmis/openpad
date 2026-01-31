@@ -116,9 +116,14 @@ pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&P
         },
     );
 
-    ui.label(id!(project_path_label)).set_text(cx, &path_text);
-    ui.label(id!(project_path_label))
-        .set_visible(cx, path_visible);
+    let display_path = if path_text.len() > 30 {
+        format!("...{}", &path_text[path_text.len() - 27..])
+    } else {
+        path_text.clone()
+    };
+
+    ui.label(id!(project_path_label)).set_text(cx, &display_path);
+    ui.view(id!(project_path_wrap)).set_visible(cx, path_visible);
     ui.label(id!(project_path_label)).apply_over(
         cx,
         live! {
