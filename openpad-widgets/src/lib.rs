@@ -184,8 +184,8 @@ pub mod openpad {
             show_bg: true
             draw_bg: {
                 color: #252526
-                border_color: #3c3c3c
-                border_radius: 8.0
+                border_color: #333
+                border_radius: 12.0
                 border_size: 1.0
             }
         }
@@ -195,28 +195,28 @@ pub mod openpad {
             padding: { left: 12, right: 12, top: 8, bottom: 8 }
             empty_text: "Ask anything..."
             draw_bg: {
-                color: #0d1117
-                color_hover: #0d1117
-                color_focus: #161b22
-                color_down: #0d1117
-                color_empty: #0d1117
-                color_disabled: #0d1117
-                border_radius: 6.0
-                border_size: 1.0
-                border_color_1: #484f58
-                border_color_2: #484f58
-                border_color_1_hover: #484f58
-                border_color_2_hover: #484f58
-                border_color_1_focus: #58a6ff
-                border_color_2_focus: #58a6ff
-                border_color_1_down: #484f58
-                border_color_2_down: #484f58
-                border_color_1_empty: #484f58
-                border_color_2_empty: #484f58
-                border_color_1_disabled: #484f58
-                border_color_2_disabled: #484f58
+                color: #252526
+                color_hover: #2b2b2d
+                color_focus: #2d2d30
+                color_down: #252526
+                color_empty: #252526
+                color_disabled: #252526
+                border_radius: 8.0
+                border_size: 0.0
+                border_color_1: #0000
+                border_color_2: #0000
+                border_color_1_hover: #0000
+                border_color_2_hover: #0000
+                border_color_1_focus: #0000
+                border_color_2_focus: #0000
+                border_color_1_down: #0000
+                border_color_2_down: #0000
+                border_color_1_empty: #0000
+                border_color_2_empty: #0000
+                border_color_1_disabled: #0000
+                border_color_2_disabled: #0000
             }
-            draw_text: { color: #e6edf3, text_style: <THEME_FONT_REGULAR> { font_size: 11, line_spacing: 1.3 } }
+            draw_text: { color: #ddd, text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 } }
             text: ""
         }
 
@@ -228,16 +228,16 @@ pub mod openpad {
             icon_walk: { width: 16, height: Fit }
             draw_icon: {
                 svg_file: dep("crate://self/resources/icons/send.svg")
-                color: #cbd3dc
+                color: #c2c9d4
                 color_hover: #ffffff
-                color_down: #aeb7c2
+                color_down: #aab2bd
             }
             draw_bg: {
-                border_radius: 8.0
+                border_radius: 10.0
                 border_size: 0.0
-                color: #2a2f36
-                color_hover: #313843
-                color_down: #242a32
+                color: #2d2d30
+                color_hover: #34343a
+                color_down: #27272b
             }
         }
     }
