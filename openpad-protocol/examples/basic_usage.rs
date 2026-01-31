@@ -134,6 +134,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Event::SessionError { session_id, error } => {
                                 eprintln!("   → Session {} error: {:?}", session_id, error);
                             }
+                            Event::PermissionAsked(permission) => {
+                                println!("   → Permission asked: {:?}", permission);
+                            }
+                            Event::PermissionReplied { .. } => {
+                                println!("   → Permission replied");
+                            }
                             Event::Error(err) => {
                                 eprintln!("   → Error event: {}", err);
                             }
