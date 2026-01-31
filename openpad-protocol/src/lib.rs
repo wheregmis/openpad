@@ -162,12 +162,26 @@ mod tests {
     ///
     /// ## Known Discrepancies
     ///
-    /// Our implementation intentionally simplifies some types compared to the OpenAPI spec:
+    /// Our implementation intentionally simplifies some types compared to the OpenAPI spec
+    /// to make the client more flexible and easier to maintain:
     ///
-    /// - **Provider**: Simplified to only require `id`, making other fields optional
-    /// - **Model**: Simplified to only require `id`, making other fields optional
+    /// ### Provider Type
     ///
-    /// These simplifications make the client more flexible and easier to maintain.
+    /// - **OpenAPI spec requires**: `id`, `name`, `source`, `env`, `options`, `models`
+    /// - **Our type requires**: `id` only (makes `name` and `models` optional)
+    /// - **Rationale**: We only need basic provider information for the UI, avoiding
+    ///   complex configuration structures that the server manages
+    ///
+    /// ### Model Type
+    ///
+    /// - **OpenAPI spec requires**: `id`, `providerID`, `api`, `name`, `capabilities`,
+    ///   `cost`, `limit`, `status`, `options`, `headers`, `release_date`
+    /// - **Our type requires**: `id` only (makes `name` optional)
+    /// - **Rationale**: The UI only needs to display model names; detailed capabilities,
+    ///   pricing, and limits are managed server-side
+    ///
+    /// These simplifications allow the client to gracefully handle partial data and
+    /// avoid breaking when the server adds new fields to these complex types.
     ///
     /// ## Running the Tests
     ///
@@ -670,17 +684,7 @@ mod tests {
         fn test_provider_and_model_structure() {
             let spec = load_openapi_spec();
             
-            // Note: Our Provider and Model types are simplified compared to the OpenAPI spec
-            // 
-            // Provider OpenAPI spec requires: id, name, source, env, options, models
-            // Our type only requires: id, and makes name and models optional
-            // 
-            // Model OpenAPI spec requires: id, providerID, api, name, capabilities, cost, 
-            //                              limit, status, options, headers, release_date
-            // Our type only requires: id, and makes name optional
-            //
-            // This is intentional to make the client more flexible when parsing responses
-            // and to avoid maintaining complex nested structures that aren't needed by the UI
+            // See module documentation for details on why these types are simplified
             
             let _provider_schema = get_schema(&spec, "Provider").expect("Provider schema not found");
             let provider = Provider {
