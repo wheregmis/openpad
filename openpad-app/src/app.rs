@@ -78,27 +78,81 @@ live_design! {
                         flow: Down,
                         spacing: 8,
 
-                        // Main content area (messages + input)
-                        <View> {
-                            width: Fill, height: Fill
+                        // Session context bar with active project badge
+                        session_info = <RoundedView> {
+                            width: Fill, height: Fit
+                            padding: { left: 12, right: 12, top: 10, bottom: 12 }
                             flow: Down,
-                            spacing: 8,
+                            spacing: 6,
+                            align: { y: 0.5 }
+                            draw_bg: {
+                                color: #232830
+                                border_radius: 8.0
+                            }
 
-                            // Session context bar
-                            session_info = <RoundedView> {
+                            project_row = <View> {
                                 width: Fill, height: Fit
-                                padding: { left: 12, right: 12, top: 8, bottom: 8 }
-                                flow: Right,
-                                spacing: 8,
-                                align: { y: 0.5 }
-                                draw_bg: {
-                                    color: #232830
-                                    border_radius: 8.0
+                                flow: Down
+                                spacing: 2
+
+                                project_name_row = <View> {
+                                    width: Fill, height: Fit
+                                    flow: Right
+                                    spacing: 8
+                                    align: { y: 0.5 }
+
+                                    project_badge = <RoundedView> {
+                                        height: Fit
+                                        padding: { left: 10, right: 10, top: 3, bottom: 3 }
+                                        show_bg: true
+                                        draw_bg: {
+                                            color: #1f262f
+                                            border_radius: 999.0
+                                        }
+                                        animator: {
+                                            hover = {
+                                                default: off
+                                                off = {
+                                                    from: { all: Forward { duration: 0.18 } }
+                                                    apply: {
+                                                        draw_bg: { color: #1f262f }
+                                                    }
+                                                }
+                                                on = {
+                                                    from: { all: Forward { duration: 0.18 } }
+                                                    apply: {
+                                                        draw_bg: { color: #29323c }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        project_badge_label = <Label> {
+                                            text: "No active project"
+                                            draw_text: { color: #9aa4b2, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                                        }
+                                    }
+
+                                    <View> { width: Fill }
                                 }
+
+                                project_path_label = <Label> {
+                                    text: ""
+                                    draw_text: { color: #7a8794, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                }
+                            }
+
+                            session_row = <View> {
+                                width: Fill, height: Fit
+                                flow: Right
+                                spacing: 8
+                                align: { y: 0.5 }
+
                                 session_title = <Label> {
                                     text: "Select a session or start a new one"
                                     draw_text: { color: #6b7b8c, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                                 }
+                                <View> { width: Fill }
                                 revert_indicator = <View> {
                                     visible: false
                                     width: Fit, height: Fit
@@ -108,7 +162,6 @@ live_design! {
                                         draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                                     }
                                 }
-                                <View> { width: Fill }
                                 unrevert_wrap = <View> {
                                     visible: false
                                     width: Fit, height: Fit
@@ -124,25 +177,6 @@ live_design! {
                                         }
                                         draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                                     }
-                                }
-                            }
-
-                            // Messages area
-                            message_list = <MessageList> { width: Fill, height: Fill }
-
-                            // Inline permission prompt (shown only when needed)
-                            permission_dialog = <PermissionDialog> { width: Fill }
-
-                            // Input area (fixed at bottom)
-                            input_row = <View> {
-                                width: Fill, height: Fit
-                                flow: Right
-                                align: { y: 0.5 }
-
-                                <InputBar> {
-                                    width: Fill
-                                    input_box = <InputField> {}
-                                    send_button = <SendButton> {}
                                 }
                             }
                         }
@@ -211,12 +245,7 @@ impl App {
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
                     AppAction::OpenCodeEvent(oc_event) => {
-                        state::handle_opencode_event(
-                            &mut self.state,
-                            &self.ui,
-                            cx,
-                            oc_event,
-                        );
+                        state::handle_opencode_event(&mut self.state, &self.ui, cx, oc_event);
                     }
                     AppAction::PermissionResponded { request_id, reply } => {
                         state::handle_permission_responded(
@@ -241,12 +270,7 @@ impl App {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
                     _ => {
-                        state::handle_app_action(
-                            &mut self.state,
-                            &self.ui,
-                            cx,
-                            app_action,
-                        );
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                     }
                 }
             }
@@ -456,6 +480,7 @@ impl AppMain for App {
                             .set_messages(cx, &self.state.messages_data);
                         self.state.update_projects_panel(&self.ui, cx);
                         self.state.update_session_title_ui(&self.ui, cx);
+                        self.state.update_project_context_ui(&self.ui, cx);
                         self.load_messages(session_id.clone());
                         self.load_pending_permissions();
                     }
@@ -479,7 +504,9 @@ impl AppMain for App {
             }
 
             // Handle MessageListAction
-            if let Some(msg_action) = action.downcast_ref::<crate::state::actions::MessageListAction>() {
+            if let Some(msg_action) =
+                action.downcast_ref::<crate::state::actions::MessageListAction>()
+            {
                 use crate::state::actions::MessageListAction;
                 match msg_action {
                     MessageListAction::RevertToMessage(message_id) => {
@@ -493,7 +520,9 @@ impl AppMain for App {
 
             // Handle TerminalAction
             if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
-                self.ui.terminal(id!(terminal_panel)).handle_action(cx, terminal_action);
+                self.ui
+                    .terminal(id!(terminal_panel))
+                    .handle_action(cx, terminal_action);
             }
 
             // Handle AppAction from captured UI actions (e.g. DialogConfirmed, PermissionResponded)

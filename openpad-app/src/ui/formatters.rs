@@ -47,7 +47,12 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
     // Show days ago for messages older than 24 hours
     let days_ago = diff_hours / 24;
     if days_ago > 0 {
-        format!("{} ({} {} ago)", time_str, days_ago, if days_ago == 1 { "day" } else { "days" })
+        format!(
+            "{} ({} {} ago)",
+            time_str,
+            days_ago,
+            if days_ago == 1 { "day" } else { "days" }
+        )
     } else {
         time_str
     }
