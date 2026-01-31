@@ -52,6 +52,13 @@ impl AppState {
             self.selected_session_id.clone(),
         );
     }
+
+    /// Clears all messages and updates the UI
+    pub fn clear_messages(&mut self, ui: &WidgetRef, cx: &mut Cx) {
+        self.messages_data.clear();
+        ui.message_list(id!(message_list))
+            .set_messages(cx, &self.messages_data);
+    }
 }
 
 /// Handles AppAction events
@@ -93,6 +100,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
+            state.clear_messages(ui, cx);
             state.update_session_title_ui(ui, cx);
             cx.redraw_all();
         }
@@ -115,6 +123,7 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
         OcEvent::SessionCreated(session) => {
             if state.current_session_id.is_none() {
                 state.current_session_id = Some(session.id.clone());
+                state.clear_messages(ui, cx);
             }
             state.sessions.push(session.clone());
             state.update_projects_panel(ui, cx);
