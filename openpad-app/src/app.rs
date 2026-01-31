@@ -189,6 +189,40 @@ live_design! {
                             input_row = <View> {
                                 width: Fill, height: Fit
                                 padding: { left: 32, right: 32, top: 12, bottom: 20 }
+                                flow: Down, spacing: 8
+                                
+                                // Attachments preview area
+                                attachments_preview = <View> {
+                                    visible: false
+                                    width: Fill, height: Fit
+                                    flow: Right, spacing: 8
+                                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
+                                    show_bg: true
+                                    draw_bg: {
+                                        color: #2a2a2a
+                                        border_radius: 8.0
+                                    }
+                                    
+                                    attachments_label = <Label> {
+                                        text: "Attached:"
+                                        draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    }
+                                    attachments_list = <Label> {
+                                        text: ""
+                                        draw_text: { color: #aaa, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    }
+                                    <View> { width: Fill }
+                                    clear_attachments_button = <Button> {
+                                        width: Fit, height: 20
+                                        text: "Clear"
+                                        draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                        draw_bg: {
+                                            color: #0000
+                                            color_hover: #333
+                                        }
+                                    }
+                                }
+                                
                                 <InputBar> {
                                     width: Fill
                                     input_box = <InputField> {}
@@ -288,9 +322,24 @@ impl App {
             .map(|s| s.directory.clone())
     }
 
+    /// Update the attachments preview UI
+    fn update_attachments_ui(&self, cx: &mut Cx) {
+        let has_attachments = !self.state.attached_files.is_empty();
+        self.ui.view(id!(attachments_preview)).set_visible(cx, has_attachments);
+        
+        if has_attachments {
+            let filenames: Vec<String> = self.state.attached_files.iter()
+                .map(|f| f.filename.clone())
+                .collect();
+            let text = filenames.join(", ");
+            self.ui.label(id!(attachments_list)).set_text(cx, &text);
+        }
+        self.ui.redraw(cx);
+    }
+
     /// Extract data URLs from text and add them as attachments
     /// Returns the text with data URLs removed
-    fn process_pasted_content(&mut self, text: &str) -> String {
+    fn process_pasted_content(&mut self, cx: &mut Cx, text: &str) -> String {
         use crate::state::handlers::AttachedFile;
         use regex::Regex;
 
@@ -341,6 +390,10 @@ impl App {
 
         // Add remaining text after last data URL
         remaining_text.push_str(&text[last_end..]);
+        
+        // Update UI to show attachments
+        self.update_attachments_ui(cx);
+        
         remaining_text
     }
 
@@ -441,7 +494,7 @@ impl App {
         async_runtime::spawn_message_loader(runtime, client, session_id, directory);
     }
 
-    fn send_message(&mut self, _cx: &mut Cx, text: String) {
+    fn send_message(&mut self, cx: &mut Cx, text: String) {
         let Some(client) = self.client.clone() else {
             self.state.error_message = Some("Not connected".to_string());
             return;
@@ -500,6 +553,7 @@ impl App {
         
         // Clear attached files after sending
         self.state.attached_files.clear();
+        self.update_attachments_ui(cx);
     }
 
     fn create_session(&mut self, _cx: &mut Cx, project_id: Option<String>) {
@@ -781,7 +835,7 @@ impl AppMain for App {
         // Check for text input return
         if let Some((text, _modifiers)) = self.ui.text_input(id!(input_box)).returned(&actions) {
             if !text.is_empty() {
-                let processed_text = self.process_pasted_content(&text);
+                let processed_text = self.process_pasted_content(cx, &text);
                 self.send_message(cx, processed_text);
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
             }
@@ -819,10 +873,16 @@ impl AppMain for App {
         if self.ui.button(id!(send_button)).clicked(&actions) {
             let text = self.ui.text_input(id!(input_box)).text();
             if !text.is_empty() {
-                let processed_text = self.process_pasted_content(&text);
+                let processed_text = self.process_pasted_content(cx, &text);
                 self.send_message(cx, processed_text);
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
             }
+        }
+        
+        // Handle clear attachments button
+        if self.ui.button(id!(clear_attachments_button)).clicked(&actions) {
+            self.state.attached_files.clear();
+            self.update_attachments_ui(cx);
         }
 
         // Handle dropdown selections
