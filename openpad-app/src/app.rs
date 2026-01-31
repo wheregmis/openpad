@@ -3,6 +3,7 @@ use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
 use crate::components::simple_dialog::SimpleDialogWidgetRefExt;
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
+use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
@@ -259,7 +260,7 @@ impl LiveRegister for App {
 impl App {
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         let runtime = tokio::runtime::Runtime::new().unwrap();
-        let client = Arc::new(OpenCodeClient::new("http://localhost:4096"));
+        let client = Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL));
 
         // Spawn background tasks
         async_runtime::spawn_sse_subscriber(&runtime, client.clone());

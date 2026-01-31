@@ -30,3 +30,6 @@ pub const STATUS_ERROR_PREFIX: &str = "Error: ";
 pub const SESSION_TITLE_DEFAULT: &str = "Select a session or start a new one";
 pub const SESSION_TITLE_NEW: &str = "New session";
 pub const PROJECT_CONTEXT_NO_PROJECT: &str = "No active project";
+
+// OpenCode server configuration
+pub const OPENCODE_SERVER_URL: &str = "http://localhost:4096";
