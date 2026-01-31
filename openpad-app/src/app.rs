@@ -279,6 +279,15 @@ impl App {
         }
     }
 
+    /// Helper to get a session's directory by session ID
+    fn get_session_directory(&self, session_id: &str) -> Option<String> {
+        self.state
+            .sessions
+            .iter()
+            .find(|s| s.id == session_id)
+            .map(|s| s.directory.clone())
+    }
+
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let client = Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL));
@@ -371,12 +380,7 @@ impl App {
         };
 
         // Find the session to get its directory
-        let directory = self
-            .state
-            .sessions
-            .iter()
-            .find(|s| s.id == session_id)
-            .map(|s| s.directory.clone());
+        let directory = self.get_session_directory(&session_id);
 
         async_runtime::spawn_message_loader(runtime, client, session_id, directory);
     }
@@ -529,12 +533,7 @@ impl App {
         };
 
         // Find the parent session to get its directory for the new branched session
-        let directory = self
-            .state
-            .sessions
-            .iter()
-            .find(|s| s.id == parent_session_id)
-            .map(|s| s.directory.clone());
+        let directory = self.get_session_directory(&parent_session_id);
 
         async_runtime::spawn_session_brancher(runtime, client, parent_session_id, directory);
     }
@@ -549,12 +548,7 @@ impl App {
         };
 
         // Find the session to get its directory
-        let directory = self
-            .state
-            .sessions
-            .iter()
-            .find(|s| s.id == session_id)
-            .map(|s| s.directory.clone());
+        let directory = self.get_session_directory(&session_id);
 
         async_runtime::spawn_message_reverter(runtime, client, session_id, message_id, directory);
     }
@@ -569,12 +563,7 @@ impl App {
         };
 
         // Find the session to get its directory
-        let directory = self
-            .state
-            .sessions
-            .iter()
-            .find(|s| s.id == session_id)
-            .map(|s| s.directory.clone());
+        let directory = self.get_session_directory(&session_id);
 
         async_runtime::spawn_session_unreverter(runtime, client, session_id, directory);
     }
