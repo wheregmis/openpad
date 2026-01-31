@@ -40,6 +40,13 @@ pub struct Agent {
     pub hidden: Option<bool>,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Skill {
+    pub name: String,
+    pub description: String,
+    pub location: String,
+}
+
 // ============================================================================
 // Project API types
 // ============================================================================
@@ -430,6 +437,10 @@ pub struct ModelSpec {
 pub struct PromptRequest {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<ModelSpec>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub system: Option<String>,
     pub parts: Vec<PartInput>,
     #[serde(default, rename = "noReply", skip_serializing_if = "Option::is_none")]
     pub no_reply: Option<bool>,

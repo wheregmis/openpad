@@ -54,6 +54,7 @@ mod tests {
         // App types
         let _: LogRequest;
         let _: Agent;
+        let _: Skill;
 
         // Project types
         let _: Project;

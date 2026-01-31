@@ -27,9 +27,11 @@ Openpad pairs Makepad's declarative UI with custom widgets to craft a literate
 workspace. It is built in Rust, ships with platform resources, and runs everywhere
 desktop Makepad supports.
 """
-out_dir = "./dist"
+out_dir = "../dist"
 before-packaging-command = """
 set -euo pipefail
+cd ..
+mkdir -p ./resources
 robius-packaging-commands before-packaging \
     --force-makepad \
     --binary-name openpad \
@@ -39,6 +41,8 @@ cp -R ./openpad-app/resources/. ./dist/resources/openpad-app || true
 """
 before-each-package-command = """
 set -euo pipefail
+cd ..
+mkdir -p ./resources
 robius-packaging-commands before-each-package \
     --force-makepad \
     --binary-name openpad \
@@ -47,15 +51,15 @@ mkdir -p ./dist/resources/openpad-app
 cp -R ./openpad-app/resources/. ./dist/resources/openpad-app || true
 """
 resources = [
-    { src = "./dist/resources/makepad_widgets", target = "makepad_widgets" },
-    { src = "./dist/resources/makepad_fonts_chinese_bold", target = "makepad_fonts_chinese_bold" },
-    { src = "./dist/resources/makepad_fonts_chinese_bold_2", target = "makepad_fonts_chinese_bold_2" },
-    { src = "./dist/resources/makepad_fonts_chinese_regular", target = "makepad_fonts_chinese_regular" },
-    { src = "./dist/resources/makepad_fonts_chinese_regular_2", target = "makepad_fonts_chinese_regular_2" },
-    { src = "./dist/resources/makepad_fonts_emoji", target = "makepad_fonts_emoji" },
-    { src = "./dist/resources/openpad-app", target = "openpad-app" },
+    { src = "../dist/resources/makepad_widgets", target = "makepad_widgets" },
+    { src = "../dist/resources/makepad_fonts_chinese_bold", target = "makepad_fonts_chinese_bold" },
+    { src = "../dist/resources/makepad_fonts_chinese_bold_2", target = "makepad_fonts_chinese_bold_2" },
+    { src = "../dist/resources/makepad_fonts_chinese_regular", target = "makepad_fonts_chinese_regular" },
+    { src = "../dist/resources/makepad_fonts_chinese_regular_2", target = "makepad_fonts_chinese_regular_2" },
+    { src = "../dist/resources/makepad_fonts_emoji", target = "makepad_fonts_emoji" },
+    { src = "../dist/resources/openpad-app", target = "openpad-app" },
 ]
 
 [package.metadata.packager.macos]
 minimum_system_version = "11.0"
-info_plist_path = "./openpad-app/packaging/Info.plist"
+info_plist_path = "./packaging/Info.plist"

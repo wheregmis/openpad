@@ -177,8 +177,11 @@ impl Widget for PermissionDialog {
         });
 
         if self.view.button(&[id!(accept_button)]).clicked(&actions) {
-            if let Some(permission_id) = self.get_request_id() {
+            if let (Some(session_id), Some(permission_id)) =
+                (self.session_id.clone(), self.get_request_id())
+            {
                 cx.action(AppAction::PermissionResponded {
+                    session_id,
                     request_id: permission_id,
                     reply: openpad_protocol::PermissionReply::Once,
                 });
@@ -187,8 +190,11 @@ impl Widget for PermissionDialog {
         }
 
         if self.view.button(&[id!(reject_button)]).clicked(&actions) {
-            if let Some(permission_id) = self.get_request_id() {
+            if let (Some(session_id), Some(permission_id)) =
+                (self.session_id.clone(), self.get_request_id())
+            {
                 cx.action(AppAction::PermissionResponded {
+                    session_id,
                     request_id: permission_id,
                     reply: openpad_protocol::PermissionReply::Reject,
                 });
@@ -197,8 +203,11 @@ impl Widget for PermissionDialog {
         }
 
         if self.view.button(&[id!(always_button)]).clicked(&actions) {
-            if let Some(permission_id) = self.get_request_id() {
+            if let (Some(session_id), Some(permission_id)) =
+                (self.session_id.clone(), self.get_request_id())
+            {
                 cx.action(AppAction::PermissionResponded {
+                    session_id,
                     request_id: permission_id,
                     reply: openpad_protocol::PermissionReply::Always,
                 });
@@ -230,7 +239,9 @@ impl PermissionDialog {
             permission.to_uppercase()
         );
 
-        self.view.label(&[id!(description)]).set_text(cx, &description);
+        self.view
+            .label(&[id!(description)])
+            .set_text(cx, &description);
         self.view
             .label(&[id!(permission_type)])
             .set_text(cx, &permission.to_uppercase());
@@ -239,7 +250,9 @@ impl PermissionDialog {
         } else {
             format!("Patterns:\n{}", patterns.join("\n"))
         };
-        self.view.label(&[id!(pattern)]).set_text(cx, &patterns_text);
+        self.view
+            .label(&[id!(pattern)])
+            .set_text(cx, &patterns_text);
         if let Some(context_text) = context.filter(|text| !text.trim().is_empty()) {
             self.view
                 .label(&[id!(context)])

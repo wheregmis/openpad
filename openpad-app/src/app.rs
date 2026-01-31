@@ -267,12 +267,54 @@ live_design! {
                                     }
                                 }
 
+                                skill_preview = <RoundedView> {
+                                    visible: false
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 4
+                                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
+                                    show_bg: true
+                                    draw_bg: {
+                                        color: #2a2a2a
+                                        border_radius: 8.0
+                                    }
+
+                                    skill_header = <View> {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 8
+                                        align: { y: 0.5 }
+
+                                        skill_name_label = <Label> {
+                                            text: "Skill"
+                                            draw_text: { color: #9ca3af, text_style: <THEME_FONT_BOLD> { font_size: 9 } }
+                                        }
+                                        <View> { width: Fill }
+                                        clear_skill_button = <Button> {
+                                            width: Fit, height: 20
+                                            text: "Clear"
+                                            draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                            draw_bg: {
+                                                color: #0000
+                                                color_hover: #333
+                                            }
+                                        }
+                                    }
+
+                                    skill_desc_label = <Label> {
+                                        text: ""
+                                        draw_text: { color: #a3a3a3, text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }
+                                    }
+                                }
+
                                 <InputBar> {
                                     width: Fill
                                     input_box = <InputField> {}
                                     <InputBarToolbar> {
                                         agent_dropdown = <InputBarDropDown> {
                                             labels: ["Agent"]
+                                        }
+                                        skill_dropdown = <InputBarDropDown> {
+                                            width: 150
+                                            labels: ["Skill"]
                                         }
                                         model_dropdown = <InputBarDropDown> {
                                             width: 150
@@ -382,6 +424,24 @@ impl App {
                 .collect();
             let text = filenames.join(", ");
             self.ui.label(&[id!(attachments_list)]).set_text(cx, &text);
+        }
+        self.ui.redraw(cx);
+    }
+
+    fn update_skill_ui(&self, cx: &mut Cx) {
+        let selected = self.state.selected_skill();
+        let has_skill = selected.is_some();
+        self.ui
+            .view(&[id!(skill_preview)])
+            .set_visible(cx, has_skill);
+
+        if let Some(skill) = selected {
+            self.ui
+                .label(&[id!(skill_name_label)])
+                .set_text(cx, &skill.name);
+            self.ui
+                .label(&[id!(skill_desc_label)])
+                .set_text(cx, &skill.description);
         }
         self.ui.redraw(cx);
     }
@@ -513,14 +573,23 @@ impl App {
                     AppAction::OpenCodeEvent(oc_event) => {
                         state::handle_opencode_event(&mut self.state, &self.ui, cx, oc_event);
                     }
-                    AppAction::PermissionResponded { request_id, reply } => {
+                    AppAction::PermissionResponded {
+                        session_id,
+                        request_id,
+                        reply,
+                    } => {
                         state::handle_permission_responded(
                             &mut self.state,
                             &self.ui,
                             cx,
                             request_id,
                         );
-                        self.respond_to_permission(cx, request_id.clone(), reply.clone());
+                        self.respond_to_permission(
+                            cx,
+                            session_id.clone(),
+                            request_id.clone(),
+                            reply.clone(),
+                        );
                         self.ui
                             .permission_dialog(&[id!(permission_dialog)])
                             .hide(cx);
@@ -561,7 +630,8 @@ impl App {
             return;
         };
         async_runtime::spawn_providers_loader(runtime, client.clone());
-        async_runtime::spawn_agents_loader(runtime, client);
+        async_runtime::spawn_agents_loader(runtime, client.clone());
+        async_runtime::spawn_skills_loader(runtime, client);
     }
 
     fn load_pending_permissions(&mut self) {
@@ -639,6 +709,8 @@ impl App {
                 })
             });
         let model_spec = self.state.selected_model_spec();
+        let agent = self.state.selected_agent_name();
+        let system = self.state.selected_skill_prompt();
 
         // Convert attached files to PartInput
         let attachments: Vec<openpad_protocol::PartInput> = self
@@ -665,6 +737,8 @@ impl App {
             session_id,
             text,
             model_spec,
+            agent,
+            system,
             directory,
             attachments,
         );
@@ -708,6 +782,7 @@ impl App {
     fn respond_to_permission(
         &mut self,
         _cx: &mut Cx,
+        session_id: String,
         request_id: String,
         reply: openpad_protocol::PermissionReply,
     ) {
@@ -719,7 +794,7 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_permission_reply(runtime, client, request_id, reply);
+        async_runtime::spawn_permission_reply(runtime, client, session_id, request_id, reply);
     }
 
     fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
@@ -948,14 +1023,23 @@ impl AppMain for App {
                     AppAction::DialogConfirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
-                    AppAction::PermissionResponded { request_id, reply } => {
+                    AppAction::PermissionResponded {
+                        session_id,
+                        request_id,
+                        reply,
+                    } => {
                         state::handle_permission_responded(
                             &mut self.state,
                             &self.ui,
                             cx,
                             request_id,
                         );
-                        self.respond_to_permission(cx, request_id.clone(), reply.clone());
+                        self.respond_to_permission(
+                            cx,
+                            session_id.clone(),
+                            request_id.clone(),
+                            reply.clone(),
+                        );
                         self.ui
                             .permission_dialog(&[id!(permission_dialog)])
                             .hide(cx);
@@ -1055,6 +1139,14 @@ impl AppMain for App {
             self.update_attachments_ui(cx);
         }
 
+        if self.ui.button(&[id!(clear_skill_button)]).clicked(&actions) {
+            self.state.selected_skill_idx = None;
+            self.ui
+                .drop_down(&[id!(skill_dropdown)])
+                .set_selected_item(cx, 0);
+            self.update_skill_ui(cx);
+        }
+
         // Handle dropdown selections
         if let Some(idx) = self.ui.drop_down(&[id!(model_dropdown)]).changed(&actions) {
             if let Some(entry) = self.state.model_entries.get(idx) {
@@ -1069,6 +1161,10 @@ impl AppMain for App {
         }
         if let Some(idx) = self.ui.drop_down(&[id!(agent_dropdown)]).changed(&actions) {
             self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
+        }
+        if let Some(idx) = self.ui.drop_down(&[id!(skill_dropdown)]).changed(&actions) {
+            self.state.selected_skill_idx = if idx > 0 { Some(idx - 1) } else { None };
+            self.update_skill_ui(cx);
         }
     }
 }

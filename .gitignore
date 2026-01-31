@@ -3,3 +3,5 @@
 .codex
 code_editor
 studio
+dist/
+.DS_Store

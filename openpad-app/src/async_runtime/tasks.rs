@@ -155,6 +155,8 @@ pub fn spawn_message_sender(
     session_id: Option<String>,
     text: String,
     model_spec: Option<ModelSpec>,
+    agent: Option<String>,
+    system: Option<String>,
     directory: Option<String>,
     attachments: Vec<PartInput>,
 ) {
@@ -195,6 +197,8 @@ pub fn spawn_message_sender(
         // Send prompt with optional model selection
         let request = PromptRequest {
             model: model_spec,
+            agent,
+            system,
             parts,
             no_reply: None,
         };
@@ -246,12 +250,26 @@ pub fn spawn_session_creator(
 pub fn spawn_permission_reply(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
+    session_id: String,
     request_id: String,
     reply: PermissionReply,
 ) {
     runtime.spawn(async move {
+        let allow = !matches!(reply, PermissionReply::Reject);
         let response = PermissionReplyRequest { reply };
-        if let Err(e) = client.reply_to_permission(&request_id, response).await {
+        if client
+            .reply_to_permission(&request_id, response)
+            .await
+            .is_ok()
+        {
+            return;
+        }
+
+        let response = openpad_protocol::PermissionResponse { allow };
+        if let Err(e) = client
+            .respond_to_permission(&session_id, &request_id, response)
+            .await
+        {
             Cx::post_action(AppAction::SendMessageFailed(format!(
                 "Permission response failed: {}",
                 e
@@ -309,6 +327,20 @@ pub fn spawn_agents_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenCo
             }
             Err(e) => {
                 eprintln!("Failed to load agents: {}", e);
+            }
+        }
+    });
+}
+
+/// Spawns a task to fetch available skills
+pub fn spawn_skills_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
+    runtime.spawn(async move {
+        match client.list_skills().await {
+            Ok(skills) => {
+                Cx::post_action(AppAction::SkillsLoaded(skills));
+            }
+            Err(e) => {
+                eprintln!("Failed to load skills: {}", e);
             }
         }
     });

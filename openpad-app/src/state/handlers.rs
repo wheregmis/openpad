@@ -8,7 +8,7 @@ use crate::ui::state_updates;
 use makepad_widgets::*;
 use openpad_protocol::{
     Agent, Event as OcEvent, MessageWithParts, ModelSpec, PermissionRequest, Project, Provider,
-    Session,
+    Session, Skill,
 };
 
 #[derive(Clone)]
@@ -74,9 +74,11 @@ pub struct AppState {
     pub pending_permissions: Vec<PermissionRequest>,
     pub providers: Vec<Provider>,
     pub agents: Vec<Agent>,
+    pub skills: Vec<Skill>,
     pub model_entries: Vec<ModelDropdownEntry>,
     pub selected_model_entry: usize,
     pub selected_agent_idx: Option<usize>,
+    pub selected_skill_idx: Option<usize>,
     pub attached_files: Vec<AttachedFile>,
 }
 
@@ -96,6 +98,21 @@ impl AppState {
                     })
                 })
             })
+    }
+
+    pub fn selected_agent_name(&self) -> Option<String> {
+        self.selected_agent_idx
+            .and_then(|idx| self.agents.get(idx))
+            .map(|agent| agent.name.clone())
+    }
+
+    pub fn selected_skill(&self) -> Option<&Skill> {
+        self.selected_skill_idx.and_then(|idx| self.skills.get(idx))
+    }
+
+    pub fn selected_skill_prompt(&self) -> Option<String> {
+        self.selected_skill()
+            .map(|skill| format!("Use skill: {}", skill.name))
     }
 }
 
@@ -327,6 +344,17 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             ui.drop_down(&[id!(agent_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_agent_idx = None;
+            cx.redraw_all();
+        }
+        AppAction::SkillsLoaded(skills) => {
+            log!("SkillsLoaded: {} skills", skills.len());
+            state.skills = skills.clone();
+            let mut labels: Vec<String> = vec!["Skill".to_string()];
+            labels.extend(state.skills.iter().map(|s| s.name.clone()));
+            ui.drop_down(&[id!(skill_dropdown)]).set_labels(cx, labels);
+            ui.drop_down(&[id!(skill_dropdown)])
+                .set_selected_item(cx, 0);
+            state.selected_skill_idx = None;
             cx.redraw_all();
         }
         _ => {}

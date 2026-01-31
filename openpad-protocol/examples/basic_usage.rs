@@ -79,6 +79,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         parts: vec![PartInput::text(
             "Hello! Can you help me with Rust programming?",
         )],
+        agent: None,
+        system: None,
         no_reply: None,
     };
 

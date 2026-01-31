@@ -9,7 +9,7 @@ use crate::{
     LogRequest, MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest,
     PermissionRequest, PermissionResponse, Project, PromptRequest, ProvidersResponse,
     RevertRequest, SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest,
-    SessionUpdateRequest, ShellRequest, ShowToastRequest, Symbol, SymbolsSearchRequest,
+    SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol, SymbolsSearchRequest,
     TextSearchRequest, TextSearchResult,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
@@ -286,6 +286,10 @@ impl OpenCodeClient {
 
     pub async fn agents(&self) -> Result<Vec<Agent>> {
         self.get_json("/agent", "get agents").await
+    }
+
+    pub async fn list_skills(&self) -> Result<Vec<Skill>> {
+        self.get_json("/skill", "list skills").await
     }
 
     // ========================================================================
