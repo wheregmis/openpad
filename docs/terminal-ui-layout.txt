@@ -1,0 +1,74 @@
+# Terminal Widget UI Layout
+
+## Visual Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Openpad                                                  ● Connected │
+├──────┬────────────────────────────────────────────────────────────┤
+│      │  Session Context Bar                                        │
+│      ├──────────────────────────────────────────────────────────────┤
+│      │                                                              │
+│ Side │                                                              │
+│Panel │              Message List Area                              │
+│      │          (Chat with Claude Code)                           │
+│      │                                                              │
+│      │                                                              │
+│      ├──────────────────────────────────────────────────────────────┤
+│      │  Permission Dialog (when shown)                             │
+│      ├──────────────────────────────────────────────────────────────┤
+│      │  Input: Ask anything...                            [Send]   │
+│      ├──────────────────────────────────────────────────────────────┤
+│      │ Terminal                                           [Clear]  │
+│      ├──────────────────────────────────────────────────────────────┤
+│      │                                                              │
+│      │  > ls                                                        │
+│      │  Cargo.lock  Cargo.toml  README.md  docs/  openpad-app/    │
+│      │  openpad-protocol/  openpad-widgets/                       │
+│      │  > pwd                                                       │
+│      │  /Users/wheregmis/Documents/GitHub/openpad                 │
+│      │  Terminal initialized with shell: /bin/zsh                  │
+│      │                                                              │
+│      ├──────────────────────────────────────────────────────────────┤
+│      │  Enter command...                                           │
+└──────┴──────────────────────────────────────────────────────────────┘
+```
+
+## Component Breakdown
+
+### Terminal Panel (250px height)
+Located at the bottom of the main content area, the terminal consists of three parts:
+
+1. **Header Bar** (dark gray background `#22262c`)
+   - Left: "Terminal" label
+   - Right: "Clear" button
+
+2. **Output Area** (scrollable, fills remaining space)
+   - Background: Dark (`#1a1d23`)
+   - Text: Light gray (`#e6e9ee`)
+   - Font: Monospace (code font)
+   - Scrollable when output exceeds visible area
+
+3. **Input Field** (bottom, fixed height)
+   - Background: Dark gray (`#1f2329`)
+   - Placeholder: "Enter command..."
+   - Full width text input
+   - Press Enter to execute command
+
+## Color Scheme
+The terminal uses a dark theme matching the rest of the Openpad interface:
+- Background: `#1a1d23`
+- Header: `#22262c`
+- Input: `#1f2329`
+- Text: `#e6e9ee`
+- Buttons: `#2a2f36` (hover: `#313843`)
+
+## Interaction Flow
+1. User types command in input field
+2. User presses Enter
+3. Command is sent to PTY
+4. Prompt shows: `> {command}`
+5. Shell executes command
+6. Output streams to terminal output area in real-time
+7. User can scroll through output history
+8. "Clear" button resets all output
