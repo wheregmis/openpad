@@ -13,3 +13,4 @@ openpad-widgets = { path = "../openpad-widgets" }
 openpad-protocol = { path = "../openpad-protocol" }
 tokio = { workspace = true }
 portable-pty = "0.9.0"
+hostname = "0.4"

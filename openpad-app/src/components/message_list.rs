@@ -15,11 +15,11 @@ live_design! {
             UserMsg = <View> {
                 width: Fill, height: Fit
                 flow: Down,
-                padding: { top: 12, bottom: 12, left: 240, right: 24 }
+                padding: { top: 4, bottom: 4, left: 100, right: 24 }
                 align: { x: 1.0 }
 
                 <UserBubble> {
-                    width: Fit, height: Fit
+                    width: Fill, height: Fit
                     flow: Down,
                     align: { x: 1.0 }
 
@@ -65,10 +65,10 @@ live_design! {
             AssistantMsg = <View> {
                 width: Fill, height: Fit
                 flow: Down,
-                padding: { top: 12, bottom: 12, left: 24, right: 240 }
+                padding: { top: 4, bottom: 4, left: 24, right: 100 }
 
                 <AssistantBubble> {
-                    width: Fit, height: Fit
+                    width: Fill, height: Fit
                     flow: Down,
 
                     // Metadata row

@@ -444,6 +444,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96b1d492766a538e49020f97af3e91e0acb718b3b008ed4ab6d39374f42b3e83"
 
 [[package]]
+name = "hostname"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "617aaa3557aef3810a6369d0a99fac8a080891b68bd9f9812a1eeda0c0730cbd"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "windows-link",
+]
+
+[[package]]
 name = "http"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1272,6 +1283,7 @@ checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 name = "openpad-app"
 version = "0.1.0"
 dependencies = [
+ "hostname",
  "makepad-widgets",
  "openpad-protocol",
  "openpad-widgets",

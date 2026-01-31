@@ -8,7 +8,7 @@ live_design! {
     pub UserBubble = <RoundedView> {
         width: Fit, height: Fit
         flow: Down,
-        padding: { top: 12, bottom: 12, left: 16, right: 16 }
+        padding: { top: 8, bottom: 8, left: 14, right: 14 }
         draw_bg: {
             color: #2d2d30
             border_radius: 12.0

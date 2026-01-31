@@ -181,41 +181,42 @@ pub mod openpad {
             spacing: 8,
             padding: { left: 18, right: 10, top: 10, bottom: 10 }
             align: { y: 1.0 }
+            show_bg: true
             draw_bg: {
-                color: #22262c
-                border_color: #333942
-                border_radius: 20.0
+                color: #252526
+                border_color: #3c3c3c
+                border_radius: 8.0
                 border_size: 1.0
             }
         }
 
         pub InputField = <TextInput> {
             width: Fill, height: Fit
+            padding: { left: 12, right: 12, top: 8, bottom: 8 }
             empty_text: "Ask anything..."
-            multiline: true
             draw_bg: {
-                color: #0000
-                color_hover: #0000
-                color_focus: #0000
-                color_down: #0000
-                color_empty: #0000
-                color_disabled: #0000
-                border_radius: 0.0
-                border_size: 0.0
-                border_color_1: #0000
-                border_color_2: #0000
-                border_color_1_hover: #0000
-                border_color_2_hover: #0000
-                border_color_1_focus: #0000
-                border_color_2_focus: #0000
-                border_color_1_down: #0000
-                border_color_2_down: #0000
-                border_color_1_empty: #0000
-                border_color_2_empty: #0000
-                border_color_1_disabled: #0000
-                border_color_2_disabled: #0000
+                color: #0d1117
+                color_hover: #0d1117
+                color_focus: #161b22
+                color_down: #0d1117
+                color_empty: #0d1117
+                color_disabled: #0d1117
+                border_radius: 6.0
+                border_size: 1.0
+                border_color_1: #484f58
+                border_color_2: #484f58
+                border_color_1_hover: #484f58
+                border_color_2_hover: #484f58
+                border_color_1_focus: #58a6ff
+                border_color_2_focus: #58a6ff
+                border_color_1_down: #484f58
+                border_color_2_down: #484f58
+                border_color_1_empty: #484f58
+                border_color_2_empty: #484f58
+                border_color_1_disabled: #484f58
+                border_color_2_disabled: #484f58
             }
-            draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11, line_spacing: 1.3 } }
+            draw_text: { color: #e6edf3, text_style: <THEME_FONT_REGULAR> { font_size: 11, line_spacing: 1.3 } }
             text: ""
         }
 
