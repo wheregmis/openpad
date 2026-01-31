@@ -132,7 +132,6 @@ pub fn handle_opencode_event(
         OcEvent::SessionCreated(session) => {
             if state.current_session_id.is_none() {
                 state.current_session_id = Some(session.id.clone());
-                // Clear messages when starting a new session
                 state.clear_messages(ui, cx);
             }
             state.sessions.push(session.clone());
