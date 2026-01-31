@@ -231,6 +231,19 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
             state.clear_messages(ui, cx);
+            
+            // Add the session to the sessions list immediately (don't wait for SSE)
+            // Check if it's not already there to avoid duplicates
+            if !state.sessions.iter().any(|s| s.id == session.id) {
+                state.sessions.push(session.clone());
+            }
+            
+            // Update current_project to match the session's project
+            if let Some(project) = state.projects.iter().find(|p| p.id == session.project_id) {
+                state.current_project = Some(project.clone());
+            }
+            
+            state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
             state.update_project_context_ui(ui, cx);
             cx.redraw_all();
@@ -314,7 +327,10 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
                 state.current_session_id = Some(session.id.clone());
                 state.clear_messages(ui, cx);
             }
-            state.sessions.push(session.clone());
+            // Only add the session if it's not already in the list (avoid duplicates from AppAction::SessionCreated)
+            if !state.sessions.iter().any(|s| s.id == session.id) {
+                state.sessions.push(session.clone());
+            }
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
             state.update_project_context_ui(ui, cx);
