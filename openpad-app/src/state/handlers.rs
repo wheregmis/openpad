@@ -48,6 +48,14 @@ impl ModelDropdownEntry {
     }
 }
 
+/// Information about an attached file ready to be sent
+#[derive(Clone, Debug)]
+pub struct AttachedFile {
+    pub filename: String,
+    pub mime_type: String,
+    pub data_url: String,
+}
+
 /// Data structure holding application state for event handling
 #[derive(Default)]
 pub struct AppState {
@@ -66,6 +74,7 @@ pub struct AppState {
     pub model_entries: Vec<ModelDropdownEntry>,
     pub selected_model_entry: usize,
     pub selected_agent_idx: Option<usize>,
+    pub attached_files: Vec<AttachedFile>,
 }
 
 impl AppState {

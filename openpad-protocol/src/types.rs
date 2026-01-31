@@ -695,17 +695,101 @@ impl Part {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct PartInput {
-    #[serde(rename = "type")]
-    pub type_name: String,
-    pub text: String,
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum PartInput {
+    Text {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+        text: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        synthetic: Option<bool>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        ignored: Option<bool>,
+    },
+    File {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+        mime: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        filename: Option<String>,
+        url: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        source: Option<FilePartSource>,
+    },
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum FilePartSource {
+    File {
+        text: FilePartSourceText,
+        path: String,
+    },
+    Symbol {
+        text: FilePartSourceText,
+        path: String,
+        range: Range,
+        name: String,
+        kind: i64,
+    },
+    Resource {
+        text: FilePartSourceText,
+        #[serde(rename = "clientName")]
+        client_name: String,
+        uri: String,
+    },
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FilePartSourceText {
+    pub value: String,
+    pub start: i64,
+    pub end: i64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Range {
+    pub start: Position,
+    pub end: Position,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Position {
+    pub line: f64,
+    pub character: f64,
 }
 
 impl PartInput {
     pub fn text(text: impl Into<String>) -> Self {
-        Self {
-            type_name: "text".to_string(),
+        Self::Text {
+            id: None,
             text: text.into(),
+            synthetic: None,
+            ignored: None,
+        }
+    }
+
+    pub fn file(mime: impl Into<String>, url: impl Into<String>) -> Self {
+        Self::File {
+            id: None,
+            mime: mime.into(),
+            filename: None,
+            url: url.into(),
+            source: None,
+        }
+    }
+
+    pub fn file_with_filename(
+        mime: impl Into<String>,
+        filename: impl Into<String>,
+        url: impl Into<String>,
+    ) -> Self {
+        Self::File {
+            id: None,
+            mime: mime.into(),
+            filename: Some(filename.into()),
+            url: url.into(),
+            source: None,
         }
     }
 }

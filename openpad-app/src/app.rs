@@ -288,6 +288,62 @@ impl App {
             .map(|s| s.directory.clone())
     }
 
+    /// Extract data URLs from text and add them as attachments
+    /// Returns the text with data URLs removed
+    fn process_pasted_content(&mut self, text: &str) -> String {
+        use crate::state::handlers::AttachedFile;
+        use regex::Regex;
+
+        // Match data URLs: data:image/png;base64,... or data:image/jpeg;base64,...
+        let data_url_pattern = Regex::new(
+            r"data:(image/(?:png|jpeg|jpg|gif|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)"
+        ).unwrap();
+
+        let mut remaining_text = String::new();
+        let mut last_end = 0;
+
+        for captures in data_url_pattern.captures_iter(text) {
+            let full_match = captures.get(0).unwrap();
+            let mime_type = captures.get(1).unwrap().as_str();
+            
+            // Add text before the data URL
+            remaining_text.push_str(&text[last_end..full_match.start()]);
+            last_end = full_match.end();
+
+            // Determine file extension from mime type
+            let extension = match mime_type {
+                "image/png" => "png",
+                "image/jpeg" | "image/jpg" => "jpg",
+                "image/gif" => "gif",
+                "image/webp" => "webp",
+                "image/svg+xml" => "svg",
+                _ => "png",
+            };
+
+            // Generate a filename
+            let filename = format!("pasted_image_{}.{}", 
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis(),
+                extension
+            );
+
+            // Add the file as an attachment
+            self.state.attached_files.push(AttachedFile {
+                filename,
+                mime_type: mime_type.to_string(),
+                data_url: full_match.as_str().to_string(),
+            });
+
+            log!("Detected pasted image: {} ({})", mime_type, self.state.attached_files.last().unwrap().filename);
+        }
+
+        // Add remaining text after last data URL
+        remaining_text.push_str(&text[last_end..]);
+        remaining_text
+    }
+
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let client = Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL));
@@ -428,9 +484,22 @@ impl App {
                     })
             });
         let model_spec = self.state.selected_model_spec();
+        
+        // Convert attached files to PartInput
+        let attachments: Vec<openpad_protocol::PartInput> = self.state.attached_files.iter().map(|file| {
+            openpad_protocol::PartInput::file_with_filename(
+                file.mime_type.clone(),
+                file.filename.clone(),
+                file.data_url.clone(),
+            )
+        }).collect();
+        
         async_runtime::spawn_message_sender(
-            runtime, client, session_id, text, model_spec, directory,
+            runtime, client, session_id, text, model_spec, directory, attachments,
         );
+        
+        // Clear attached files after sending
+        self.state.attached_files.clear();
     }
 
     fn create_session(&mut self, _cx: &mut Cx, project_id: Option<String>) {
@@ -712,7 +781,8 @@ impl AppMain for App {
         // Check for text input return
         if let Some((text, _modifiers)) = self.ui.text_input(id!(input_box)).returned(&actions) {
             if !text.is_empty() {
-                self.send_message(cx, text.clone());
+                let processed_text = self.process_pasted_content(&text);
+                self.send_message(cx, processed_text);
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
             }
         }
@@ -749,7 +819,8 @@ impl AppMain for App {
         if self.ui.button(id!(send_button)).clicked(&actions) {
             let text = self.ui.text_input(id!(input_box)).text();
             if !text.is_empty() {
-                self.send_message(cx, text.clone());
+                let processed_text = self.process_pasted_content(&text);
+                self.send_message(cx, processed_text);
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
             }
         }

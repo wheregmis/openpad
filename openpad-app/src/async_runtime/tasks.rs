@@ -105,6 +105,7 @@ pub fn spawn_message_sender(
     text: String,
     model_spec: Option<ModelSpec>,
     directory: Option<String>,
+    attachments: Vec<PartInput>,
 ) {
     runtime.spawn(async move {
         let target_client = if let Some(dir) = directory.clone() {
@@ -136,10 +137,14 @@ pub fn spawn_message_sender(
             }
         };
 
+        // Build parts: text first, then attachments
+        let mut parts = vec![PartInput::text(&text)];
+        parts.extend(attachments);
+
         // Send prompt with optional model selection
         let request = PromptRequest {
             model: model_spec,
-            parts: vec![PartInput::text(&text)],
+            parts,
             no_reply: None,
         };
         if let Err(e) = target_client.send_prompt_with_options(&sid, request).await {

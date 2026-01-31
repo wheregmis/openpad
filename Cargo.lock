@@ -1288,6 +1288,7 @@ dependencies = [
  "openpad-protocol",
  "openpad-widgets",
  "portable-pty",
+ "regex",
  "tokio",
 ]
 
