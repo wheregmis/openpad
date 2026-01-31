@@ -75,8 +75,8 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 #### Message Features
 - [ ] Show token usage per assistant message (input/output/reasoning/cache)
 - [ ] Show cost per message
-- [ ] Show model name on assistant messages
-- [ ] Message timestamps
+- [x] Show model name on assistant messages
+- [x] Message timestamps
 - [ ] Copy message text to clipboard
 
 ### Phase 2: Session Features

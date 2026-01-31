@@ -19,15 +19,26 @@ live_design! {
                 align: { x: 1.0 }
 
                 <UserBubble> {
-                    width: Fit, height: Fit
-                    margin: { left: 80 }
+                    width: Fill, height: Fit
+                    margin: { left: 100 }
                     flow: Down,
 
-                    msg_text = <Label> {
+                    // Timestamp at top
+                    timestamp_label = <Label> {
                         width: Fit, height: Fit
+                        margin: { bottom: 4 }
+                        draw_text: {
+                            color: #7a8ea5,
+                            text_style: { font_size: 9 },
+                        }
+                        text: "..."
+                    }
+
+                    msg_text = <Label> {
+                        width: Fill, height: Fit
                         draw_text: {
                             color: #eef3f7,
-                            text_style: { font_size: 11 },
+                            text_style: { font_size: 11, line_spacing: 1.5 },
                             word: Wrap
                         }
                     }
@@ -40,17 +51,43 @@ live_design! {
                 padding: 8,
 
                 <AssistantBubble> {
-                    width: Fit, height: Fit
-                    margin: { right: 80 }
+                    width: Fill, height: Fit
+                    margin: { right: 100 }
                     flow: Down,
 
-                    msg_text = <Markdown> {
+                    // Metadata row (model + timestamp on same line)
+                    <View> {
                         width: Fit, height: Fit
+                        flow: Right,
+                        spacing: 12,
+                        margin: { bottom: 4 }
+                        
+                        model_label = <Label> {
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: #7a8894,
+                                text_style: { font_size: 9 },
+                            }
+                            text: "..."
+                        }
+                        
+                        timestamp_label = <Label> {
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: #626970,
+                                text_style: { font_size: 9 },
+                            }
+                            text: "..."
+                        }
+                    }
+
+                    msg_text = <Markdown> {
+                        width: Fill, height: Fit
                         font_size: 11
                         font_color: #e6e9ee
                         paragraph_spacing: 8
                         pre_code_spacing: 6
-                        use_code_block_widget: true
+                        use_code_block_widget: false
 
                         draw_normal: {
                             text_style: <THEME_FONT_REGULAR> { font_size: 11 }
@@ -73,48 +110,6 @@ live_design! {
                             color: #d7dce2
                         }
 
-                        code_block = <RoundedView> {
-                            width: Fill, height: Fit
-                            margin: { top: 6, bottom: 6 }
-                            padding: { left: 8, right: 8, top: 6, bottom: 6 }
-                            draw_bg: {
-                                color: #1f2329
-                            }
-
-                            code_view = <TextInput> {
-                                width: Fill, height: Fit
-                                is_read_only: true
-                                padding: { left: 0, right: 0, top: 0, bottom: 0 }
-                                margin: { left: 0, right: 0, top: 0, bottom: 0 }
-
-                                draw_text: {
-                                    color: #d7dce2,
-                                    text_style: <THEME_FONT_CODE> { font_size: 10 }
-                                }
-                                draw_bg: {
-                                    color: #0000
-                                    border_radius: 0.0
-                                    border_size: 0.0
-                                    color_hover: #0000
-                                    color_focus: #0000
-                                    color_down: #0000
-                                    color_empty: #0000
-                                    color_disabled: #0000
-                                    border_color_1: #0000
-                                    border_color_2: #0000
-                                    border_color_1_hover: #0000
-                                    border_color_2_hover: #0000
-                                    border_color_1_focus: #0000
-                                    border_color_2_focus: #0000
-                                    border_color_1_down: #0000
-                                    border_color_2_down: #0000
-                                    border_color_1_empty: #0000
-                                    border_color_2_empty: #0000
-                                    border_color_1_disabled: #0000
-                                    border_color_2_disabled: #0000
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -126,6 +121,8 @@ live_design! {
 pub struct DisplayMessage {
     pub role: String,
     pub text: String,
+    pub timestamp: Option<i64>,  // Unix timestamp in milliseconds
+    pub model_id: Option<String>, // Model ID (for assistant messages)
 }
 
 #[derive(Live, LiveHook, Widget)]
@@ -142,9 +139,16 @@ impl MessageList {
     ) -> Vec<DisplayMessage> {
         let mut display = Vec::new();
         for mwp in messages_with_parts {
-            let role = match &mwp.info {
-                openpad_protocol::Message::User(_) => "user",
-                openpad_protocol::Message::Assistant(_) => "assistant",
+            let (role, timestamp, model_id) = match &mwp.info {
+                openpad_protocol::Message::User(msg) => ("user", Some(msg.time.created), None),
+                openpad_protocol::Message::Assistant(msg) => {
+                    let model = if !msg.model_id.is_empty() {
+                        Some(msg.model_id.clone())
+                    } else {
+                        None
+                    };
+                    ("assistant", Some(msg.time.created), model)
+                }
             };
 
             let text: String = mwp
@@ -161,6 +165,8 @@ impl MessageList {
             display.push(DisplayMessage {
                 role: role.to_string(),
                 text,
+                timestamp,
+                model_id,
             });
         }
         display
@@ -196,6 +202,20 @@ impl Widget for MessageList {
 
                     let item_widget = list.item(cx, item_id, template);
                     item_widget.widget(id!(msg_text)).set_text(cx, &msg.text);
+                    
+                    // Set timestamp if available
+                    if let Some(timestamp) = msg.timestamp {
+                        let formatted = crate::utils::format_timestamp(timestamp);
+                        item_widget.label(id!(timestamp_label)).set_text(cx, &formatted);
+                    }
+                    
+                    // Set model ID for assistant messages
+                    if msg.role == "assistant" {
+                        if let Some(ref model_id) = msg.model_id {
+                            item_widget.label(id!(model_label)).set_text(cx, model_id);
+                        }
+                    }
+                    
                     item_widget.draw_all(cx, scope);
                 }
             }
@@ -227,10 +247,12 @@ impl MessageListRef {
                     return;
                 }
             }
-            // New message
+            // New message (no timestamp/model during streaming; will be updated later)
             inner.messages.push(DisplayMessage {
                 role: role.to_string(),
                 text: text.to_string(),
+                timestamp: None,
+                model_id: None,
             });
             inner.redraw(cx);
         }
@@ -238,9 +260,17 @@ impl MessageListRef {
 
     pub fn add_user_message(&self, cx: &mut Cx, text: &str) {
         if let Some(mut inner) = self.borrow_mut() {
+            // Use current time for user messages
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as i64;
+            
             inner.messages.push(DisplayMessage {
                 role: "user".to_string(),
                 text: text.to_string(),
+                timestamp: Some(now),
+                model_id: None,
             });
             inner.redraw(cx);
         }
