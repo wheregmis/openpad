@@ -37,8 +37,6 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
     let timestamp_secs = timestamp_ms / 1000;
 
     // Simple formatting using chrono-like calculations
-    // Days since epoch
-    let _days = timestamp_secs / 86400;
     let time_of_day_secs = timestamp_secs % 86400;
     let hours = (time_of_day_secs / 3600) as u8;
     let minutes = ((time_of_day_secs % 3600) / 60) as u8;
@@ -46,13 +44,11 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
     // Format time (24-hour format for simplicity)
     let time_str = format!("{:02}:{:02}", hours, minutes);
 
-    // If it's more than 7 days old, show date too
-    if diff_hours > 24 * 7 {
-        // Very simple date representation (just showing days since epoch is not useful)
-        // In a real app, you'd use chrono or time crate for proper date formatting
-        // For now, just show the time
-        format!("{} ({} days ago)", time_str, diff_hours / 24)
+    // Show days ago for messages older than 24 hours
+    let days_ago = diff_hours / 24;
+    if days_ago > 0 {
+        format!("{} ({} {} ago)", time_str, days_ago, if days_ago == 1 { "day" } else { "days" })
     } else {
-        format!("{} ({} days ago)", time_str, diff_hours / 24)
+        time_str
     }
 }
