@@ -175,12 +175,8 @@ pub fn spawn_session_creator(
         match session_result {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
-                // Reload all sessions using the original client
-                // The OpenCode server returns all sessions across projects,
-                // which are then grouped by project_id in the UI
-                if let Ok(sessions) = client.list_sessions().await {
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
-                }
+                // Don't reload sessions here - let SSE handle it to avoid race conditions
+                // The SessionCreated SSE event will arrive and add the session to the list
             }
             Err(e) => {
                 log!("Failed to create session (new session request): {}", e);
@@ -272,10 +268,7 @@ pub fn spawn_session_deleter(
         match client.delete_session(&session_id).await {
             Ok(_) => {
                 Cx::post_action(AppAction::SessionDeleted(session_id.clone()));
-                // Reload sessions list
-                if let Ok(sessions) = client.list_sessions().await {
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
-                }
+                // Don't reload sessions here - let SSE handle it
             }
             Err(e) => {
                 Cx::post_action(AppAction::SendMessageFailed(format!(
@@ -303,10 +296,7 @@ pub fn spawn_session_updater(
         match client.update_session(&session_id, request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionUpdated(session.clone()));
-                // Reload sessions list to ensure consistency
-                if let Ok(sessions) = client.list_sessions().await {
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
-                }
+                // Don't reload sessions here - let SSE handle it
             }
             Err(e) => {
                 Cx::post_action(AppAction::SendMessageFailed(format!(
@@ -360,10 +350,8 @@ pub fn spawn_session_brancher(
         match target_client.create_session_with_options(request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
-                // Reload all sessions using the original client to get the full list across all projects
-                if let Ok(sessions) = client.list_sessions().await {
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
-                }
+                // Don't reload sessions here - let SSE handle it to avoid race conditions
+                // The SessionCreated SSE event will arrive and add the session to the list
             }
             Err(e) => {
                 log!(
