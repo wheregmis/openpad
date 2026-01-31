@@ -73,14 +73,12 @@ live_design! {
                             color: #d7dce2
                         }
 
-                        code_block = <View> {
+                        code_block = <RoundedView> {
                             width: Fill, height: Fit
                             margin: { top: 6, bottom: 6 }
                             padding: { left: 8, right: 8, top: 6, bottom: 6 }
-                            show_bg: true
                             draw_bg: {
                                 color: #1f2329
-                                border_radius: 4.0
                             }
 
                             code_view = <TextInput> {

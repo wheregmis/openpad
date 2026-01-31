@@ -17,17 +17,17 @@
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn std::error::Error>> {
 //!     let client = OpenCodeClient::new("http://localhost:4096");
-//!     
+//!
 //!     // Check server health
 //!     let health = client.health().await?;
 //!     println!("Server version: {}", health.version);
-//!     
+//!
 //!     // Create a session
 //!     let session = client.create_session().await?;
-//!     
+//!
 //!     // Send a prompt
 //!     client.send_prompt(&session.id, "Hello!").await?;
-//!     
+//!
 //!     Ok(())
 //! }
 //! ```
@@ -50,23 +50,23 @@ mod tests {
     fn test_all_types_are_public() {
         // Global types
         let _: HealthResponse;
-        
+
         // App types
         let _: LogRequest;
         let _: Agent;
-        
+
         // Project types
         let _: Project;
-        
+
         // Path types
         let _: PathInfo;
-        
+
         // Config types
         let _: Config;
         let _: Provider;
         let _: Model;
         let _: ProvidersResponse;
-        
+
         // File/Find types
         let _: TextSearchRequest;
         let _: TextSearchResult;
@@ -79,15 +79,15 @@ mod tests {
         let _: FileReadResponse;
         let _: FileStatusRequest;
         let _: File;
-        
+
         // TUI types
         let _: AppendPromptRequest;
         let _: ExecuteCommandRequest;
         let _: ShowToastRequest;
-        
+
         // Auth types
         let _: AuthSetRequest;
-        
+
         // Session types
         let _: Session;
         let _: SessionTime;
@@ -108,7 +108,10 @@ mod tests {
         let _: PermissionResponse;
         let _: PermissionRule;
         let _: PermissionAction;
-        
+        let _: PermissionReply;
+        let _: PermissionRequest;
+        let _: PermissionReplyRequest;
+
         // Message types
         let _: Message;
         let _: UserMessage;
@@ -121,10 +124,10 @@ mod tests {
         let _: AssistantError;
         let _: Part;
         let _: PartInput;
-        
+
         // Event types
         let _: Event;
-        
+
         // Error types
         let _: Error;
     }
@@ -137,4 +140,3 @@ mod tests {
         drop(client_with_dir);
     }
 }
-

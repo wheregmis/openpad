@@ -1,11 +1,12 @@
 use crate::actions::AppAction;
 use crate::components::message_list::MessageListWidgetRefExt;
+use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
 use crate::constants::*;
 use crate::network;
 use crate::ui_state;
 use makepad_widgets::*;
-use openpad_protocol::{Event as OcEvent, MessageWithParts, Project, Session};
+use openpad_protocol::{Event as OcEvent, MessageWithParts, PermissionRequest, Project, Session};
 
 /// Data structure holding application state for event handling
 #[derive(Default)]
@@ -54,12 +55,7 @@ impl AppState {
 }
 
 /// Handles AppAction events
-pub fn handle_app_action(
-    state: &mut AppState,
-    ui: &WidgetRef,
-    cx: &mut Cx,
-    action: &AppAction,
-) {
+pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, action: &AppAction) {
     match action {
         AppAction::Connected => {
             state.connected = true;
@@ -114,12 +110,7 @@ pub fn handle_app_action(
 }
 
 /// Handles OpenCode SSE events
-pub fn handle_opencode_event(
-    state: &mut AppState,
-    ui: &WidgetRef,
-    cx: &mut Cx,
-    event: &OcEvent,
-) {
+pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, event: &OcEvent) {
     match event {
         OcEvent::SessionCreated(session) => {
             if state.current_session_id.is_none() {
@@ -142,6 +133,19 @@ pub fn handle_opencode_event(
         OcEvent::PartUpdated { part, .. } => {
             handle_part_updated(state, ui, cx, part);
         }
+        OcEvent::PermissionAsked(request) => {
+            let context = format_permission_context(request);
+            ui.permission_dialog(id!(permission_dialog))
+                .show_permission_request(
+                    cx,
+                    request.session_id.clone(),
+                    request.id.clone(),
+                    request.permission.clone(),
+                    request.patterns.clone(),
+                    context,
+                );
+            ui.modal(id!(permission_modal)).open(cx);
+        }
         _ => {}
     }
 }
@@ -158,13 +162,13 @@ fn handle_message_updated(
     if state.current_session_id.is_none() {
         state.current_session_id = Some(message.session_id().to_string());
     }
-    
+
     // Only process messages for the current session
     let current_sid = state.current_session_id.as_deref().unwrap_or("");
     if message.session_id() != current_sid {
         return;
     }
-    
+
     // Find existing or add new MessageWithParts entry
     if let Some(existing) = state
         .messages_data
@@ -178,7 +182,7 @@ fn handle_message_updated(
             parts: Vec::new(),
         });
     }
-    
+
     ui.message_list(id!(message_list))
         .set_messages(cx, &state.messages_data);
 }
@@ -200,11 +204,13 @@ fn handle_part_updated(
                 openpad_protocol::Part::Text { id, .. } => id.as_str(),
                 _ => "",
             };
-            
+
             if !part_id.is_empty() {
-                if let Some(existing) = mwp.parts.iter_mut().find(|p| {
-                    matches!(p, openpad_protocol::Part::Text { id, .. } if id == part_id)
-                }) {
+                if let Some(existing) = mwp
+                    .parts
+                    .iter_mut()
+                    .find(|p| matches!(p, openpad_protocol::Part::Text { id, .. } if id == part_id))
+                {
                     *existing = part.clone();
                 } else {
                     mwp.parts.push(part.clone());
@@ -212,9 +218,38 @@ fn handle_part_updated(
             } else {
                 mwp.parts.push(part.clone());
             }
-            
+
             ui.message_list(id!(message_list))
                 .set_messages(cx, &state.messages_data);
         }
+    }
+}
+
+fn format_permission_context(request: &PermissionRequest) -> Option<String> {
+    let mut lines = Vec::new();
+
+    lines.push(format!("Session: {}", request.session_id));
+
+    if let Some(tool) = &request.tool {
+        lines.push(format!("Tool message: {}", tool.message_id));
+        lines.push(format!("Tool call: {}", tool.call_id));
+    }
+
+    if !request.always.is_empty() {
+        lines.push(format!("Always: {}", request.always.join(", ")));
+    }
+
+    if !request.metadata.is_empty() {
+        let mut entries: Vec<_> = request.metadata.iter().collect();
+        entries.sort_by(|a, b| a.0.cmp(b.0));
+        for (key, value) in entries {
+            lines.push(format!("{}: {}", key, value));
+        }
+    }
+
+    if lines.is_empty() {
+        None
+    } else {
+        Some(lines.join("\n"))
     }
 }

@@ -1,5 +1,6 @@
 use crate::actions::{AppAction, ProjectsPanelAction};
 use crate::components::message_list::MessageListWidgetRefExt;
+use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
 use crate::event_handlers::{self, AppState};
 use crate::network;
 use makepad_widgets::*;
@@ -20,6 +21,7 @@ live_design! {
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
     use crate::components::projects_panel::ProjectsPanel;
+    use crate::components::permission_dialog::PermissionDialog;
     use crate::components::message_list::MessageList;
 
     App = {{App}} {
@@ -28,6 +30,7 @@ live_design! {
             pass: { clear_color: #1a1a1a }
 
             body = <AppBg> {
+                width: Fill, height: Fill
                 flow: Down,
                 spacing: 12,
                 padding: 12,
@@ -96,6 +99,11 @@ live_design! {
                     }
                 }
             }
+
+            permission_modal = <Modal> {
+                width: Fill, height: Fill
+                content = <PermissionDialog> {}
+            }
         }
     }
 }
@@ -123,6 +131,7 @@ impl LiveRegister for App {
         crate::components::assistant_bubble::live_design(cx);
         crate::components::projects_panel::live_design(cx);
         crate::components::message_list::live_design(cx);
+        crate::components::permission_dialog::live_design(cx);
     }
 }
 
@@ -143,10 +152,28 @@ impl App {
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
         for action in actions {
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
-                if let AppAction::OpenCodeEvent(oc_event) = app_action {
-                    event_handlers::handle_opencode_event(&mut self.state, &self.ui, cx, oc_event);
-                } else {
-                    event_handlers::handle_app_action(&mut self.state, &self.ui, cx, app_action);
+                match app_action {
+                    AppAction::OpenCodeEvent(oc_event) => {
+                        event_handlers::handle_opencode_event(
+                            &mut self.state,
+                            &self.ui,
+                            cx,
+                            oc_event,
+                        );
+                    }
+                    AppAction::PermissionResponded { request_id, reply } => {
+                        self.respond_to_permission(cx, request_id.clone(), reply.clone());
+                        self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
+                        self.ui.modal(id!(permission_modal)).close(cx);
+                    }
+                    _ => {
+                        event_handlers::handle_app_action(
+                            &mut self.state,
+                            &self.ui,
+                            cx,
+                            app_action,
+                        );
+                    }
                 }
             }
         }
@@ -186,6 +213,23 @@ impl App {
         };
 
         network::spawn_session_creator(runtime, client);
+    }
+
+    fn respond_to_permission(
+        &mut self,
+        _cx: &mut Cx,
+        request_id: String,
+        reply: openpad_protocol::PermissionReply,
+    ) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        network::spawn_permission_reply(runtime, client, request_id, reply);
     }
 }
 

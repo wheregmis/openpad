@@ -6,10 +6,11 @@
 use crate::{
     Agent, AppendPromptRequest, AuthSetRequest, CommandRequest, Config, ExecuteCommandRequest,
     File, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest, HealthResponse,
-    LogRequest, MessageWithParts, PathInfo, PermissionResponse, Project, PromptRequest,
-    ProvidersResponse, RevertRequest, SessionCreateRequest, SessionInitRequest,
-    SessionSummarizeRequest, SessionUpdateRequest, ShellRequest, ShowToastRequest, Symbol,
-    SymbolsSearchRequest, TextSearchRequest, TextSearchResult,
+    LogRequest, MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest,
+    PermissionRequest, PermissionResponse, Project, PromptRequest, ProvidersResponse,
+    RevertRequest, SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest,
+    SessionUpdateRequest, ShellRequest, ShowToastRequest, Symbol, SymbolsSearchRequest,
+    TextSearchRequest, TextSearchResult,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
 use reqwest::Client as HttpClient;
@@ -439,6 +440,16 @@ impl OpenCodeClient {
             .await
     }
 
+    pub async fn reply_to_permission(
+        &self,
+        request_id: &str,
+        permission_reply: PermissionReplyRequest,
+    ) -> Result<bool> {
+        let endpoint = format!("/permission/{}/reply", request_id);
+        self.post_json_bool(&endpoint, &permission_reply, "reply to permission")
+            .await
+    }
+
     // ========================================================================
     // File/Find APIs
     // ========================================================================
@@ -697,6 +708,21 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
             let error: AssistantError = serde_json::from_value(props.get("error")?.clone()).ok()?;
             Some(Event::SessionError { session_id, error })
+        }
+        "permission.asked" => {
+            let request: PermissionRequest = serde_json::from_value(props.clone()).ok()?;
+            Some(Event::PermissionAsked(request))
+        }
+        "permission.replied" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let request_id = props.get("requestID")?.as_str()?.to_string();
+            let reply: PermissionReply =
+                serde_json::from_value(props.get("reply")?.clone()).ok()?;
+            Some(Event::PermissionReplied {
+                session_id,
+                request_id,
+                reply,
+            })
         }
         _ => Some(Event::Unknown(event_type.to_string())),
     }

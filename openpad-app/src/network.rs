@@ -1,13 +1,10 @@
 use crate::actions::AppAction;
 use makepad_widgets::Cx;
-use openpad_protocol::{OpenCodeClient, Session};
+use openpad_protocol::{OpenCodeClient, PermissionReply, PermissionReplyRequest, Session};
 use std::sync::Arc;
 
 /// Spawns a task to subscribe to SSE events
-pub fn spawn_sse_subscriber(
-    runtime: &tokio::runtime::Runtime,
-    client: Arc<OpenCodeClient>,
-) {
+pub fn spawn_sse_subscriber(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
     runtime.spawn(async move {
         use tokio::time::{sleep, Duration};
 
@@ -34,14 +31,11 @@ pub fn spawn_sse_subscriber(
 }
 
 /// Spawns a task to periodically check health status
-pub fn spawn_health_checker(
-    runtime: &tokio::runtime::Runtime,
-    client: Arc<OpenCodeClient>,
-) {
+pub fn spawn_health_checker(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
     runtime.spawn(async move {
         use openpad_protocol::HealthResponse;
         use tokio::time::{sleep, Duration};
-        
+
         loop {
             match client.health().await {
                 Ok(health) => Cx::post_action(AppAction::HealthUpdated(health)),
@@ -56,10 +50,7 @@ pub fn spawn_health_checker(
 }
 
 /// Spawns a task to load projects and current project
-pub fn spawn_project_loader(
-    runtime: &tokio::runtime::Runtime,
-    client: Arc<OpenCodeClient>,
-) {
+pub fn spawn_project_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
     runtime.spawn(async move {
         if let Ok(projects) = client.list_projects().await {
             Cx::post_action(AppAction::ProjectsLoaded(projects));
@@ -118,10 +109,7 @@ pub fn spawn_message_sender(
 }
 
 /// Spawns a task to create a new session
-pub fn spawn_session_creator(
-    runtime: &tokio::runtime::Runtime,
-    client: Arc<OpenCodeClient>,
-) {
+pub fn spawn_session_creator(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
     runtime.spawn(async move {
         match client.create_session().await {
             Ok(session) => {
@@ -133,6 +121,24 @@ pub fn spawn_session_creator(
             Err(e) => {
                 Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
             }
+        }
+    });
+}
+
+/// Spawns a task to respond to a permission request
+pub fn spawn_permission_reply(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    request_id: String,
+    reply: PermissionReply,
+) {
+    runtime.spawn(async move {
+        let response = PermissionReplyRequest { response: reply };
+        if let Err(e) = client.reply_to_permission(&request_id, response).await {
+            Cx::post_action(AppAction::SendMessageFailed(format!(
+                "Permission response failed: {}",
+                e
+            )));
         }
     });
 }

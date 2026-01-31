@@ -238,6 +238,47 @@ pub enum PermissionAction {
     Ask,
 }
 
+/// Reply to a permission request.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PermissionReply {
+    Once,
+    Always,
+    Reject,
+}
+
+/// Tool context for a permission request.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PermissionToolContext {
+    #[serde(rename = "messageID")]
+    pub message_id: String,
+    #[serde(rename = "callID")]
+    pub call_id: String,
+}
+
+/// A pending permission request emitted by the server.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PermissionRequest {
+    pub id: String,
+    #[serde(rename = "sessionID")]
+    pub session_id: String,
+    pub permission: String,
+    #[serde(default)]
+    pub patterns: Vec<String>,
+    #[serde(default)]
+    pub metadata: HashMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub always: Vec<String>,
+    #[serde(default)]
+    pub tool: Option<PermissionToolContext>,
+}
+
+/// Request body for replying to a permission request.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PermissionReplyRequest {
+    pub response: PermissionReply,
+}
+
 /// A collection of permission rules for a session.
 ///
 /// Rules are evaluated in order, with the first matching rule determining
@@ -708,6 +749,17 @@ pub enum Event {
         session_id: String,
         /// Detailed error information
         error: AssistantError,
+    },
+    /// A permission request was issued by the assistant
+    PermissionAsked(PermissionRequest),
+    /// A permission request was replied to
+    PermissionReplied {
+        /// ID of the session
+        session_id: String,
+        /// ID of the permission request
+        request_id: String,
+        /// Reply type
+        reply: PermissionReply,
     },
     /// A generic error occurred
     Error(String),

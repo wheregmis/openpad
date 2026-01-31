@@ -1,6 +1,7 @@
 use makepad_widgets::*;
 use openpad_protocol::{
-    Event as OcEvent, HealthResponse, Message, MessageWithParts, Part, Project, Session,
+    Event as OcEvent, HealthResponse, Message, MessageWithParts, Part, PermissionReply, Project,
+    Session,
 };
 
 #[derive(Clone, Debug, DefaultNone)]
@@ -28,7 +29,10 @@ pub enum AppAction {
         permission: String,
         pattern: String,
     },
-    PermissionResponded(bool),
+    PermissionResponded {
+        request_id: String,
+        reply: PermissionReply,
+    },
 }
 
 #[derive(Clone, Debug, DefaultNone)]
