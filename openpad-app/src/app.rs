@@ -3,6 +3,7 @@ use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
 use crate::components::simple_dialog::SimpleDialogWidgetRefExt;
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
+use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
@@ -267,7 +268,7 @@ impl LiveRegister for App {
 impl App {
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         let runtime = tokio::runtime::Runtime::new().unwrap();
-        let client = Arc::new(OpenCodeClient::new("http://localhost:4096"));
+        let client = Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL));
 
         // Spawn background tasks
         async_runtime::spawn_sse_subscriber(&runtime, client.clone());
@@ -373,7 +374,7 @@ impl App {
         async_runtime::spawn_message_sender(runtime, client, session_id, text, model_spec);
     }
 
-    fn create_session(&mut self, _cx: &mut Cx) {
+    fn create_session(&mut self, _cx: &mut Cx, project_id: Option<String>) {
         let Some(client) = self.client.clone() else {
             self.state.error_message = Some("Not connected".to_string());
             return;
@@ -382,7 +383,16 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_session_creator(runtime, client);
+        // Look up project directory if project_id is provided
+        let project_directory = project_id.as_ref().and_then(|pid| {
+            self.state
+                .projects
+                .iter()
+                .find(|p| &p.id == pid)
+                .map(|p| p.worktree.clone())
+        });
+
+        async_runtime::spawn_session_creator(runtime, client, project_directory);
     }
 
     fn respond_to_permission(
@@ -555,8 +565,8 @@ impl AppMain for App {
                         self.load_messages(session_id.clone());
                         self.load_pending_permissions();
                     }
-                    ProjectsPanelAction::CreateSession(_project_id) => {
-                        self.create_session(cx);
+                    ProjectsPanelAction::CreateSession(project_id) => {
+                        self.create_session(cx, project_id.clone());
                     }
                     ProjectsPanelAction::DeleteSession(session_id) => {
                         self.delete_session(cx, session_id.clone());

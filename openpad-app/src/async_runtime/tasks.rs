@@ -1,3 +1,4 @@
+use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::actions::AppAction;
 use makepad_widgets::Cx;
 use openpad_protocol::{
@@ -125,17 +126,35 @@ pub fn spawn_message_sender(
 }
 
 /// Spawns a task to create a new session
-pub fn spawn_session_creator(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
+pub fn spawn_session_creator(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    project_directory: Option<String>,
+) {
     runtime.spawn(async move {
+        // Create the session request
         let request = SessionCreateRequest {
             parent_id: None,
             title: None,
             permission: Some(default_permission_ruleset()),
         };
 
-        match client.create_session_with_options(request).await {
+        // If a specific directory is provided, create a new client for this request
+        // Otherwise, use the default client
+        let session_result = if let Some(directory) = project_directory {
+            let project_client = OpenCodeClient::new(OPENCODE_SERVER_URL)
+                .with_directory(directory);
+            project_client.create_session_with_options(request).await
+        } else {
+            client.create_session_with_options(request).await
+        };
+
+        match session_result {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
+                // Reload all sessions using the original client
+                // The OpenCode server returns all sessions across projects,
+                // which are then grouped by project_id in the UI
                 if let Ok(sessions) = client.list_sessions().await {
                     Cx::post_action(AppAction::SessionsLoaded(sessions));
                 }
