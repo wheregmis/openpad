@@ -8,7 +8,18 @@ use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::SidePanelWidgetRefExt;
-use std::sync::Arc;
+use regex::Regex;
+use std::sync::{Arc, OnceLock};
+
+// Lazy-initialized regex for detecting image data URLs
+static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
+
+fn get_image_data_url_regex() -> &'static Regex {
+    IMAGE_DATA_URL_REGEX.get_or_init(|| {
+        Regex::new(r"data:(image/(?:png|jpeg|jpg|gif|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)")
+            .expect("Failed to compile image data URL regex")
+    })
+}
 
 app_main!(App);
 
@@ -341,24 +352,20 @@ impl App {
     /// Returns the text with data URLs removed
     fn process_pasted_content(&mut self, cx: &mut Cx, text: &str) -> String {
         use crate::state::handlers::AttachedFile;
-        use regex::Regex;
 
-        // Match data URLs: data:image/png;base64,... or data:image/jpeg;base64,...
-        let data_url_pattern = Regex::new(
-            r"data:(image/(?:png|jpeg|jpg|gif|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)"
-        ).unwrap();
+        let data_url_pattern = get_image_data_url_regex();
 
         let mut remaining_text = String::new();
         let mut last_end = 0;
         let mut attachment_count = 0;
 
         for captures in data_url_pattern.captures_iter(text) {
-            let full_match = captures.get(0).unwrap();
-            let mime_type = captures.get(1).unwrap().as_str();
+            let full_match = &captures[0];
+            let mime_type = &captures[1];
             
             // Add text before the data URL
-            remaining_text.push_str(&text[last_end..full_match.start()]);
-            last_end = full_match.end();
+            remaining_text.push_str(&text[last_end..captures.get(0).unwrap().start()]);
+            last_end = captures.get(0).unwrap().end();
 
             // Determine file extension from mime type
             let extension = match mime_type {
@@ -371,7 +378,7 @@ impl App {
             };
 
             // Generate a unique filename using timestamp and counter
-            let filename = format!("pasted_image_{}_{}.{}", 
+            let filename = format!("attachment_{}_{}.{}", 
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
@@ -385,7 +392,7 @@ impl App {
             self.state.attached_files.push(AttachedFile {
                 filename: filename.clone(),
                 mime_type: mime_type.to_string(),
-                data_url: full_match.as_str().to_string(),
+                data_url: full_match.to_string(),
             });
 
             log!("Detected pasted image: {} ({})", mime_type, filename);
@@ -908,13 +915,11 @@ impl AppMain for App {
 
 #[cfg(test)]
 mod tests {
-    use regex::Regex;
+    use super::get_image_data_url_regex;
 
     #[test]
     fn test_data_url_detection() {
-        let data_url_pattern = Regex::new(
-            r"data:(image/(?:png|jpeg|jpg|gif|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)"
-        ).unwrap();
+        let data_url_pattern = get_image_data_url_regex();
 
         // Test simple PNG data URL
         let text1 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -936,15 +941,13 @@ mod tests {
         // Test extraction
         let text5 = "Before data:image/png;base64,ABC123== After";
         let captures = data_url_pattern.captures(text5).unwrap();
-        assert_eq!(captures.get(1).unwrap().as_str(), "image/png");
-        assert_eq!(captures.get(2).unwrap().as_str(), "ABC123==");
+        assert_eq!(&captures[1], "image/png");
+        assert_eq!(&captures[2], "ABC123==");
     }
 
     #[test]
     fn test_text_extraction() {
-        let data_url_pattern = Regex::new(
-            r"data:(image/(?:png|jpeg|jpg|gif|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)"
-        ).unwrap();
+        let data_url_pattern = get_image_data_url_regex();
 
         let text = "Start data:image/png;base64,ABC== Middle data:image/jpeg;base64,DEF== End";
         let result = data_url_pattern.replace_all(text, "");
