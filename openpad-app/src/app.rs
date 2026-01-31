@@ -1,6 +1,7 @@
 use crate::actions::{AppAction, ProjectsPanelAction};
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
+use crate::components::simple_dialog::SimpleDialogWidgetRefExt;
 use crate::event_handlers::{self, AppState};
 use crate::network;
 use makepad_widgets::*;
@@ -23,6 +24,7 @@ live_design! {
     use crate::components::projects_panel::ProjectsPanel;
     use crate::components::permission_dialog::PermissionDialog;
     use crate::components::message_list::MessageList;
+    use crate::components::simple_dialog::SimpleDialog;
 
     App = {{App}} {
         ui: <Window> {
@@ -129,6 +131,8 @@ live_design! {
                 }
             }
 
+            // Simple dialog for confirmations and inputs (shown as overlay)
+            simple_dialog = <SimpleDialog> {}
         }
     }
 }
@@ -157,6 +161,7 @@ impl LiveRegister for App {
         crate::components::projects_panel::live_design(cx);
         crate::components::message_list::live_design(cx);
         crate::components::permission_dialog::live_design(cx);
+        crate::components::simple_dialog::live_design(cx);
     }
 }
 
@@ -195,6 +200,9 @@ impl App {
                     }
                     AppAction::UnrevertSession(session_id) => {
                         self.unrevert_session(cx, session_id.clone());
+                    }
+                    AppAction::DialogConfirmed { dialog_type, value } => {
+                        self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
                     _ => {
                         event_handlers::handle_app_action(
@@ -262,32 +270,38 @@ impl App {
         network::spawn_permission_reply(runtime, client, request_id, reply);
     }
 
-    fn delete_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
-        let Some(runtime) = self._runtime.as_ref() else {
-            return;
-        };
-
-        network::spawn_session_deleter(runtime, client, session_id);
+    fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
+        // Show confirmation dialog
+        self.ui
+            .simple_dialog(id!(simple_dialog))
+            .show_confirm(
+                cx,
+                "Delete Session",
+                "Are you sure you want to delete this session? This action cannot be undone.",
+                format!("delete_session:{}", session_id),
+            );
     }
 
-    fn rename_session(&mut self, _cx: &mut Cx, session_id: String) {
-        // TODO: Show a dialog to get the new title
-        // For now, we'll use a simple placeholder approach
-        let new_title = "Renamed Session".to_string(); // This should be from a dialog
+    fn rename_session(&mut self, cx: &mut Cx, session_id: String) {
+        // Get current title
+        let current_title = self
+            .state
+            .sessions
+            .iter()
+            .find(|s| s.id == session_id)
+            .map(|s| network::get_session_title(s))
+            .unwrap_or_else(|| "Session".to_string());
         
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
-        let Some(runtime) = self._runtime.as_ref() else {
-            return;
-        };
-
-        network::spawn_session_updater(runtime, client, session_id, new_title);
+        // Show input dialog
+        self.ui
+            .simple_dialog(id!(simple_dialog))
+            .show_input(
+                cx,
+                "Rename Session",
+                "Enter a new name for this session:",
+                &current_title,
+                format!("rename_session:{}", session_id),
+            );
     }
 
     fn abort_session(&mut self, _cx: &mut Cx, session_id: String) {
@@ -336,6 +350,37 @@ impl App {
         };
 
         network::spawn_session_unreverter(runtime, client, session_id);
+    }
+    
+    fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {
+        // Parse the dialog_type which is in format "action:data"
+        let parts: Vec<&str> = dialog_type.split(':').collect();
+        if parts.len() < 2 {
+            return;
+        }
+        
+        let action = parts[0];
+        let data = parts[1];
+        
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+        
+        match action {
+            "delete_session" => {
+                network::spawn_session_deleter(runtime, client, data.to_string());
+            }
+            "rename_session" => {
+                if !value.is_empty() {
+                    network::spawn_session_updater(runtime, client, data.to_string(), value);
+                }
+            }
+            _ => {}
+        }
     }
 }
 

@@ -40,6 +40,10 @@ pub enum AppAction {
         message_id: String,
     },
     UnrevertSession(String),
+    DialogConfirmed {
+        dialog_type: String,
+        value: String,
+    },
 }
 
 #[derive(Clone, Debug, DefaultNone)]
