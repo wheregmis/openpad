@@ -52,7 +52,7 @@ live_design! {
                     }
 
                     msg_text = <Label> {
-                        width: Fit, height: Fit
+                        width: Fill, height: Fit
                         draw_text: {
                             color: #ddd,
                             text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 },
@@ -189,12 +189,16 @@ impl MessageList {
 
             let message_id = mwp.info.id().to_string();
 
-            let text: String = mwp
-                .parts
-                .iter()
-                .filter_map(|p| p.text_content())
-                .collect::<Vec<_>>()
-                .join("\n");
+            let mut text_parts: Vec<String> = Vec::new();
+            for p in &mwp.parts {
+                if let Some(text) = p.text_content() {
+                    text_parts.push(text.to_string());
+                } else if let Some((_mime, filename, _url)) = p.file_info() {
+                    let name = filename.unwrap_or("attachment");
+                    text_parts.push(format!("[Attachment: {}]", name));
+                }
+            }
+            let text = text_parts.join("\n");
 
             if text.is_empty() {
                 continue;
@@ -270,7 +274,9 @@ impl Widget for MessageList {
                     // Set model ID for assistant messages
                     if msg.role == "assistant" {
                         if let Some(ref model_id) = msg.model_id {
-                            item_widget.label(&[id!(model_label)]).set_text(cx, model_id);
+                            item_widget
+                                .label(&[id!(model_label)])
+                                .set_text(cx, model_id);
                         }
                     }
 

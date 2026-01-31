@@ -672,6 +672,21 @@ pub enum Part {
         #[serde(default)]
         text: String,
     },
+    #[serde(rename = "file")]
+    File {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        #[serde(default)]
+        mime: String,
+        #[serde(default)]
+        filename: Option<String>,
+        #[serde(default)]
+        url: String,
+    },
     // Other part types — we don't render them but must not break parsing
     #[serde(other)]
     Unknown,
@@ -686,10 +701,24 @@ impl Part {
         }
     }
 
+    /// Get file attachment info, if this is a file part.
+    pub fn file_info(&self) -> Option<(&str, Option<&str>, &str)> {
+        match self {
+            Part::File {
+                mime,
+                filename,
+                url,
+                ..
+            } => Some((mime.as_str(), filename.as_deref(), url.as_str())),
+            _ => None,
+        }
+    }
+
     /// Get the message ID this part belongs to, if available.
     pub fn message_id(&self) -> Option<&str> {
         match self {
             Part::Text { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::File { message_id, .. } if !message_id.is_empty() => Some(message_id),
             _ => None,
         }
     }

@@ -884,6 +884,42 @@ impl AppMain for App {
             }
         }
 
+        // Detect pasted images (data URLs) and long text on input change,
+        // converting them to attachments immediately.
+        const LONG_TEXT_THRESHOLD: usize = 2000;
+        if let Some(new_text) = self.ui.text_input(&[id!(input_box)]).changed(&actions) {
+            let remaining = self.process_pasted_content(cx, &new_text);
+            if remaining.len() > LONG_TEXT_THRESHOLD {
+                use crate::state::handlers::AttachedFile;
+                use base64::Engine;
+
+                let encoded =
+                    base64::engine::general_purpose::STANDARD.encode(remaining.as_bytes());
+                let data_url = format!("data:text/plain;base64,{}", encoded);
+                let filename = format!(
+                    "pasted_text_{}.txt",
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis(),
+                );
+
+                self.state.attached_files.push(AttachedFile {
+                    filename,
+                    mime_type: "text/plain".to_string(),
+                    data_url,
+                });
+
+                self.ui.text_input(&[id!(input_box)]).set_text(cx, "");
+                self.update_attachments_ui(cx);
+            } else if remaining != new_text {
+                // Images were extracted — update the input with remaining text
+                self.ui
+                    .text_input(&[id!(input_box)])
+                    .set_text(cx, &remaining);
+            }
+        }
+
         // Check for text input return
         if let Some((text, _modifiers)) = self.ui.text_input(&[id!(input_box)]).returned(&actions) {
             if !text.is_empty() {
