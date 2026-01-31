@@ -82,8 +82,8 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 ### Phase 2: Session Features
 
 #### Session Operations
-- [ ] Delete session
-- [ ] Rename session (update title)
+- [x] Delete session
+- [x] Rename session (update title)
 - [ ] Abort ongoing session (cancel in-progress generation)
 - [ ] Session branching (create child session from parent)
 
