@@ -364,6 +364,7 @@ pub struct SessionRevert {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Session {
     pub id: String,
+    #[serde(default)]
     pub slug: String,
     #[serde(rename = "projectID")]
     pub project_id: String,

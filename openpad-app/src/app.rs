@@ -448,7 +448,9 @@ impl App {
                             request_id,
                         );
                         self.respond_to_permission(cx, request_id.clone(), reply.clone());
-                        self.ui.permission_dialog(&[id!(permission_dialog)]).hide(cx);
+                        self.ui
+                            .permission_dialog(&[id!(permission_dialog)])
+                            .hide(cx);
                     }
                     AppAction::RevertToMessage {
                         session_id,
@@ -465,6 +467,10 @@ impl App {
                     AppAction::Connected => {
                         state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                         self.load_providers_and_agents();
+                    }
+                    AppAction::ProjectsLoaded(projects) => {
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
+                        self.load_all_sessions(projects.clone());
                     }
                     _ => {
                         state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
@@ -494,6 +500,16 @@ impl App {
         };
 
         async_runtime::spawn_pending_permissions_loader(runtime, client);
+    }
+
+    fn load_all_sessions(&mut self, projects: Vec<openpad_protocol::Project>) {
+        let Some(client) = self.client.clone() else {
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+        async_runtime::spawn_all_sessions_loader(runtime, client, projects);
     }
 
     fn load_messages(&mut self, session_id: String) {
@@ -729,13 +745,21 @@ impl App {
             return;
         };
 
+        let directory = self.get_session_directory(data);
+
         match action {
             "delete_session" => {
-                async_runtime::spawn_session_deleter(runtime, client, data.to_string());
+                async_runtime::spawn_session_deleter(runtime, client, data.to_string(), directory);
             }
             "rename_session" => {
                 if !value.is_empty() {
-                    async_runtime::spawn_session_updater(runtime, client, data.to_string(), value);
+                    async_runtime::spawn_session_updater(
+                        runtime,
+                        client,
+                        data.to_string(),
+                        value,
+                        directory,
+                    );
                 }
             }
             _ => {}
@@ -779,7 +803,9 @@ impl AppMain for App {
                     ProjectsPanelAction::SelectSession(session_id) => {
                         self.state.selected_session_id = Some(session_id.clone());
                         self.state.current_session_id = Some(session_id.clone());
-                        self.ui.permission_dialog(&[id!(permission_dialog)]).hide(cx);
+                        self.ui
+                            .permission_dialog(&[id!(permission_dialog)])
+                            .hide(cx);
                         self.state.messages_data.clear();
                         self.ui
                             .message_list(&[id!(message_list)])
@@ -849,7 +875,9 @@ impl AppMain for App {
                             request_id,
                         );
                         self.respond_to_permission(cx, request_id.clone(), reply.clone());
-                        self.ui.permission_dialog(&[id!(permission_dialog)]).hide(cx);
+                        self.ui
+                            .permission_dialog(&[id!(permission_dialog)])
+                            .hide(cx);
                     }
                     _ => {}
                 }
