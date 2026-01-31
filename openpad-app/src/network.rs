@@ -1,6 +1,9 @@
 use crate::actions::AppAction;
 use makepad_widgets::Cx;
-use openpad_protocol::{OpenCodeClient, PermissionReply, PermissionReplyRequest, Session};
+use openpad_protocol::{
+    OpenCodeClient, PermissionAction, PermissionReply, PermissionReplyRequest, PermissionRule,
+    PermissionRuleset, Session, SessionCreateRequest,
+};
 use std::sync::Arc;
 
 /// Spawns a task to subscribe to SSE events
@@ -89,7 +92,13 @@ pub fn spawn_message_sender(
         let sid = if let Some(id) = session_id {
             id
         } else {
-            match client.create_session().await {
+            let request = SessionCreateRequest {
+                parent_id: None,
+                title: None,
+                permission: Some(default_permission_ruleset()),
+            };
+
+            match client.create_session_with_options(request).await {
                 Ok(session) => {
                     Cx::post_action(AppAction::SessionCreated(session.clone()));
                     session.id
@@ -111,7 +120,13 @@ pub fn spawn_message_sender(
 /// Spawns a task to create a new session
 pub fn spawn_session_creator(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
     runtime.spawn(async move {
-        match client.create_session().await {
+        let request = SessionCreateRequest {
+            parent_id: None,
+            title: None,
+            permission: Some(default_permission_ruleset()),
+        };
+
+        match client.create_session_with_options(request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
                 if let Ok(sessions) = client.list_sessions().await {
@@ -133,12 +148,27 @@ pub fn spawn_permission_reply(
     reply: PermissionReply,
 ) {
     runtime.spawn(async move {
-        let response = PermissionReplyRequest { response: reply };
+        let response = PermissionReplyRequest { reply };
         if let Err(e) = client.reply_to_permission(&request_id, response).await {
             Cx::post_action(AppAction::SendMessageFailed(format!(
                 "Permission response failed: {}",
                 e
             )));
+        }
+    });
+}
+
+/// Spawns a task to load pending permission requests
+pub fn spawn_pending_permissions_loader(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+) {
+    runtime.spawn(async move {
+        match client.list_pending_permissions().await {
+            Ok(permissions) => {
+                Cx::post_action(AppAction::PendingPermissionsLoaded(permissions));
+            }
+            Err(_) => {}
         }
     });
 }
@@ -152,6 +182,14 @@ pub fn get_session_title(session: &Session) -> String {
     } else {
         session.id.clone()
     }
+}
+
+fn default_permission_ruleset() -> PermissionRuleset {
+    vec![PermissionRule {
+        permission: "*".to_string(),
+        pattern: "*".to_string(),
+        action: PermissionAction::Ask,
+    }]
 }
 
 /// Spawns a task to delete a session
@@ -187,7 +225,7 @@ pub fn spawn_session_updater(
     new_title: String,
 ) {
     use openpad_protocol::SessionUpdateRequest;
-    
+
     runtime.spawn(async move {
         let request = SessionUpdateRequest {
             title: Some(new_title),
@@ -238,18 +276,16 @@ pub fn spawn_session_brancher(
     client: Arc<OpenCodeClient>,
     parent_session_id: String,
 ) {
-    use openpad_protocol::SessionCreateRequest;
-    
     runtime.spawn(async move {
         let request = SessionCreateRequest {
             parent_id: Some(parent_session_id),
             title: None,
-            permission: None,
+            permission: Some(default_permission_ruleset()),
         };
+
         match client.create_session_with_options(request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
-                // Reload sessions list
                 if let Ok(sessions) = client.list_sessions().await {
                     Cx::post_action(AppAction::SessionsLoaded(sessions));
                 }
@@ -272,7 +308,7 @@ pub fn spawn_message_reverter(
     message_id: String,
 ) {
     use openpad_protocol::RevertRequest;
-    
+
     runtime.spawn(async move {
         let request = RevertRequest { message_id };
         match client.revert_message(&session_id, request).await {

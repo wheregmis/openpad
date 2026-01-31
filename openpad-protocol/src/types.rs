@@ -276,7 +276,7 @@ pub struct PermissionRequest {
 /// Request body for replying to a permission request.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PermissionReplyRequest {
-    pub response: PermissionReply,
+    pub reply: PermissionReply,
 }
 
 /// A collection of permission rules for a session.
@@ -381,11 +381,11 @@ pub struct Session {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SessionCreateRequest {
-    #[serde(default, rename = "parentID")]
+    #[serde(default, rename = "parentID", skip_serializing_if = "Option::is_none")]
     pub parent_id: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub permission: Option<PermissionRuleset>,
 }
 

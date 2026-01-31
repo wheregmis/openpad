@@ -204,6 +204,12 @@ impl App {
                         );
                     }
                     AppAction::PermissionResponded { request_id, reply } => {
+                        event_handlers::handle_permission_responded(
+                            &mut self.state,
+                            &self.ui,
+                            cx,
+                            request_id,
+                        );
                         self.respond_to_permission(cx, request_id.clone(), reply.clone());
                         self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
                     }
@@ -230,6 +236,17 @@ impl App {
                 }
             }
         }
+    }
+
+    fn load_pending_permissions(&mut self) {
+        let Some(client) = self.client.clone() else {
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        network::spawn_pending_permissions_loader(runtime, client);
     }
 
     fn load_messages(&mut self, session_id: String) {
@@ -415,6 +432,7 @@ impl AppMain for App {
                     ProjectsPanelAction::SelectSession(session_id) => {
                         self.state.selected_session_id = Some(session_id.clone());
                         self.state.current_session_id = Some(session_id.clone());
+                        self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
                         self.state.messages_data.clear();
                         self.ui
                             .message_list(id!(message_list))
@@ -422,6 +440,7 @@ impl AppMain for App {
                         self.state.update_projects_panel(&self.ui, cx);
                         self.state.update_session_title_ui(&self.ui, cx);
                         self.load_messages(session_id.clone());
+                        self.load_pending_permissions();
                     }
                     ProjectsPanelAction::CreateSession(_project_id) => {
                         self.create_session(cx);
@@ -455,11 +474,21 @@ impl AppMain for App {
                 }
             }
 
-            // Handle AppAction from captured UI actions (e.g. DialogConfirmed from SimpleDialog)
+            // Handle AppAction from captured UI actions (e.g. DialogConfirmed, PermissionResponded)
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
                     AppAction::DialogConfirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
+                    }
+                    AppAction::PermissionResponded { request_id, reply } => {
+                        event_handlers::handle_permission_responded(
+                            &mut self.state,
+                            &self.ui,
+                            cx,
+                            request_id,
+                        );
+                        self.respond_to_permission(cx, request_id.clone(), reply.clone());
+                        self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
                     }
                     _ => {}
                 }

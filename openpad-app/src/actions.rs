@@ -1,7 +1,7 @@
 use makepad_widgets::*;
 use openpad_protocol::{
-    Event as OcEvent, HealthResponse, Message, MessageWithParts, Part, PermissionReply, Project,
-    Session,
+    Event as OcEvent, HealthResponse, Message, MessageWithParts, Part, PermissionReply,
+    PermissionRequest, Project, Session,
 };
 
 #[derive(Clone, Debug, DefaultNone)]
@@ -43,6 +43,11 @@ pub enum AppAction {
     DialogConfirmed {
         dialog_type: String,
         value: String,
+    },
+    PendingPermissionsLoaded(Vec<PermissionRequest>),
+    PermissionDismissed {
+        session_id: String,
+        request_id: String,
     },
 }
 

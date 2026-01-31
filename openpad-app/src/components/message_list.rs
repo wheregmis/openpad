@@ -281,7 +281,13 @@ impl MessageListRef {
         messages_with_parts: &[openpad_protocol::MessageWithParts],
     ) {
         if let Some(mut inner) = self.borrow_mut() {
+            let was_empty = inner.messages.is_empty();
             inner.messages = MessageList::rebuild_from_parts(messages_with_parts);
+            // Reset scroll position when loading a new set of messages
+            // to avoid stale first_id from a previous longer list
+            if was_empty || messages_with_parts.is_empty() {
+                inner.view.portal_list(id!(list)).set_first_id(0);
+            }
             inner.redraw(cx);
         }
     }
