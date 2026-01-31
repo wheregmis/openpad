@@ -13,49 +13,54 @@ live_design! {
     use link::widgets::*;
 
     pub Terminal = {{Terminal}} {
-        width: Fill, height: 200
+        width: Fill, height: Fill
         flow: Down
-        show_bg: true
-        draw_bg: {
-            color: #1a1d23
-        }
+        spacing: 0
 
         terminal_header = <View> {
             width: Fill, height: Fit
             flow: Right
-            padding: { left: 12, right: 12, top: 8, bottom: 8 }
-            spacing: 8
+            padding: { left: 14, right: 14, top: 10, bottom: 10 }
+            spacing: 10
             align: { y: 0.5 }
             show_bg: true
             draw_bg: {
-                color: #22262c
+                color: #181c22
             }
 
             <Label> {
                 text: "Terminal"
-                draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                draw_text: {
+                    color: #cbd3dc
+                    text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                }
             }
             <View> { width: Fill }
             clear_button = <Button> {
-                width: Fit, height: 24
+                width: Fit, height: 26
+                padding: { left: 10, right: 10 }
                 text: "Clear"
                 draw_bg: {
                     color: #2a2f36
-                    color_hover: #313843
+                    color_hover: #364049
+                    color_down: #242930
                     border_radius: 4.0
                 }
-                draw_text: { color: #cbd3dc, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                draw_text: {
+                    color: #9aa4b2
+                    text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                }
             }
         }
 
-        terminal_output = <RoundedView> {
+        terminal_output = <View> {
             width: Fill, height: Fill
-            padding: 12
+            padding: { left: 14, right: 14, top: 10, bottom: 10 }
             flow: Down
             scroll_bars: <ScrollBars> {}
             show_bg: true
             draw_bg: {
-                color: #1a1d23
+                color: #0d1117
             }
 
             output_label = <Label> {
@@ -63,7 +68,7 @@ live_design! {
                 text: ""
                 draw_text: {
                     wrap: Word
-                    color: #e6e9ee
+                    color: #c9d1d9
                     text_style: <THEME_FONT_CODE> { font_size: 11 }
                 }
             }
@@ -72,21 +77,31 @@ live_design! {
         terminal_input = <View> {
             width: Fill, height: Fit
             flow: Right
-            padding: { left: 12, right: 12, top: 6, bottom: 8 }
+            padding: { left: 14, right: 14, top: 8, bottom: 10 }
             spacing: 8
             show_bg: true
             draw_bg: {
-                color: #1f2329
+                color: #181c22
             }
 
             input_field = <TextInput> {
                 width: Fill, height: Fit
+                padding: { left: 10, right: 10, top: 6, bottom: 6 }
                 empty_text: "Enter command..."
                 draw_bg: {
-                    color: #2a2f36
+                    color: #0d1117
+                    color_focus: #161b22
                     border_radius: 4.0
+                    border_size: 1.0
+                    border_color_1: #30363d
+                    border_color_2: #30363d
+                    border_color_1_focus: #58a6ff
+                    border_color_2_focus: #58a6ff
                 }
-                draw_text: { color: #e6e9ee, text_style: <THEME_FONT_CODE> { font_size: 11 } }
+                draw_text: {
+                    color: #c9d1d9
+                    text_style: <THEME_FONT_CODE> { font_size: 11 }
+                }
             }
         }
     }

@@ -181,10 +181,63 @@ live_design! {
                             }
                         }
 
-                        // Terminal panel at bottom
-                        terminal_panel = <Terminal> {
+                        // Chat area (messages + input)
+                        <RoundedView> {
+                            width: Fill, height: Fill
+                            flow: Down
+                            spacing: 0
+                            show_bg: true
+                            draw_bg: {
+                                color: #1c2026
+                                border_radius: 8.0
+                            }
+
+                            // Messages area with padding
+                            <View> {
+                                width: Fill, height: Fill
+                                padding: 12
+                                message_list = <MessageList> { width: Fill, height: Fill }
+                            }
+
+                            // Inline permission prompt (shown only when needed)
+                            permission_dialog = <PermissionDialog> { width: Fill }
+
+                            // Input area (fixed at bottom of chat)
+                            input_row = <View> {
+                                width: Fill, height: Fit
+                                padding: { left: 12, right: 12, top: 8, bottom: 12 }
+                                flow: Right
+                                align: { y: 0.5 }
+                                show_bg: true
+                                draw_bg: {
+                                    color: #181c22
+                                }
+
+                                <InputBar> {
+                                    width: Fill
+                                    input_box = <InputField> {}
+                                    send_button = <SendButton> {}
+                                }
+                            }
+                        }
+
+                        // Terminal panel - IDE style with better separation
+                        <RoundedView> {
                             width: Fill
-                            height: 250
+                            height: 220
+                            margin: { top: 8 }
+                            flow: Down
+                            spacing: 0
+                            show_bg: true
+                            draw_bg: {
+                                color: #1c2026
+                                border_radius: 8.0
+                            }
+
+                            terminal_panel = <Terminal> {
+                                width: Fill
+                                height: Fill
+                            }
                         }
                     }
                 }
