@@ -139,4 +139,371 @@ mod tests {
         // Just ensure these compile
         drop(client_with_dir);
     }
+
+    /// Test module for validating our Rust types against the OpenAPI specification.
+    ///
+    /// This test ensures that our manually-defined types in `types.rs` match the
+    /// OpenAPI schema from the OpenCode server. It helps catch breaking changes
+    /// when the server API is updated.
+    mod openapi_validation {
+        use super::*;
+        use serde_json::Value;
+        use std::collections::HashMap;
+
+        /// Load the OpenAPI specification from the repository root.
+        fn load_openapi_spec() -> Value {
+            let openapi_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../openapi.json");
+            let openapi_content =
+                std::fs::read_to_string(openapi_path).expect("Failed to read openapi.json");
+            serde_json::from_str(&openapi_content).expect("Failed to parse openapi.json")
+        }
+
+        /// Extract a schema definition from the OpenAPI spec by name.
+        fn get_schema<'a>(spec: &'a Value, name: &str) -> Option<&'a Value> {
+            spec.get("components")?.get("schemas")?.get(name)
+        }
+
+        /// Helper to validate that a type can be serialized and has expected fields.
+        fn validate_serialization<T: serde::Serialize>(
+            value: &T,
+            expected_fields: &[&str],
+        ) -> serde_json::Value {
+            let json = serde_json::to_value(value).expect("Failed to serialize");
+            let obj = json.as_object().expect("Expected an object");
+
+            for field in expected_fields {
+                assert!(
+                    obj.contains_key(*field),
+                    "Missing required field: {}",
+                    field
+                );
+            }
+
+            json
+        }
+
+        #[test]
+        fn test_openapi_spec_loads() {
+            let spec = load_openapi_spec();
+            assert!(spec.is_object(), "OpenAPI spec should be an object");
+            assert_eq!(
+                spec.get("openapi").and_then(|v| v.as_str()),
+                Some("3.1.1"),
+                "OpenAPI version mismatch"
+            );
+        }
+
+        #[test]
+        fn test_session_type_matches_openapi() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "Session").expect("Session schema not found");
+
+            // Create a sample Session
+            let session = Session {
+                id: "ses_123".to_string(),
+                slug: "test-session".to_string(),
+                project_id: "proj_123".to_string(),
+                directory: "/tmp/test".to_string(),
+                parent_id: None,
+                title: "Test Session".to_string(),
+                version: "1.0.0".to_string(),
+                time: SessionTime {
+                    created: 1234567890000,
+                    updated: 1234567890000,
+                    compacting: None,
+                    archived: None,
+                },
+                summary: None,
+                share: None,
+                permission: None,
+                revert: None,
+            };
+
+            // Verify required fields from schema
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("Session schema missing required fields");
+
+            let required_fields: Vec<&str> = required
+                .iter()
+                .filter_map(|v| v.as_str())
+                .collect();
+
+            // Validate serialization includes all required fields
+            validate_serialization(&session, &required_fields);
+        }
+
+        #[test]
+        fn test_assistant_message_matches_openapi() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "AssistantMessage").expect("AssistantMessage schema not found");
+
+            // Create a full Message enum (which includes the role field)
+            let msg = Message::Assistant(AssistantMessage {
+                id: "msg_123".to_string(),
+                session_id: "ses_123".to_string(),
+                time: MessageTime {
+                    created: 1234567890000,
+                    completed: None,
+                },
+                error: None,
+                parent_id: "msg_122".to_string(),
+                model_id: "claude-3".to_string(),
+                provider_id: "anthropic".to_string(),
+                mode: "agentic".to_string(),
+                agent: "default".to_string(),
+                path: Some(MessagePath {
+                    cwd: "/tmp".to_string(),
+                    root: "/tmp".to_string(),
+                }),
+                summary: None,
+                cost: 0.0,
+                tokens: Some(TokenUsage {
+                    input: 100,
+                    output: 50,
+                    reasoning: 0,
+                    cache: CacheUsage { read: 0, write: 0 },
+                }),
+                finish: None,
+            });
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("AssistantMessage schema missing required fields");
+
+            let required_fields: Vec<&str> = required
+                .iter()
+                .filter_map(|v| v.as_str())
+                .collect();
+
+            validate_serialization(&msg, &required_fields);
+        }
+
+        #[test]
+        fn test_user_message_matches_openapi() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "UserMessage").expect("UserMessage schema not found");
+
+            // Create a full Message enum (which includes the role field)
+            let msg = Message::User(UserMessage {
+                id: "msg_123".to_string(),
+                session_id: "ses_123".to_string(),
+                time: MessageTime {
+                    created: 1234567890000,
+                    completed: None,
+                },
+                summary: None,
+                agent: "default".to_string(),
+                model: Some(ModelSpec {
+                    provider_id: "anthropic".to_string(),
+                    model_id: "claude-3".to_string(),
+                }),
+                system: None,
+                tools: None,
+                variant: None,
+            });
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("UserMessage schema missing required fields");
+
+            let required_fields: Vec<&str> = required
+                .iter()
+                .filter_map(|v| v.as_str())
+                .collect();
+
+            validate_serialization(&msg, &required_fields);
+        }
+
+        #[test]
+        fn test_permission_request_matches_openapi() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "PermissionRequest")
+                .expect("PermissionRequest schema not found");
+
+            let req = PermissionRequest {
+                id: "per_123".to_string(),
+                session_id: "ses_123".to_string(),
+                permission: "bash".to_string(),
+                patterns: vec!["*.sh".to_string()],
+                metadata: HashMap::new(),
+                always: vec![],
+                tool: None,
+            };
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("PermissionRequest schema missing required fields");
+
+            let required_fields: Vec<&str> = required
+                .iter()
+                .filter_map(|v| v.as_str())
+                .collect();
+
+            validate_serialization(&req, &required_fields);
+        }
+
+        #[test]
+        fn test_token_usage_structure() {
+            let tokens = TokenUsage {
+                input: 100,
+                output: 50,
+                reasoning: 10,
+                cache: CacheUsage { read: 20, write: 5 },
+            };
+
+            let json = serde_json::to_value(&tokens).expect("Failed to serialize");
+            assert!(json.get("input").is_some());
+            assert!(json.get("output").is_some());
+            assert!(json.get("reasoning").is_some());
+            assert!(json.get("cache").is_some());
+
+            let cache = json.get("cache").unwrap();
+            assert!(cache.get("read").is_some());
+            assert!(cache.get("write").is_some());
+        }
+
+        #[test]
+        fn test_assistant_error_variants() {
+            // Test that all AssistantError variants serialize correctly
+            let errors = vec![
+                AssistantError::ProviderAuthError {
+                    provider_id: "anthropic".to_string(),
+                    message: "Auth failed".to_string(),
+                },
+                AssistantError::UnknownError {
+                    message: "Something went wrong".to_string(),
+                },
+                AssistantError::MessageOutputLengthError,
+                AssistantError::MessageAbortedError {
+                    message: "Aborted by user".to_string(),
+                },
+                AssistantError::APIError {
+                    message: "API error".to_string(),
+                    status_code: Some(500),
+                    is_retryable: true,
+                    response_headers: None,
+                    response_body: None,
+                    metadata: None,
+                },
+            ];
+
+            for error in errors {
+                let json = serde_json::to_value(&error).expect("Failed to serialize error");
+                assert!(json.get("name").is_some(), "Error should have a 'name' field");
+            }
+        }
+
+        #[test]
+        fn test_permission_action_serialization() {
+            let actions = vec![
+                PermissionAction::Allow,
+                PermissionAction::Deny,
+                PermissionAction::Ask,
+            ];
+
+            for action in actions {
+                let json = serde_json::to_value(&action).expect("Failed to serialize");
+                assert!(json.is_string(), "PermissionAction should serialize as string");
+            }
+        }
+
+        #[test]
+        fn test_message_enum_with_role() {
+            // Test that Message enum serializes with the 'role' field
+            let user_msg = Message::User(UserMessage {
+                id: "msg_123".to_string(),
+                session_id: "ses_123".to_string(),
+                time: MessageTime {
+                    created: 1234567890000,
+                    completed: None,
+                },
+                summary: None,
+                agent: "default".to_string(),
+                model: Some(ModelSpec {
+                    provider_id: "anthropic".to_string(),
+                    model_id: "claude-3".to_string(),
+                }),
+                system: None,
+                tools: None,
+                variant: None,
+            });
+
+            let json = serde_json::to_value(&user_msg).expect("Failed to serialize");
+            assert_eq!(
+                json.get("role").and_then(|v| v.as_str()),
+                Some("user"),
+                "User message should have role='user'"
+            );
+
+            let assistant_msg = Message::Assistant(AssistantMessage {
+                id: "msg_124".to_string(),
+                session_id: "ses_123".to_string(),
+                time: MessageTime {
+                    created: 1234567890000,
+                    completed: None,
+                },
+                error: None,
+                parent_id: "msg_123".to_string(),
+                model_id: "claude-3".to_string(),
+                provider_id: "anthropic".to_string(),
+                mode: "agentic".to_string(),
+                agent: "default".to_string(),
+                path: Some(MessagePath {
+                    cwd: "/tmp".to_string(),
+                    root: "/tmp".to_string(),
+                }),
+                summary: None,
+                cost: 0.0,
+                tokens: Some(TokenUsage {
+                    input: 100,
+                    output: 50,
+                    reasoning: 0,
+                    cache: CacheUsage { read: 0, write: 0 },
+                }),
+                finish: None,
+            });
+
+            let json = serde_json::to_value(&assistant_msg).expect("Failed to serialize");
+            assert_eq!(
+                json.get("role").and_then(|v| v.as_str()),
+                Some("assistant"),
+                "Assistant message should have role='assistant'"
+            );
+        }
+
+        #[test]
+        fn test_key_schemas_exist_in_openapi() {
+            let spec = load_openapi_spec();
+
+            // List of key schemas that exist as standalone definitions in the OpenAPI spec
+            // Note: Many types like SessionTime, MessageTime, TokenUsage, CacheUsage, 
+            // ModelSpec, SessionSummary, and PermissionReply are defined inline in the 
+            // OpenAPI spec rather than as standalone schemas
+            let expected_schemas = vec![
+                "Session",
+                "AssistantMessage",
+                "UserMessage",
+                "PermissionRequest",
+                "PermissionRule",
+                "PermissionAction",
+                "FileDiff",
+                "Config",
+                "Provider",
+                "Model",
+            ];
+
+            for schema_name in expected_schemas {
+                assert!(
+                    get_schema(&spec, schema_name).is_some(),
+                    "Schema '{}' not found in OpenAPI spec",
+                    schema_name
+                );
+            }
+        }
+    }
 }
