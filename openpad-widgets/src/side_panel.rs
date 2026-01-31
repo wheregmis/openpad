@@ -52,14 +52,14 @@ impl Widget for SidePanel {
 
 impl SidePanel {
     pub fn is_open(&self, cx: &Cx) -> bool {
-        self.animator_in_state(cx, id!(open.on))
+        self.animator_in_state(cx, &[id!(open), id!(on)])
     }
 
     pub fn set_open(&mut self, cx: &mut Cx, open: bool) {
         if open {
-            self.animator_play(cx, id!(open.on));
+            self.animator_play(cx, &[id!(open), id!(on)]);
         } else {
-            self.animator_play(cx, id!(open.off));
+            self.animator_play(cx, &[id!(open), id!(off)]);
         }
     }
 }

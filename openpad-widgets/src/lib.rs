@@ -241,18 +241,6 @@ pub mod openpad {
                 color_disabled: #252526
                 border_radius: 8.0
                 border_size: 0.0
-                border_color_1: #0000
-                border_color_2: #0000
-                border_color_1_hover: #0000
-                border_color_2_hover: #0000
-                border_color_1_focus: #0000
-                border_color_2_focus: #0000
-                border_color_1_down: #0000
-                border_color_2_down: #0000
-                border_color_1_empty: #0000
-                border_color_2_empty: #0000
-                border_color_1_disabled: #0000
-                border_color_2_disabled: #0000
             }
             draw_text: { color: #ddd, text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 } }
             text: ""

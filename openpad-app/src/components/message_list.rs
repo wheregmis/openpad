@@ -220,13 +220,13 @@ impl Widget for MessageList {
             self.view.handle_event(cx, event, scope);
         });
 
-        let list = self.view.portal_list(id!(list));
+        let list = self.view.portal_list(&[id!(list)]);
         for (item_id, widget) in list.items_with_actions(&actions) {
             if item_id >= self.messages.len() {
                 continue;
             }
 
-            if widget.button(id!(revert_button)).clicked(&actions) {
+            if widget.button(&[id!(revert_button)]).clicked(&actions) {
                 if let Some(message_id) = &self.messages[item_id].message_id {
                     cx.action(MessageListAction::RevertToMessage(message_id.clone()));
                 }
@@ -257,20 +257,20 @@ impl Widget for MessageList {
                     };
 
                     let item_widget = list.item(cx, item_id, template);
-                    item_widget.widget(id!(msg_text)).set_text(cx, &msg.text);
+                    item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
 
                     // Set timestamp if available
                     if let Some(timestamp) = msg.timestamp {
                         let formatted = crate::ui::formatters::format_timestamp(timestamp);
                         item_widget
-                            .label(id!(timestamp_label))
+                            .label(&[id!(timestamp_label)])
                             .set_text(cx, &formatted);
                     }
 
                     // Set model ID for assistant messages
                     if msg.role == "assistant" {
                         if let Some(ref model_id) = msg.model_id {
-                            item_widget.label(id!(model_label)).set_text(cx, model_id);
+                            item_widget.label(&[id!(model_label)]).set_text(cx, model_id);
                         }
                     }
 
@@ -294,7 +294,7 @@ impl MessageListRef {
             // Reset scroll position when loading a new set of messages
             // to avoid stale first_id from a previous longer list
             if was_empty || messages_with_parts.is_empty() {
-                inner.view.portal_list(id!(list)).set_first_id(0);
+                inner.view.portal_list(&[id!(list)]).set_first_id(0);
             }
             inner.redraw(cx);
         }
