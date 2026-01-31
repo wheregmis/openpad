@@ -160,7 +160,8 @@ impl Terminal {
         let shell = shell_path.as_str();
         
         let mut cmd = CommandBuilder::new(shell);
-        cmd.cwd(std::env::current_dir().unwrap());
+        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        cmd.cwd(cwd);
         
         if let Err(e) = pair.slave.spawn_command(cmd) {
             self.append_output(cx, &format!("Failed to spawn shell: {}\n", e));
@@ -178,6 +179,8 @@ impl Terminal {
         self.pty_writer = Some(writer);
         
         // Start reading output in background
+        // NOTE: This thread will run until the PTY reader is closed or an error occurs.
+        // Future enhancement: Store thread handle and implement proper cleanup on widget drop.
         let reader = match pair.master.try_clone_reader() {
             Ok(r) => r,
             Err(e) => {
@@ -221,6 +224,8 @@ impl Terminal {
     }
     
     fn append_output(&mut self, cx: &mut Cx, text: &str) {
+        // NOTE: output_text grows unbounded. Future enhancement: implement buffer size limit
+        // and auto-trim old content to prevent excessive memory usage in long sessions.
         self.output_text.push_str(text);
         self.view.label(id!(output_label)).set_text(cx, &self.output_text);
         cx.redraw_all();
