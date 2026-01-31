@@ -104,6 +104,30 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.update_session_title_ui(ui, cx);
             cx.redraw_all();
         }
+        AppAction::SessionDeleted(session_id) => {
+            // If the deleted session is currently selected, clear it
+            if state.current_session_id.as_ref() == Some(session_id) {
+                state.current_session_id = None;
+                state.selected_session_id = None;
+                state.clear_messages(ui, cx);
+                state.update_session_title_ui(ui, cx);
+            } else if state.selected_session_id.as_ref() == Some(session_id) {
+                state.selected_session_id = None;
+            }
+            // Remove from sessions list
+            state.sessions.retain(|s| &s.id != session_id);
+            state.update_projects_panel(ui, cx);
+            cx.redraw_all();
+        }
+        AppAction::SessionUpdated(session) => {
+            // Update the session in the list
+            if let Some(existing) = state.sessions.iter_mut().find(|s| s.id == session.id) {
+                *existing = session.clone();
+            }
+            state.update_projects_panel(ui, cx);
+            state.update_session_title_ui(ui, cx);
+            cx.redraw_all();
+        }
         AppAction::MessagesLoaded(messages) => {
             state.messages_data = messages.clone();
             ui.message_list(id!(message_list))
@@ -135,6 +159,20 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             }
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
+        }
+        OcEvent::SessionDeleted(session) => {
+            // If the deleted session is currently selected, clear it
+            if state.current_session_id.as_ref() == Some(&session.id) {
+                state.current_session_id = None;
+                state.selected_session_id = None;
+                state.clear_messages(ui, cx);
+                state.update_session_title_ui(ui, cx);
+            } else if state.selected_session_id.as_ref() == Some(&session.id) {
+                state.selected_session_id = None;
+            }
+            // Remove from sessions list
+            state.sessions.retain(|s| s.id != session.id);
+            state.update_projects_panel(ui, cx);
         }
         OcEvent::MessageUpdated(message) => {
             handle_message_updated(state, ui, cx, message);

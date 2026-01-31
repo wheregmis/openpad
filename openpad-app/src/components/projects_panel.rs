@@ -64,6 +64,78 @@ live_design! {
                     draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
                 }
 
+                // Action buttons container
+                action_buttons = <View> {
+                    width: Fit, height: Fit
+                    flow: Right,
+                    spacing: 4,
+                    
+                    abort_button = <Button> {
+                        width: 28, height: 28
+                        visible: false
+                        text: "⏹"
+                        draw_bg: {
+                            color: #1f2329
+                            color_hover: #ef4444
+                            border_radius: 6.0
+                            border_size: 0.0
+                        }
+                        draw_text: {
+                            color: #6b7b8c
+                            color_hover: #ffffff
+                            text_style: { font_size: 10 }
+                        }
+                    }
+
+                    rename_button = <Button> {
+                        width: 28, height: 28
+                        text: "✎"
+                        draw_bg: {
+                            color: #1f2329
+                            color_hover: #3b82f6
+                            border_radius: 6.0
+                            border_size: 0.0
+                        }
+                        draw_text: {
+                            color: #6b7b8c
+                            color_hover: #ffffff
+                            text_style: { font_size: 10 }
+                        }
+                    }
+
+                    branch_button = <Button> {
+                        width: 28, height: 28
+                        text: "⑂"
+                        draw_bg: {
+                            color: #1f2329
+                            color_hover: #8b5cf6
+                            border_radius: 6.0
+                            border_size: 0.0
+                        }
+                        draw_text: {
+                            color: #6b7b8c
+                            color_hover: #ffffff
+                            text_style: { font_size: 10 }
+                        }
+                    }
+
+                    delete_button = <Button> {
+                        width: 28, height: 28
+                        text: "🗑"
+                        draw_bg: {
+                            color: #1f2329
+                            color_hover: #ef4444
+                            border_radius: 6.0
+                            border_size: 0.0
+                        }
+                        draw_text: {
+                            color: #6b7b8c
+                            color_hover: #ffffff
+                            text_style: { font_size: 10 }
+                        }
+                    }
+                }
+
                 run_button = <Button> {
                     width: 34, height: 34
                     text: "▶"
@@ -246,6 +318,18 @@ impl Widget for ProjectsPanel {
                     }
                     if widget.button(id!(run_button)).clicked(&actions) {
                         cx.action(ProjectsPanelAction::RunSession(session_id.clone()));
+                    }
+                    if widget.button(id!(delete_button)).clicked(&actions) {
+                        cx.action(ProjectsPanelAction::DeleteSession(session_id.clone()));
+                    }
+                    if widget.button(id!(rename_button)).clicked(&actions) {
+                        cx.action(ProjectsPanelAction::RenameSession(session_id.clone()));
+                    }
+                    if widget.button(id!(branch_button)).clicked(&actions) {
+                        cx.action(ProjectsPanelAction::BranchSession(session_id.clone()));
+                    }
+                    if widget.button(id!(abort_button)).clicked(&actions) {
+                        cx.action(ProjectsPanelAction::AbortSession(session_id.clone()));
                     }
                 }
                 _ => {}

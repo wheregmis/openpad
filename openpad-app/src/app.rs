@@ -172,6 +172,12 @@ impl App {
                         self.respond_to_permission(cx, request_id.clone(), reply.clone());
                         self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
                     }
+                    AppAction::RevertToMessage { session_id, message_id } => {
+                        self.revert_to_message(cx, session_id.clone(), message_id.clone());
+                    }
+                    AppAction::UnrevertSession(session_id) => {
+                        self.unrevert_session(cx, session_id.clone());
+                    }
                     _ => {
                         event_handlers::handle_app_action(
                             &mut self.state,
@@ -237,6 +243,82 @@ impl App {
 
         network::spawn_permission_reply(runtime, client, request_id, reply);
     }
+
+    fn delete_session(&mut self, _cx: &mut Cx, session_id: String) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        network::spawn_session_deleter(runtime, client, session_id);
+    }
+
+    fn rename_session(&mut self, _cx: &mut Cx, session_id: String) {
+        // TODO: Show a dialog to get the new title
+        // For now, we'll use a simple placeholder approach
+        let new_title = "Renamed Session".to_string(); // This should be from a dialog
+        
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        network::spawn_session_updater(runtime, client, session_id, new_title);
+    }
+
+    fn abort_session(&mut self, _cx: &mut Cx, session_id: String) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        network::spawn_session_aborter(runtime, client, session_id);
+    }
+
+    fn branch_session(&mut self, _cx: &mut Cx, parent_session_id: String) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        network::spawn_session_brancher(runtime, client, parent_session_id);
+    }
+
+    fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        network::spawn_message_reverter(runtime, client, session_id, message_id);
+    }
+
+    fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        network::spawn_session_unreverter(runtime, client, session_id);
+    }
 }
 
 impl AppMain for App {
@@ -273,6 +355,18 @@ impl AppMain for App {
                     }
                     ProjectsPanelAction::CreateSession(_project_id) => {
                         self.create_session(cx);
+                    }
+                    ProjectsPanelAction::DeleteSession(session_id) => {
+                        self.delete_session(cx, session_id.clone());
+                    }
+                    ProjectsPanelAction::RenameSession(session_id) => {
+                        self.rename_session(cx, session_id.clone());
+                    }
+                    ProjectsPanelAction::AbortSession(session_id) => {
+                        self.abort_session(cx, session_id.clone());
+                    }
+                    ProjectsPanelAction::BranchSession(session_id) => {
+                        self.branch_session(cx, session_id.clone());
                     }
                     _ => {}
                 }

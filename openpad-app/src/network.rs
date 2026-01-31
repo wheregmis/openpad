@@ -153,3 +153,167 @@ pub fn get_session_title(session: &Session) -> String {
         session.id.clone()
     }
 }
+
+/// Spawns a task to delete a session
+pub fn spawn_session_deleter(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+) {
+    runtime.spawn(async move {
+        match client.delete_session(&session_id).await {
+            Ok(_) => {
+                Cx::post_action(AppAction::SessionDeleted(session_id.clone()));
+                // Reload sessions list
+                if let Ok(sessions) = client.list_sessions().await {
+                    Cx::post_action(AppAction::SessionsLoaded(sessions));
+                }
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to delete session: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
+/// Spawns a task to update a session (e.g., rename)
+pub fn spawn_session_updater(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+    new_title: String,
+) {
+    use openpad_protocol::SessionUpdateRequest;
+    
+    runtime.spawn(async move {
+        let request = SessionUpdateRequest {
+            title: Some(new_title),
+        };
+        match client.update_session(&session_id, request).await {
+            Ok(session) => {
+                Cx::post_action(AppAction::SessionUpdated(session.clone()));
+                // Reload sessions list to ensure consistency
+                if let Ok(sessions) = client.list_sessions().await {
+                    Cx::post_action(AppAction::SessionsLoaded(sessions));
+                }
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to rename session: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
+/// Spawns a task to abort an ongoing session
+pub fn spawn_session_aborter(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+) {
+    runtime.spawn(async move {
+        match client.abort_session(&session_id).await {
+            Ok(_) => {
+                // Session aborted successfully
+                // SSE will handle the session state update
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to abort session: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
+/// Spawns a task to branch a session (create child from parent)
+pub fn spawn_session_brancher(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    parent_session_id: String,
+) {
+    use openpad_protocol::SessionCreateRequest;
+    
+    runtime.spawn(async move {
+        let request = SessionCreateRequest {
+            parent_id: Some(parent_session_id),
+            title: None,
+            permission: None,
+        };
+        match client.create_session_with_options(request).await {
+            Ok(session) => {
+                Cx::post_action(AppAction::SessionCreated(session));
+                // Reload sessions list
+                if let Ok(sessions) = client.list_sessions().await {
+                    Cx::post_action(AppAction::SessionsLoaded(sessions));
+                }
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to branch session: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
+/// Spawns a task to revert session to a specific message
+pub fn spawn_message_reverter(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+    message_id: String,
+) {
+    use openpad_protocol::RevertRequest;
+    
+    runtime.spawn(async move {
+        let request = RevertRequest { message_id };
+        match client.revert_message(&session_id, request).await {
+            Ok(session) => {
+                Cx::post_action(AppAction::SessionUpdated(session));
+                // Reload messages for the session
+                if let Ok(messages) = client.list_messages(&session_id).await {
+                    Cx::post_action(AppAction::MessagesLoaded(messages));
+                }
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to revert to message: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
+/// Spawns a task to unrevert a session
+pub fn spawn_session_unreverter(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+) {
+    runtime.spawn(async move {
+        match client.unrevert_session(&session_id).await {
+            Ok(session) => {
+                Cx::post_action(AppAction::SessionUpdated(session));
+                // Reload messages for the session
+                if let Ok(messages) = client.list_messages(&session_id).await {
+                    Cx::post_action(AppAction::MessagesLoaded(messages));
+                }
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to unrevert session: {}",
+                    e
+                )));
+            }
+        }
+    });
+}

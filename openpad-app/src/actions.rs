@@ -15,6 +15,8 @@ pub enum AppAction {
     SessionsLoaded(Vec<Session>),
     SessionCreated(Session),
     SessionLoaded(Session),
+    SessionDeleted(String),
+    SessionUpdated(Session),
     MessagesLoaded(Vec<MessageWithParts>),
     MessageReceived(Message),
     PartReceived {
@@ -33,6 +35,11 @@ pub enum AppAction {
         request_id: String,
         reply: PermissionReply,
     },
+    RevertToMessage {
+        session_id: String,
+        message_id: String,
+    },
+    UnrevertSession(String),
 }
 
 #[derive(Clone, Debug, DefaultNone)]
@@ -41,4 +48,8 @@ pub enum ProjectsPanelAction {
     SelectSession(String),
     CreateSession(Option<String>),
     RunSession(String),
+    DeleteSession(String),
+    RenameSession(String),
+    AbortSession(String),
+    BranchSession(String),
 }
