@@ -429,7 +429,7 @@ impl AppMain for App {
             Event::Startup => {
                 self.connect_to_opencode(cx);
                 // Initialize terminal
-                self.ui.widget(id!(terminal_panel)).init_pty(cx);
+                self.ui.terminal(id!(terminal_panel)).init_pty(cx);
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
@@ -493,7 +493,7 @@ impl AppMain for App {
 
             // Handle TerminalAction
             if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
-                self.ui.widget(id!(terminal_panel)).handle_action(cx, terminal_action);
+                self.ui.terminal(id!(terminal_panel)).handle_action(cx, terminal_action);
             }
 
             // Handle AppAction from captured UI actions (e.g. DialogConfirmed, PermissionResponded)

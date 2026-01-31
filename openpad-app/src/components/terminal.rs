@@ -154,7 +154,10 @@ impl Terminal {
         #[cfg(target_os = "windows")]
         let shell = "powershell.exe";
         #[cfg(not(target_os = "windows"))]
-        let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+        let shell_path = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+        
+        #[cfg(not(target_os = "windows"))]
+        let shell = shell_path.as_str();
         
         let mut cmd = CommandBuilder::new(shell);
         cmd.cwd(std::env::current_dir().unwrap());
@@ -203,10 +206,16 @@ impl Terminal {
         self.append_output(cx, &format!("> {}\n", command));
         
         if let Some(writer) = &self.pty_writer {
-            if let Ok(mut w) = writer.lock() {
-                if let Err(e) = writeln!(w, "{}", command) {
-                    self.append_output(cx, &format!("Failed to send command: {}\n", e));
-                }
+            let result = {
+                let mut w = match writer.lock() {
+                    Ok(w) => w,
+                    Err(_) => return,
+                };
+                writeln!(w, "{}", command)
+            };
+            
+            if let Err(e) = result {
+                self.append_output(cx, &format!("Failed to send command: {}\n", e));
             }
         }
     }
@@ -228,6 +237,7 @@ impl Terminal {
             TerminalAction::OutputReceived(text) => {
                 self.append_output(cx, text);
             }
+            TerminalAction::None => {}
         }
     }
 }
@@ -238,20 +248,15 @@ pub enum TerminalAction {
     None,
 }
 
-pub trait TerminalWidgetRefExt {
-    fn init_pty(&self, cx: &mut Cx);
-    fn handle_action(&self, cx: &mut Cx, action: &TerminalAction);
-}
-
-impl TerminalWidgetRefExt for WidgetRef {
-    fn init_pty(&self, cx: &mut Cx) {
-        if let Some(mut inner) = self.borrow_mut::<Terminal>() {
+impl TerminalRef {
+    pub fn init_pty(&self, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
             inner.init_pty(cx);
         }
     }
     
-    fn handle_action(&self, cx: &mut Cx, action: &TerminalAction) {
-        if let Some(mut inner) = self.borrow_mut::<Terminal>() {
+    pub fn handle_action(&self, cx: &mut Cx, action: &TerminalAction) {
+        if let Some(mut inner) = self.borrow_mut() {
             inner.handle_action(cx, action);
         }
     }
