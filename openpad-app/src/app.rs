@@ -242,6 +242,13 @@ impl App {
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
         for action in actions {
+            // Handle TerminalAction from background thread
+            if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
+                self.ui
+                    .terminal(id!(terminal_panel))
+                    .handle_action(cx, terminal_action);
+            }
+
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
                     AppAction::OpenCodeEvent(oc_event) => {
