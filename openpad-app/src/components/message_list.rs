@@ -116,6 +116,30 @@ live_design! {
                             }
                         }
                     }
+                    
+                    // Add action buttons for messages
+                    msg_actions = <View> {
+                        width: Fill, height: Fit
+                        flow: Right,
+                        spacing: 6,
+                        margin: { top: 8 }
+                        
+                        revert_button = <Button> {
+                            width: Fit, height: 24
+                            text: "⟲ Revert to here"
+                            draw_bg: {
+                                color: #1f2329
+                                color_hover: #f59e0b
+                                border_radius: 4.0
+                                border_size: 0.0
+                            }
+                            draw_text: {
+                                color: #6b7b8c
+                                color_hover: #ffffff
+                                text_style: { font_size: 9 }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -126,6 +150,7 @@ live_design! {
 pub struct DisplayMessage {
     pub role: String,
     pub text: String,
+    pub message_id: String,
 }
 
 #[derive(Live, LiveHook, Widget)]
@@ -146,6 +171,8 @@ impl MessageList {
                 openpad_protocol::Message::User(_) => "user",
                 openpad_protocol::Message::Assistant(_) => "assistant",
             };
+            
+            let message_id = mwp.info.id().to_string();
 
             let text: String = mwp
                 .parts
@@ -161,6 +188,7 @@ impl MessageList {
             display.push(DisplayMessage {
                 role: role.to_string(),
                 text,
+                message_id,
             });
         }
         display
@@ -169,7 +197,23 @@ impl MessageList {
 
 impl Widget for MessageList {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope);
+        use crate::actions::MessageListAction;
+        
+        let actions = cx.capture_actions(|cx| {
+            self.view.handle_event(cx, event, scope);
+        });
+        
+        let list = self.view.portal_list(id!(list));
+        for (item_id, widget) in list.items_with_actions(&actions) {
+            if item_id >= self.messages.len() {
+                continue;
+            }
+            
+            if widget.button(id!(revert_button)).clicked(&actions) {
+                let message_id = self.messages[item_id].message_id.clone();
+                cx.action(MessageListAction::RevertToMessage(message_id));
+            }
+        }
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
@@ -216,7 +260,7 @@ impl MessageListRef {
         }
     }
 
-    pub fn append_text_for_message(&self, cx: &mut Cx, role: &str, _message_id: &str, text: &str) {
+    pub fn append_text_for_message(&self, cx: &mut Cx, role: &str, message_id: &str, text: &str) {
         if let Some(mut inner) = self.borrow_mut() {
             // Try to find an existing message to append to (by checking last message)
             // SSE parts arrive in order, so the last message of the matching role is the target
@@ -231,6 +275,7 @@ impl MessageListRef {
             inner.messages.push(DisplayMessage {
                 role: role.to_string(),
                 text: text.to_string(),
+                message_id: message_id.to_string(),
             });
             inner.redraw(cx);
         }
@@ -241,6 +286,7 @@ impl MessageListRef {
             inner.messages.push(DisplayMessage {
                 role: "user".to_string(),
                 text: text.to_string(),
+                message_id: "".to_string(), // User messages don't have IDs yet
             });
             inner.redraw(cx);
         }

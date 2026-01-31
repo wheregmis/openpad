@@ -87,6 +87,24 @@ live_design! {
                                 text: "Select a session or start a new one"
                                 draw_text: { color: #6b7b8c, text_style: { font_size: 11 } }
                             }
+                            revert_indicator = <Label> {
+                                visible: false
+                                text: "⟲ Reverted"
+                                draw_text: { color: #f59e0b, text_style: { font_size: 10 } }
+                            }
+                            <View> { width: Fill }
+                            unrevert_button = <Button> {
+                                visible: false
+                                width: Fit, height: 28
+                                text: "↻ Unrevert"
+                                draw_bg: {
+                                    color: #3b82f6
+                                    color_hover: #1d4fed
+                                    border_radius: 6.0
+                                    border_size: 0.0
+                                }
+                                draw_text: { color: #ffffff, text_style: { font_size: 10 } }
+                            }
                         }
 
                         // Messages area
@@ -371,6 +389,19 @@ impl AppMain for App {
                     _ => {}
                 }
             }
+            
+            // Handle MessageListAction
+            if let Some(msg_action) = action.downcast_ref::<crate::actions::MessageListAction>() {
+                use crate::actions::MessageListAction;
+                match msg_action {
+                    MessageListAction::RevertToMessage(message_id) => {
+                        if let Some(session_id) = &self.state.current_session_id {
+                            self.revert_to_message(cx, session_id.clone(), message_id.clone());
+                        }
+                    }
+                    _ => {}
+                }
+            }
         }
 
         // Check for text input return
@@ -378,6 +409,13 @@ impl AppMain for App {
             if !text.is_empty() {
                 self.send_message(cx, text.clone());
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
+            }
+        }
+        
+        // Handle unrevert button
+        if self.ui.button(id!(unrevert_button)).clicked(&actions) {
+            if let Some(session_id) = &self.state.current_session_id {
+                self.unrevert_session(cx, session_id.clone());
             }
         }
 

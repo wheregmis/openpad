@@ -36,11 +36,25 @@ impl AppState {
             (SESSION_TITLE_DEFAULT.to_string(), false)
         }
     }
+    
+    /// Check if the current session is reverted
+    pub fn is_current_session_reverted(&self) -> bool {
+        if let Some(sid) = &self.current_session_id {
+            if let Some(session) = self.sessions.iter().find(|s| &s.id == sid) {
+                return session.revert.is_some();
+            }
+        }
+        false
+    }
 
     /// Updates UI to reflect current session title
     pub fn update_session_title_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
         let (title, is_active) = self.get_session_title();
         ui_state::update_session_title_ui(ui, cx, &title, is_active);
+        
+        // Update revert indicator
+        let is_reverted = self.is_current_session_reverted();
+        ui_state::update_revert_indicator(ui, cx, is_reverted);
     }
 
     /// Updates projects panel with current data
