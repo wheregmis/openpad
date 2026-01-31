@@ -31,7 +31,7 @@ pub fn set_status_error(ui: &WidgetRef, cx: &mut Cx, error: &str) {
 }
 
 pub fn update_work_indicator(ui: &WidgetRef, cx: &mut Cx, working: bool) {
-    ui.view(&[id!(work_indicator)]).set_visible(cx, working);
+    let _ = (ui, cx, working);
 }
 
 /// Updates the session title label with appropriate styling

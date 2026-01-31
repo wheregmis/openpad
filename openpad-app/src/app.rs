@@ -155,32 +155,6 @@ live_design! {
                                     text: "Connected"
                                     draw_text: { color: #555, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
-                                work_indicator = <View> {
-                                    visible: false
-                                    width: Fit, height: Fit
-                                    flow: Right
-                                    spacing: 4
-                                    align: { y: 0.5 }
-                                    work_dot = <View> {
-                                        width: 6, height: 6
-                                        show_bg: true
-                                        draw_bg: {
-                                            color: #f59e0b
-                                            fn pixel(self) -> vec4 {
-                                                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                                                let c = self.rect_size * 0.5;
-                                                let r = min(c.x, c.y) - 0.5;
-                                                sdf.circle(c.x, c.y, r);
-                                                sdf.fill(self.color);
-                                                return sdf.result;
-                                            }
-                                        }
-                                    }
-                                    work_label = <Label> {
-                                        text: "Working"
-                                        draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                    }
-                                }
                             }
                         }
 

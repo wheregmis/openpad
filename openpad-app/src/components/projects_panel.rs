@@ -11,7 +11,7 @@ live_design! {
     use link::widgets::*;
     use openpad_widgets::openpad::*;
 
-    pub ProjectsPanel = {{ProjectsPanel}} {
+pub ProjectsPanel = {{ProjectsPanel}} {
         width: Fill, height: Fill
         list = <PortalList> {
             scroll_bar: <ScrollBar> {
@@ -63,6 +63,23 @@ live_design! {
                         border_size: 0.0
                     }
                     draw_text: { color: #ccc, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                }
+
+                working_dot = <View> {
+                    visible: false
+                    width: 6, height: 6
+                    show_bg: true
+                    draw_bg: {
+                        color: #f59e0b
+                        fn pixel(self) -> vec4 {
+                            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                            let c = self.rect_size * 0.5;
+                            let r = min(c.x, c.y) - 0.5;
+                            sdf.circle(c.x, c.y, r);
+                            sdf.fill(self.color);
+                            return sdf.result;
+                        }
+                    }
                 }
 
                 // Action buttons container
@@ -193,6 +210,8 @@ pub struct ProjectsPanel {
     sessions: Vec<Session>,
     #[rust]
     selected_session_id: Option<String>,
+    #[rust]
+    working_by_session: HashMap<String, bool>,
     #[rust]
     items: Vec<PanelItemKind>,
     #[rust]
@@ -381,6 +400,14 @@ impl Widget for ProjectsPanel {
                                     draw_bg: { color: (color) }
                                 },
                             );
+                            let working = self
+                                .working_by_session
+                                .get(session_id)
+                                .copied()
+                                .unwrap_or(false);
+                            item_widget
+                                .view(&[id!(working_dot)])
+                                .set_visible(cx, working);
                         }
                         _ => {}
                     }
@@ -400,11 +427,13 @@ impl ProjectsPanelRef {
         projects: Vec<Project>,
         sessions: Vec<Session>,
         selected_session_id: Option<String>,
+        working_by_session: HashMap<String, bool>,
     ) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.projects = projects;
             inner.sessions = sessions;
             inner.selected_session_id = selected_session_id;
+            inner.working_by_session = working_by_session;
             inner.dirty = true;
             inner.redraw(cx);
         }

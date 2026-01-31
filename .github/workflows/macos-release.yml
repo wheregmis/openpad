@@ -67,6 +67,7 @@ jobs:
           cargo install --locked --version 0.2.0 --git https://github.com/project-robius/robius-packaging-commands.git robius-packaging-commands
 
       - name: Build macOS package
+        working-directory: openpad-app
         run: |
           cargo packager --release
 

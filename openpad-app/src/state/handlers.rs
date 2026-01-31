@@ -10,6 +10,7 @@ use openpad_protocol::{
     Agent, Event as OcEvent, MessageWithParts, ModelSpec, PermissionRequest, Project, Provider,
     Session, Skill,
 };
+use std::collections::HashMap;
 
 #[derive(Clone)]
 pub struct ModelDropdownEntry {
@@ -72,6 +73,7 @@ pub struct AppState {
     pub health_ok: Option<bool>,
     pub error_message: Option<String>,
     pub is_working: bool,
+    pub working_by_session: HashMap<String, bool>,
     pub pending_permissions: Vec<PermissionRequest>,
     pub providers: Vec<Provider>,
     pub agents: Vec<Agent>,
@@ -207,6 +209,7 @@ impl AppState {
             self.projects.clone(),
             self.sessions.clone(),
             self.selected_session_id.clone(),
+            self.working_by_session.clone(),
         );
     }
 
@@ -458,15 +461,22 @@ fn handle_message_updated(
     cx: &mut Cx,
     message: &openpad_protocol::Message,
 ) {
+    let session_id = message.session_id().to_string();
+
+    if let openpad_protocol::Message::Assistant(msg) = message {
+        let working = msg.time.completed.is_none() && msg.error.is_none();
+        set_session_working(state, ui, cx, &session_id, working);
+    }
+
     // If we don't have a current session yet (race during creation),
     // accept the message and set the session
     if state.current_session_id.is_none() {
-        state.current_session_id = Some(message.session_id().to_string());
+        state.current_session_id = Some(session_id.clone());
     }
 
     // Only process messages for the current session
     let current_sid = state.current_session_id.as_deref().unwrap_or("");
-    if message.session_id() != current_sid {
+    if session_id != current_sid {
         return;
     }
 
@@ -502,6 +512,7 @@ fn handle_part_updated(
 ) {
     if let (Some(_), Some(msg_id)) = (part.text_content(), part.message_id()) {
         let mut should_update_work = false;
+        let mut work_session_id: Option<String> = None;
         if let Some(mwp) = state
             .messages_data
             .iter_mut()
@@ -509,6 +520,7 @@ fn handle_part_updated(
         {
             if matches!(mwp.info, openpad_protocol::Message::Assistant(_)) {
                 should_update_work = true;
+                work_session_id = Some(mwp.info.session_id().to_string());
             }
             let part_id = match &part {
                 openpad_protocol::Part::Text { id, .. } => id.as_str(),
@@ -535,6 +547,9 @@ fn handle_part_updated(
 
         if should_update_work {
             update_work_indicator(state, ui, cx, true);
+            if let Some(session_id) = work_session_id {
+                set_session_working(state, ui, cx, &session_id, true);
+            }
         }
     }
 }
@@ -545,6 +560,25 @@ fn update_work_indicator(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, work
     }
     state.is_working = working;
     state_updates::update_work_indicator(ui, cx, working);
+}
+
+fn set_session_working(
+    state: &mut AppState,
+    ui: &WidgetRef,
+    cx: &mut Cx,
+    session_id: &str,
+    working: bool,
+) {
+    let previous = state.working_by_session.get(session_id).copied();
+    if previous == Some(working) {
+        return;
+    }
+    if working {
+        state.working_by_session.insert(session_id.to_string(), true);
+    } else {
+        state.working_by_session.insert(session_id.to_string(), false);
+    }
+    state.update_projects_panel(ui, cx);
 }
 
 fn format_permission_context(request: &PermissionRequest) -> Option<String> {

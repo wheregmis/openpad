@@ -205,27 +205,27 @@ pub mod openpad {
         }
 
         pub InputBarDropDown = <DropDown> {
-            width: Fit, height: 26
-            padding: { left: 10, right: 22, top: 4, bottom: 4 }
+            width: Fit, height: 28
+            padding: { left: 12, right: 24, top: 5, bottom: 5 }
             draw_text: {
                 text_style: <THEME_FONT_REGULAR> { font_size: 8.5 }
                 fn get_color(self) -> vec4 {
-                    return #c5cbd6;
+                    return #d2d8e3;
                 }
             }
             draw_bg: {
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.box(1., 1., self.rect_size.x - 2., self.rect_size.y - 2., 6.0);
-                    sdf.fill(#25262b);
-                    sdf.stroke(#343843, 1.0);
+                    sdf.box(1., 1., self.rect_size.x - 2., self.rect_size.y - 2., 8.0);
+                    sdf.fill(#1f2126);
+                    sdf.stroke(#2e3139, 1.0);
                     // Draw dropdown arrow
-                    let arrow_x = self.rect_size.x - 14.0;
-                    let arrow_y = self.rect_size.y * 0.5 - 1.5;
+                    let arrow_x = self.rect_size.x - 16.0;
+                    let arrow_y = self.rect_size.y * 0.5 - 1.0;
                     sdf.move_to(arrow_x, arrow_y);
-                    sdf.line_to(arrow_x + 4.0, arrow_y + 4.0);
-                    sdf.line_to(arrow_x + 8.0, arrow_y);
-                    sdf.stroke(#7b8190, 1.2);
+                    sdf.line_to(arrow_x + 4.5, arrow_y + 4.5);
+                    sdf.line_to(arrow_x + 9.0, arrow_y);
+                    sdf.stroke(#8b92a4, 1.3);
                     return sdf.result;
                 }
             }
