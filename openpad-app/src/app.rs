@@ -2,6 +2,7 @@ use crate::async_runtime;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
 use crate::components::simple_dialog::SimpleDialogWidgetRefExt;
+use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
@@ -24,6 +25,7 @@ live_design! {
     use crate::components::permission_dialog::PermissionDialog;
     use crate::components::message_list::MessageList;
     use crate::components::simple_dialog::SimpleDialog;
+    use crate::components::terminal::Terminal;
 
     App = {{App}} {
         ui: <Window> {
@@ -76,66 +78,79 @@ live_design! {
                         flow: Down,
                         spacing: 8,
 
-                        // Session context bar
-                        session_info = <RoundedView> {
-                            width: Fill, height: Fit
-                            padding: { left: 12, right: 12, top: 8, bottom: 8 }
-                            flow: Right,
+                        // Main content area (messages + input)
+                        <View> {
+                            width: Fill, height: Fill
+                            flow: Down,
                             spacing: 8,
-                            align: { y: 0.5 }
-                            draw_bg: {
-                                color: #232830
-                                border_radius: 8.0
-                            }
-                            session_title = <Label> {
-                                text: "Select a session or start a new one"
-                                draw_text: { color: #6b7b8c, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
-                            }
-                            revert_indicator = <View> {
-                                visible: false
-                                width: Fit, height: Fit
 
-                                revert_indicator_label = <Label> {
-                                    text: "⟲ Reverted"
-                                    draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                            // Session context bar
+                            session_info = <RoundedView> {
+                                width: Fill, height: Fit
+                                padding: { left: 12, right: 12, top: 8, bottom: 8 }
+                                flow: Right,
+                                spacing: 8,
+                                align: { y: 0.5 }
+                                draw_bg: {
+                                    color: #232830
+                                    border_radius: 8.0
+                                }
+                                session_title = <Label> {
+                                    text: "Select a session or start a new one"
+                                    draw_text: { color: #6b7b8c, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                                }
+                                revert_indicator = <View> {
+                                    visible: false
+                                    width: Fit, height: Fit
+
+                                    revert_indicator_label = <Label> {
+                                        text: "⟲ Reverted"
+                                        draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                    }
+                                }
+                                <View> { width: Fill }
+                                unrevert_wrap = <View> {
+                                    visible: false
+                                    width: Fit, height: Fit
+
+                                    unrevert_button = <Button> {
+                                        width: Fit, height: 28
+                                        text: "↻ Unrevert"
+                                        draw_bg: {
+                                            color: #3b82f6
+                                            color_hover: #1d4fed
+                                            border_radius: 6.0
+                                            border_size: 0.0
+                                        }
+                                        draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                    }
                                 }
                             }
-                            <View> { width: Fill }
-                            unrevert_wrap = <View> {
-                                visible: false
-                                width: Fit, height: Fit
 
-                                unrevert_button = <Button> {
-                                    width: Fit, height: 28
-                                    text: "↻ Unrevert"
-                                    draw_bg: {
-                                        color: #3b82f6
-                                        color_hover: #1d4fed
-                                        border_radius: 6.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                            // Messages area
+                            message_list = <MessageList> { width: Fill, height: Fill }
+
+                            // Inline permission prompt (shown only when needed)
+                            permission_dialog = <PermissionDialog> { width: Fill }
+
+                            // Input area (fixed at bottom)
+                            input_row = <View> {
+                                width: Fill, height: Fit
+                                flow: Right
+                                align: { y: 0.5 }
+
+                                <InputBar> {
+                                    width: Fill
+                                    input_box = <InputField> {}
+                                    send_button = <SendButton> {}
                                 }
                             }
                         }
 
-                        // Messages area
-                        message_list = <MessageList> { width: Fill, height: Fill }
-
-                        // Inline permission prompt (shown only when needed)
-                        permission_dialog = <PermissionDialog> { width: Fill }
-
-                        // Input area (fixed at bottom)
-                        input_row = <View> {
-                            width: Fill, height: Fit
-                            flow: Right
-                            align: { y: 0.5 }
-
-                            <InputBar> {
-                                width: Fill
-                                input_box = <InputField> {}
-                                send_button = <SendButton> {}
-                            }
+                        // Terminal panel at bottom
+                        terminal_panel = <Terminal> {
+                            width: Fill
+                            height: 250
                         }
                     }
                 }
@@ -173,6 +188,7 @@ impl LiveRegister for App {
         crate::components::message_list::live_design(cx);
         crate::components::permission_dialog::live_design(cx);
         crate::components::simple_dialog::live_design(cx);
+        crate::components::terminal::live_design(cx);
     }
 }
 
@@ -412,6 +428,8 @@ impl AppMain for App {
         match event {
             Event::Startup => {
                 self.connect_to_opencode(cx);
+                // Initialize terminal
+                self.ui.widget(id!(terminal_panel)).init_pty(cx);
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
@@ -471,6 +489,11 @@ impl AppMain for App {
                     }
                     _ => {}
                 }
+            }
+
+            // Handle TerminalAction
+            if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
+                self.ui.widget(id!(terminal_panel)).handle_action(cx, terminal_action);
             }
 
             // Handle AppAction from captured UI actions (e.g. DialogConfirmed, PermissionResponded)
