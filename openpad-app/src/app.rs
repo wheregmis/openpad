@@ -72,7 +72,6 @@ live_design! {
                         width: Fill, height: Fill
                         flow: Down,
                         spacing: 8,
-                        align: { x: 0.0 }
 
                         // Session context bar
                         session_info = <RoundedView> {
