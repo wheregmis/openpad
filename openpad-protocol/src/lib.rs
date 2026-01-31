@@ -145,6 +145,35 @@ mod tests {
     /// This test ensures that our manually-defined types in `types.rs` match the
     /// OpenAPI schema from the OpenCode server. It helps catch breaking changes
     /// when the server API is updated.
+    ///
+    /// ## Purpose
+    ///
+    /// The OpenCode server provides an OpenAPI specification that defines the structure
+    /// of all API requests and responses. This test module validates that our Rust types
+    /// can correctly serialize to and deserialize from the formats expected by the server.
+    ///
+    /// ## What Gets Tested
+    ///
+    /// 1. **Schema Existence**: Verifies that key schemas exist in the OpenAPI spec
+    /// 2. **Required Fields**: Ensures our types include all required fields from the spec
+    /// 3. **Serialization Format**: Validates that types serialize with correct field names
+    /// 4. **Enum Values**: Checks that enum variants match the OpenAPI spec
+    /// 5. **Inline Types**: Tests types that are defined inline rather than as standalone schemas
+    ///
+    /// ## Known Discrepancies
+    ///
+    /// Our implementation intentionally simplifies some types compared to the OpenAPI spec:
+    ///
+    /// - **Provider**: Simplified to only require `id`, making other fields optional
+    /// - **Model**: Simplified to only require `id`, making other fields optional
+    ///
+    /// These simplifications make the client more flexible and easier to maintain.
+    ///
+    /// ## Running the Tests
+    ///
+    /// ```bash
+    /// cargo test -p openpad-protocol openapi_validation
+    /// ```
     mod openapi_validation {
         use super::*;
         use serde_json::Value;
