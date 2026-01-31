@@ -429,20 +429,24 @@ impl Terminal {
 
         // Exact or trimmed match to our expected prompt
         let our_trimmed = our_prompt.trim();
-        if t == our_trimmed || t.ends_with(our_trimmed) {
+        if t == our_trimmed {
             return true;
         }
 
-        // Check for common shell prompt patterns
-        // e.g. "user@host path %" or just "% "
-        if (t.contains('@') && (t.contains('%') || t.contains('$') || t.contains('#')))
-            || t == "%"
-            || t == "$"
-            || t == "#"
+        // Only filter lines that end with a prompt character and nothing after it
+        if t.ends_with('%')
+            || t.ends_with("% ")
+            || t.ends_with('$')
+            || t.ends_with("$ ")
+            || t.ends_with('#')
+            || t.ends_with("# ")
         {
-            // If it's short and looks like a prompt, it probably is.
-            // We avoid skipping long lines that just happen to have these chars.
-            if t.len() < our_trimmed.len() + 20 {
+            // Check if it looks like just a prompt (user@host dir %)
+            if (t.contains('@') && t.len() < our_trimmed.len() + 5)
+                || t == "%"
+                || t == "$"
+                || t == "#"
+            {
                 return true;
             }
         }
@@ -467,6 +471,14 @@ impl Terminal {
                     }
 
                     if chars.next() == Some('[') {
+                        // Skip private mode prefix characters (?, >, =, etc.)
+                        while let Some(&next) = chars.peek() {
+                            if next == '?' || next == '>' || next == '=' || next == '!' {
+                                chars.next();
+                            } else {
+                                break;
+                            }
+                        }
                         let mut param = String::new();
                         while let Some(&next) = chars.peek() {
                             if next.is_ascii_digit() || next == ';' {
@@ -511,13 +523,22 @@ impl Terminal {
                 }
                 '\r' => {
                     // \r\n or \r\r\n = line ending, preserve content and let \n handle it.
-                    // \r followed by text = shell redrawing the line, clear and overwrite.
-                    if chars.peek() == Some(&'\n') || chars.peek() == Some(&'\r') {
-                        // Line ending - do nothing, let \n flush the line
-                    } else {
-                        // Standalone \r: shell is redrawing (e.g. prompt)
-                        self.partial_spans.clear();
-                        current_text.clear();
+                    // \r at end of chunk = preserve (the \n may arrive in the next chunk).
+                    // \r followed by visible text = shell is redrawing the line, clear and overwrite.
+                    match chars.peek() {
+                        Some(&'\n') | Some(&'\r') | None => {
+                            // Line ending or end of chunk - preserve content
+                        }
+                        Some(&'\x1b') => {
+                            // ANSI escape after \r typically means prompt redraw
+                            self.partial_spans.clear();
+                            current_text.clear();
+                        }
+                        _ => {
+                            // Standalone \r followed by text: shell is redrawing
+                            self.partial_spans.clear();
+                            current_text.clear();
+                        }
                     }
                 }
                 '\x08' => {
