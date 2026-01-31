@@ -179,12 +179,12 @@ pub mod openpad {
             width: Fill, height: Fit
             flow: Right,
             spacing: 8,
-            padding: { left: 14, right: 10, top: 6, bottom: 6 }
+            padding: { left: 18, right: 10, top: 10, bottom: 10 }
             align: { y: 1.0 }
             draw_bg: {
-                color: #1f2329
-                border_color: #2e343c
-                border_radius: 18.0
+                color: #22262c
+                border_color: #333942
+                border_radius: 20.0
                 border_size: 1.0
             }
         }
@@ -192,6 +192,7 @@ pub mod openpad {
         pub InputField = <TextInput> {
             width: Fill, height: Fit
             empty_text: "Ask anything..."
+            multiline: true
             draw_bg: {
                 color: #0000
                 color_hover: #0000
@@ -214,7 +215,7 @@ pub mod openpad {
                 border_color_1_disabled: #0000
                 border_color_2_disabled: #0000
             }
-            draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 12 } }
+            draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11, line_spacing: 1.3 } }
             text: ""
         }
 

@@ -5,16 +5,15 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
 
-    pub AssistantBubble = <View> {
+    pub AssistantBubble = <RoundedView> {
         width: Fit, height: Fit
         flow: Down,
-        padding: 12,
-        show_bg: true
+        padding: { top: 12, bottom: 12, left: 16, right: 16 }
         draw_bg: {
-            color: #1e1e1e
-            fn pixel(self) -> vec4 {
-                return self.color;
-            }
+            color: #252526
+            border_radius: 12.0
+            border_size: 1.0
+            border_color: #333
         }
     }
 }

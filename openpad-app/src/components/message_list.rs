@@ -15,12 +15,11 @@ live_design! {
             UserMsg = <View> {
                 width: Fill, height: Fit
                 flow: Down,
-                padding: { top: 12, bottom: 12, left: 24, right: 24 }
+                padding: { top: 12, bottom: 12, left: 240, right: 24 }
                 align: { x: 1.0 }
 
                 <UserBubble> {
-                    width: Fill, height: Fit
-                    margin: { left: 100 }
+                    width: Fit, height: Fit
                     flow: Down,
                     align: { x: 1.0 }
 
@@ -53,12 +52,11 @@ live_design! {
                     }
 
                     msg_text = <Label> {
-                        width: Fill, height: Fit
+                        width: Fit, height: Fit
                         draw_text: {
                             color: #ddd,
                             text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 },
                             word: Wrap,
-                            align: { x: 1.0 }
                         }
                     }
                 }
@@ -67,10 +65,10 @@ live_design! {
             AssistantMsg = <View> {
                 width: Fill, height: Fit
                 flow: Down,
-                padding: { top: 12, bottom: 12, left: 24, right: 24 }
+                padding: { top: 12, bottom: 12, left: 24, right: 240 }
 
                 <AssistantBubble> {
-                    width: Fill, height: Fit
+                    width: Fit, height: Fit
                     flow: Down,
 
                     // Metadata row
