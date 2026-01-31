@@ -48,6 +48,17 @@ impl ModelDropdownEntry {
     }
 }
 
+/// Information about an attached file ready to be sent
+#[derive(Clone, Debug)]
+pub struct AttachedFile {
+    pub filename: String,
+    pub mime_type: String,
+    pub data_url: String,
+    /// For text/plain attachments, store the raw text to send as a PartInput::Text
+    /// instead of a file attachment. This avoids server-side file processing artifacts.
+    pub raw_text: Option<String>,
+}
+
 /// Data structure holding application state for event handling
 #[derive(Default)]
 pub struct AppState {
@@ -66,6 +77,7 @@ pub struct AppState {
     pub model_entries: Vec<ModelDropdownEntry>,
     pub selected_model_entry: usize,
     pub selected_agent_idx: Option<usize>,
+    pub attached_files: Vec<AttachedFile>,
 }
 
 impl AppState {
@@ -172,7 +184,7 @@ impl AppState {
 
     /// Updates projects panel with current data
     pub fn update_projects_panel(&self, ui: &WidgetRef, cx: &mut Cx) {
-        ui.projects_panel(id!(projects_panel)).set_data(
+        ui.projects_panel(&[id!(projects_panel)]).set_data(
             cx,
             self.projects.clone(),
             self.sessions.clone(),
@@ -183,7 +195,7 @@ impl AppState {
     /// Clears all messages and updates the UI
     pub fn clear_messages(&mut self, ui: &WidgetRef, cx: &mut Cx) {
         self.messages_data.clear();
-        ui.message_list(id!(message_list))
+        ui.message_list(&[id!(message_list)])
             .set_messages(cx, &self.messages_data);
     }
 }
@@ -231,18 +243,18 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
             state.clear_messages(ui, cx);
-            
+
             // Add the session to the sessions list immediately (don't wait for SSE)
             // Check if it's not already there to avoid duplicates
             if !state.sessions.iter().any(|s| s.id == session.id) {
                 state.sessions.push(session.clone());
             }
-            
+
             // Update current_project to match the session's project
             if let Some(project) = state.projects.iter().find(|p| p.id == session.project_id) {
                 state.current_project = Some(project.clone());
             }
-            
+
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
             state.update_project_context_ui(ui, cx);
@@ -276,7 +288,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::MessagesLoaded(messages) => {
             state.messages_data = messages.clone();
-            ui.message_list(id!(message_list))
+            ui.message_list(&[id!(message_list)])
                 .set_messages(cx, &state.messages_data);
         }
         AppAction::SendMessageFailed(err) => {
@@ -301,8 +313,9 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 .iter()
                 .map(|entry| entry.label.clone())
                 .collect();
-            ui.drop_down(id!(model_dropdown)).set_labels(cx, labels);
-            ui.drop_down(id!(model_dropdown)).set_selected_item(cx, 0);
+            ui.drop_down(&[id!(model_dropdown)]).set_labels(cx, labels);
+            ui.drop_down(&[id!(model_dropdown)])
+                .set_selected_item(cx, 0);
             cx.redraw_all();
         }
         AppAction::AgentsLoaded(agents) => {
@@ -310,8 +323,9 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.agents = agents.clone();
             let mut labels: Vec<String> = vec!["Default".to_string()];
             labels.extend(state.agents.iter().map(|a| a.name.clone()));
-            ui.drop_down(id!(agent_dropdown)).set_labels(cx, labels);
-            ui.drop_down(id!(agent_dropdown)).set_selected_item(cx, 0);
+            ui.drop_down(&[id!(agent_dropdown)]).set_labels(cx, labels);
+            ui.drop_down(&[id!(agent_dropdown)])
+                .set_selected_item(cx, 0);
             state.selected_agent_idx = None;
             cx.redraw_all();
         }
@@ -372,10 +386,10 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             // If the current dialog is for this request, hide it
             // (another client or auto-reply may have responded)
             let dialog_request_id = ui
-                .permission_dialog(id!(permission_dialog))
+                .permission_dialog(&[id!(permission_dialog)])
                 .get_request_id();
             if dialog_request_id.as_deref() == Some(request_id.as_str()) {
-                ui.permission_dialog(id!(permission_dialog)).hide(cx);
+                ui.permission_dialog(&[id!(permission_dialog)]).hide(cx);
             }
             remove_pending_permission(state, request_id);
             show_next_pending_permission(state, ui, cx);
@@ -427,7 +441,7 @@ fn handle_message_updated(
         });
     }
 
-    ui.message_list(id!(message_list))
+    ui.message_list(&[id!(message_list)])
         .set_messages(cx, &state.messages_data);
 }
 
@@ -463,7 +477,7 @@ fn handle_part_updated(
                 mwp.parts.push(part.clone());
             }
 
-            ui.message_list(id!(message_list))
+            ui.message_list(&[id!(message_list)])
                 .set_messages(cx, &state.messages_data);
         }
     }
@@ -517,7 +531,7 @@ fn remove_pending_permission(state: &mut AppState, request_id: &str) {
 
 fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx) {
     if ui
-        .permission_dialog(id!(permission_dialog))
+        .permission_dialog(&[id!(permission_dialog)])
         .get_request_id()
         .is_some()
     {
@@ -537,7 +551,7 @@ fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut C
     };
 
     let context = format_permission_context(request);
-    ui.permission_dialog(id!(permission_dialog))
+    ui.permission_dialog(&[id!(permission_dialog)])
         .show_permission_request(
             cx,
             request.session_id.clone(),

@@ -5,8 +5,8 @@ use std::path::Path;
 
 /// Updates the status indicator UI (dot color and label text)
 pub fn update_status_indicator(ui: &WidgetRef, cx: &mut Cx, status_text: &str, color: Vec4) {
-    ui.label(id!(status_label)).set_text(cx, status_text);
-    ui.view(id!(status_dot)).apply_over(
+    ui.label(&[id!(status_label)]).set_text(cx, status_text);
+    ui.view(&[id!(status_dot)]).apply_over(
         cx,
         live! {
             draw_bg: { color: (color) }
@@ -38,8 +38,8 @@ pub fn update_session_title_ui(ui: &WidgetRef, cx: &mut Cx, title: &str, is_acti
         COLOR_TEXT_TITLE_INACTIVE
     };
 
-    ui.label(id!(session_title)).set_text(cx, title);
-    ui.label(id!(session_title)).apply_over(
+    ui.label(&[id!(session_title)]).set_text(cx, title);
+    ui.label(&[id!(session_title)]).apply_over(
         cx,
         live! {
             draw_text: { color: (color) }
@@ -49,8 +49,9 @@ pub fn update_session_title_ui(ui: &WidgetRef, cx: &mut Cx, title: &str, is_acti
 
 /// Updates the revert indicator visibility based on session revert state
 pub fn update_revert_indicator(ui: &WidgetRef, cx: &mut Cx, is_reverted: bool) {
-    ui.view(id!(revert_indicator)).set_visible(cx, is_reverted);
-    ui.view(id!(unrevert_wrap)).set_visible(cx, is_reverted);
+    ui.view(&[id!(revert_indicator)])
+        .set_visible(cx, is_reverted);
+    ui.view(&[id!(unrevert_wrap)]).set_visible(cx, is_reverted);
 }
 
 fn normalize_worktree(worktree: &str) -> String {
@@ -108,8 +109,9 @@ pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&P
             )
         };
 
-    ui.label(id!(project_badge_label)).set_text(cx, &badge_text);
-    ui.label(id!(project_badge_label)).apply_over(
+    ui.label(&[id!(project_badge_label)])
+        .set_text(cx, &badge_text);
+    ui.label(&[id!(project_badge_label)]).apply_over(
         cx,
         live! {
             draw_text: { color: (badge_text_color) }
@@ -122,18 +124,18 @@ pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&P
         path_text.clone()
     };
 
-    ui.label(id!(project_path_label))
+    ui.label(&[id!(project_path_label)])
         .set_text(cx, &display_path);
-    ui.view(id!(project_path_wrap))
+    ui.view(&[id!(project_path_wrap)])
         .set_visible(cx, path_visible);
-    ui.label(id!(project_path_label)).apply_over(
+    ui.label(&[id!(project_path_label)]).apply_over(
         cx,
         live! {
             draw_text: { color: (COLOR_PROJECT_PATH_TEXT) }
         },
     );
 
-    ui.view(id!(project_badge)).apply_over(
+    ui.view(&[id!(project_badge)]).apply_over(
         cx,
         live! {
             draw_bg: { color: (badge_color) }

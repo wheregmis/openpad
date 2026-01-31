@@ -80,8 +80,6 @@ live_design! {
                             color: #15181d
                             border_radius: 6.0
                             border_size: 1.0
-                            border_color_1: #2b3138
-                            border_color_2: #2b3138
                         }
                     }
                 }
@@ -142,17 +140,17 @@ impl Widget for SimpleDialog {
             self.view.handle_event(cx, event, scope);
         });
 
-        if self.view.button(id!(cancel_button)).clicked(&actions) {
+        if self.view.button(&[id!(cancel_button)]).clicked(&actions) {
             self.view.set_visible(cx, false);
             self.view.redraw(cx);
         }
 
-        if self.view.button(id!(confirm_button)).clicked(&actions) {
+        if self.view.button(&[id!(confirm_button)]).clicked(&actions) {
             use crate::state::actions::AppAction;
 
             // Get the input value if it's an input dialog
             let value = if matches!(self.dialog_type, DialogType::Input) {
-                self.view.text_input(id!(input_field)).text()
+                self.view.text_input(&[id!(input_field)]).text()
             } else {
                 String::new()
             };
@@ -179,9 +177,12 @@ impl SimpleDialogRef {
             inner.dialog_type = DialogType::Confirm;
             inner.callback_data = callback_data;
 
-            inner.view.label(id!(title_label)).set_text(cx, title);
-            inner.view.label(id!(message_label)).set_text(cx, message);
-            inner.view.view(id!(input_row)).set_visible(cx, false);
+            inner.view.label(&[id!(title_label)]).set_text(cx, title);
+            inner
+                .view
+                .label(&[id!(message_label)])
+                .set_text(cx, message);
+            inner.view.view(&[id!(input_row)]).set_visible(cx, false);
 
             inner.view.set_visible(cx, true);
             inner.redraw(cx);
@@ -200,13 +201,16 @@ impl SimpleDialogRef {
             inner.dialog_type = DialogType::Input;
             inner.callback_data = callback_data;
 
-            inner.view.label(id!(title_label)).set_text(cx, title);
-            inner.view.label(id!(message_label)).set_text(cx, message);
+            inner.view.label(&[id!(title_label)]).set_text(cx, title);
             inner
                 .view
-                .text_input(id!(input_field))
+                .label(&[id!(message_label)])
+                .set_text(cx, message);
+            inner
+                .view
+                .text_input(&[id!(input_field)])
                 .set_text(cx, default_value);
-            inner.view.view(id!(input_row)).set_visible(cx, true);
+            inner.view.view(&[id!(input_row)]).set_visible(cx, true);
 
             inner.view.set_visible(cx, true);
             inner.redraw(cx);

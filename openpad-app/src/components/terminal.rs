@@ -130,7 +130,7 @@ impl Widget for Terminal {
         {
             if !input.is_empty() {
                 self.send_command(cx, &input);
-                self.view.text_input(id!(input_field)).set_text(cx, "");
+                self.view.text_input(&[id!(input_field)]).set_text(cx, "");
             }
         }
     }
@@ -147,7 +147,7 @@ impl Widget for Terminal {
                         let item_widget = list.item(cx, item_id, live_id!(OutputLine));
 
                         let full_text: String = spans.iter().map(|s| s.text.as_str()).collect();
-                        let label = item_widget.label(id!(line_label));
+                        let label = item_widget.label(&[id!(line_label)]);
                         label.set_text(cx, &full_text);
                         if let Some(first) = spans.first() {
                             label.apply_over(
@@ -162,7 +162,7 @@ impl Widget for Terminal {
                     } else if item_id == self.output_lines.len() {
                         let item_widget = list.item(cx, item_id, live_id!(InputLine));
                         item_widget
-                            .label(id!(prompt_label))
+                            .label(&[id!(prompt_label)])
                             .set_text(cx, &self.prompt_string);
                         item_widget.draw_all(cx, scope);
                     }
@@ -595,7 +595,7 @@ impl Terminal {
             }
             TerminalAction::ScrollToBottom => {
                 // Scroll PortalList so the input line (last item) is visible
-                let list = self.view.portal_list(id!(output_list));
+                let list = self.view.portal_list(&[id!(output_list)]);
                 let total_items = self.output_lines.len() + 1;
                 if total_items > 0 {
                     // Show last ~40 items so user sees recent output + input line

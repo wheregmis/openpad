@@ -2,8 +2,8 @@ use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::actions::AppAction;
 use makepad_widgets::{log, Cx};
 use openpad_protocol::{
-    ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest, PromptRequest,
-    Session, SessionCreateRequest,
+    ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest, Project,
+    PromptRequest, Session, SessionCreateRequest,
 };
 use std::sync::Arc;
 
@@ -77,6 +77,57 @@ pub fn spawn_project_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenC
     });
 }
 
+/// Normalize a worktree path to an absolute directory, matching how sessions are created.
+fn normalize_worktree(worktree: &str) -> String {
+    if worktree == "." {
+        if let Ok(current_dir) = std::env::current_dir() {
+            return current_dir.to_string_lossy().to_string();
+        }
+    }
+    match std::fs::canonicalize(worktree) {
+        Ok(path) => path.to_string_lossy().to_string(),
+        Err(_) => worktree.to_string(),
+    }
+}
+
+/// Spawns a task to load sessions for all projects by querying each project's directory
+pub fn spawn_all_sessions_loader(
+    runtime: &tokio::runtime::Runtime,
+    _client: Arc<OpenCodeClient>,
+    projects: Vec<Project>,
+) {
+    // Normalize worktree paths on the main thread (needs filesystem access)
+    let normalized: Vec<String> = projects
+        .iter()
+        .filter(|p| p.worktree != "/" && !p.worktree.is_empty())
+        .map(|p| normalize_worktree(&p.worktree))
+        .collect();
+
+    runtime.spawn(async move {
+        let mut all_sessions: Vec<Session> = Vec::new();
+        let mut seen_ids = std::collections::HashSet::new();
+
+        for directory in &normalized {
+            let project_client = OpenCodeClient::new(OPENCODE_SERVER_URL).with_directory(directory);
+
+            match project_client.list_sessions().await {
+                Ok(sessions) => {
+                    for session in sessions {
+                        if seen_ids.insert(session.id.clone()) {
+                            all_sessions.push(session);
+                        }
+                    }
+                }
+                Err(e) => {
+                    log!("Failed to load sessions for project {}: {}", directory, e);
+                }
+            }
+        }
+
+        Cx::post_action(AppAction::SessionsLoaded(all_sessions));
+    });
+}
+
 /// Spawns a task to load messages for a session
 pub fn spawn_message_loader(
     runtime: &tokio::runtime::Runtime,
@@ -87,7 +138,7 @@ pub fn spawn_message_loader(
     runtime.spawn(async move {
         // Use session-specific directory if provided
         let target_client = get_directory_client(client, directory);
-        
+
         match target_client.list_messages(&session_id).await {
             Ok(messages) => {
                 Cx::post_action(AppAction::MessagesLoaded(messages));
@@ -105,6 +156,7 @@ pub fn spawn_message_sender(
     text: String,
     model_spec: Option<ModelSpec>,
     directory: Option<String>,
+    attachments: Vec<PartInput>,
 ) {
     runtime.spawn(async move {
         let target_client = if let Some(dir) = directory.clone() {
@@ -136,10 +188,14 @@ pub fn spawn_message_sender(
             }
         };
 
+        // Build parts: text first, then attachments
+        let mut parts = vec![PartInput::text(&text)];
+        parts.extend(attachments);
+
         // Send prompt with optional model selection
         let request = PromptRequest {
             model: model_spec,
-            parts: vec![PartInput::text(&text)],
+            parts,
             no_reply: None,
         };
         if let Err(e) = target_client.send_prompt_with_options(&sid, request).await {
@@ -263,9 +319,11 @@ pub fn spawn_session_deleter(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     session_id: String,
+    directory: Option<String>,
 ) {
     runtime.spawn(async move {
-        match client.delete_session(&session_id).await {
+        let target_client = get_directory_client(client, directory);
+        match target_client.delete_session(&session_id).await {
             Ok(_) => {
                 Cx::post_action(AppAction::SessionDeleted(session_id.clone()));
                 // Don't reload sessions here - let SSE handle it
@@ -286,14 +344,16 @@ pub fn spawn_session_updater(
     client: Arc<OpenCodeClient>,
     session_id: String,
     new_title: String,
+    directory: Option<String>,
 ) {
     use openpad_protocol::SessionUpdateRequest;
 
     runtime.spawn(async move {
+        let target_client = get_directory_client(client, directory);
         let request = SessionUpdateRequest {
             title: Some(new_title),
         };
-        match client.update_session(&session_id, request).await {
+        match target_client.update_session(&session_id, request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionUpdated(session.clone()));
                 // Don't reload sessions here - let SSE handle it
