@@ -1,9 +1,8 @@
-use crate::actions::{AppAction, ProjectsPanelAction};
+use crate::async_runtime;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
 use crate::components::simple_dialog::SimpleDialogWidgetRefExt;
-use crate::event_handlers::{self, AppState};
-use crate::network;
+use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::SidePanelWidgetRefExt;
@@ -183,9 +182,9 @@ impl App {
         let client = Arc::new(OpenCodeClient::new("http://localhost:4096"));
 
         // Spawn background tasks
-        network::spawn_sse_subscriber(&runtime, client.clone());
-        network::spawn_health_checker(&runtime, client.clone());
-        network::spawn_project_loader(&runtime, client.clone());
+        async_runtime::spawn_sse_subscriber(&runtime, client.clone());
+        async_runtime::spawn_health_checker(&runtime, client.clone());
+        async_runtime::spawn_project_loader(&runtime, client.clone());
 
         self.client = Some(client);
         self._runtime = Some(runtime);
@@ -196,7 +195,7 @@ impl App {
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
                     AppAction::OpenCodeEvent(oc_event) => {
-                        event_handlers::handle_opencode_event(
+                        state::handle_opencode_event(
                             &mut self.state,
                             &self.ui,
                             cx,
@@ -204,7 +203,7 @@ impl App {
                         );
                     }
                     AppAction::PermissionResponded { request_id, reply } => {
-                        event_handlers::handle_permission_responded(
+                        state::handle_permission_responded(
                             &mut self.state,
                             &self.ui,
                             cx,
@@ -226,7 +225,7 @@ impl App {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
                     _ => {
-                        event_handlers::handle_app_action(
+                        state::handle_app_action(
                             &mut self.state,
                             &self.ui,
                             cx,
@@ -246,7 +245,7 @@ impl App {
             return;
         };
 
-        network::spawn_pending_permissions_loader(runtime, client);
+        async_runtime::spawn_pending_permissions_loader(runtime, client);
     }
 
     fn load_messages(&mut self, session_id: String) {
@@ -257,7 +256,7 @@ impl App {
             return;
         };
 
-        network::spawn_message_loader(runtime, client, session_id);
+        async_runtime::spawn_message_loader(runtime, client, session_id);
     }
 
     fn send_message(&mut self, _cx: &mut Cx, text: String) {
@@ -270,7 +269,7 @@ impl App {
         };
 
         let session_id = self.state.current_session_id.clone();
-        network::spawn_message_sender(runtime, client, session_id, text);
+        async_runtime::spawn_message_sender(runtime, client, session_id, text);
     }
 
     fn create_session(&mut self, _cx: &mut Cx) {
@@ -282,7 +281,7 @@ impl App {
             return;
         };
 
-        network::spawn_session_creator(runtime, client);
+        async_runtime::spawn_session_creator(runtime, client);
     }
 
     fn respond_to_permission(
@@ -299,7 +298,7 @@ impl App {
             return;
         };
 
-        network::spawn_permission_reply(runtime, client, request_id, reply);
+        async_runtime::spawn_permission_reply(runtime, client, request_id, reply);
     }
 
     fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
@@ -319,7 +318,7 @@ impl App {
             .sessions
             .iter()
             .find(|s| s.id == session_id)
-            .map(|s| network::get_session_title(s))
+            .map(|s| async_runtime::get_session_title(s))
             .unwrap_or_else(|| "Session".to_string());
 
         // Show input dialog
@@ -341,7 +340,7 @@ impl App {
             return;
         };
 
-        network::spawn_session_aborter(runtime, client, session_id);
+        async_runtime::spawn_session_aborter(runtime, client, session_id);
     }
 
     fn branch_session(&mut self, _cx: &mut Cx, parent_session_id: String) {
@@ -353,7 +352,7 @@ impl App {
             return;
         };
 
-        network::spawn_session_brancher(runtime, client, parent_session_id);
+        async_runtime::spawn_session_brancher(runtime, client, parent_session_id);
     }
 
     fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
@@ -365,7 +364,7 @@ impl App {
             return;
         };
 
-        network::spawn_message_reverter(runtime, client, session_id, message_id);
+        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id);
     }
 
     fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {
@@ -377,7 +376,7 @@ impl App {
             return;
         };
 
-        network::spawn_session_unreverter(runtime, client, session_id);
+        async_runtime::spawn_session_unreverter(runtime, client, session_id);
     }
 
     fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {
@@ -396,11 +395,11 @@ impl App {
 
         match action {
             "delete_session" => {
-                network::spawn_session_deleter(runtime, client, data.to_string());
+                async_runtime::spawn_session_deleter(runtime, client, data.to_string());
             }
             "rename_session" => {
                 if !value.is_empty() {
-                    network::spawn_session_updater(runtime, client, data.to_string(), value);
+                    async_runtime::spawn_session_updater(runtime, client, data.to_string(), value);
                 }
             }
             _ => {}
@@ -462,8 +461,8 @@ impl AppMain for App {
             }
 
             // Handle MessageListAction
-            if let Some(msg_action) = action.downcast_ref::<crate::actions::MessageListAction>() {
-                use crate::actions::MessageListAction;
+            if let Some(msg_action) = action.downcast_ref::<crate::state::actions::MessageListAction>() {
+                use crate::state::actions::MessageListAction;
                 match msg_action {
                     MessageListAction::RevertToMessage(message_id) => {
                         if let Some(session_id) = &self.state.current_session_id {
@@ -481,7 +480,7 @@ impl AppMain for App {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
                     AppAction::PermissionResponded { request_id, reply } => {
-                        event_handlers::handle_permission_responded(
+                        state::handle_permission_responded(
                             &mut self.state,
                             &self.ui,
                             cx,

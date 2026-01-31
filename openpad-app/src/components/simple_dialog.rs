@@ -148,7 +148,7 @@ impl Widget for SimpleDialog {
         }
 
         if self.view.button(id!(confirm_button)).clicked(&actions) {
-            use crate::actions::AppAction;
+            use crate::state::actions::AppAction;
 
             // Get the input value if it's an input dialog
             let value = if matches!(self.dialog_type, DialogType::Input) {

@@ -461,6 +461,46 @@ openpad-protocol = { path = "../openpad-protocol" }
 openpad-terminal = { path = "../openpad-terminal" }
 openpad-syntax = { path = "../openpad-syntax" }
 
+## Current Implementation (openpad-app)
+
+As of the refactoring, the `openpad-app` crate has been reorganized with the following structure:
+
+```
+openpad-app/src/
+├── main.rs              # Entry point
+├── lib.rs               # Module exports
+├── app.rs               # Root Makepad app (LiveDesign + routing)
+├── constants.rs         # UI constants (colors, text)
+├── state/               # State management
+│   ├── mod.rs
+│   ├── actions.rs       # Action enums (AppAction, etc.)
+│   └── handlers.rs      # Event handlers + AppState
+├── async_runtime/       # Async tasks and network
+│   ├── mod.rs
+│   └── tasks.rs         # Tokio tasks (SSE, health, messages, etc.)
+├── ui/                  # UI helpers
+│   ├── mod.rs
+│   ├── state_updates.rs # UI state update functions
+│   └── formatters.rs    # Timestamp formatting
+└── components/          # Makepad widgets
+    ├── mod.rs
+    ├── app_bg.rs
+    ├── user_bubble.rs
+    ├── assistant_bubble.rs
+    ├── message_list.rs
+    ├── projects_panel.rs
+    ├── permission_dialog.rs
+    └── simple_dialog.rs
+```
+
+**Module responsibilities:**
+- `state/`: Defines actions and handles state transitions based on events
+- `async_runtime/`: Manages all async operations (HTTP requests, SSE subscriptions)
+- `ui/`: Provides helpers for updating UI widgets (status indicators, titles)
+- `components/`: Custom Makepad widgets for the application
+
+This structure provides clear separation of concerns and follows the architectural vision outlined above.
+
 Next Steps
 
 Start with openpad-protocol - Get the Rust client talking to OpenCode

@@ -1,6 +1,6 @@
-use crate::actions::ProjectsPanelAction;
+use crate::async_runtime;
 use crate::constants::{COLOR_SESSION_NORMAL, COLOR_SESSION_SELECTED};
-use crate::network;
+use crate::state::actions::ProjectsPanelAction;
 use makepad_widgets::*;
 use openpad_protocol::{Project, Session};
 use std::collections::HashMap;
@@ -265,7 +265,7 @@ impl ProjectsPanel {
 
             if let Some(sessions) = grouped.get(&project_id) {
                 for session in sessions {
-                    let title = network::get_session_title(session);
+                    let title = async_runtime::get_session_title(session);
                     items.push(PanelItemKind::SessionRow {
                         session_id: session.id.clone(),
                         title,
@@ -295,7 +295,7 @@ impl ProjectsPanel {
                 path: "".to_string(),
             });
             for session in ungrouped {
-                let title = network::get_session_title(session);
+                let title = async_runtime::get_session_title(session);
                 items.push(PanelItemKind::SessionRow {
                     session_id: session.id.clone(),
                     title,
