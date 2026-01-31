@@ -1,21 +1,42 @@
-name: macOS Release
+name: Release
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
+    inputs:
+      build_macos:
+        description: "Build macOS DMG"
+        required: false
+        type: boolean
+        default: true
+      release_tags:
+        description: "Release tag to upload artifacts to"
+        required: true
   release:
     types: [published]
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   build-macos:
+    if: >
+      github.event_name == 'release' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.build_macos == 'true') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
     name: Build macOS DMG
     runs-on: macos-latest
     permissions:
       contents: read
     env:
       CARGO_TARGET_DIR: target
+      RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name != '' && github.event.release.tag_name || github.event_name == 'workflow_dispatch' && github.event.inputs.release_tags || github.event_name == 'push' && github.ref_name || '' }}
 
     steps:
-      - name: Checkout
+      - name: Checkout sources
         uses: actions/checkout@v4
 
       - name: Cache cargo registry and index
@@ -55,3 +76,10 @@ jobs:
         with:
           name: openpad-macos
           path: dist/*.dmg
+
+      - name: Publish DMG to GitHub Release
+        if: ${{ env.RELEASE_TAG != '' && github.event_name != 'push' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "$RELEASE_TAG" dist/*.dmg --clobber
