@@ -350,6 +350,7 @@ impl App {
 
         let mut remaining_text = String::new();
         let mut last_end = 0;
+        let mut attachment_count = 0;
 
         for captures in data_url_pattern.captures_iter(text) {
             let full_match = captures.get(0).unwrap();
@@ -369,23 +370,25 @@ impl App {
                 _ => "png",
             };
 
-            // Generate a filename
-            let filename = format!("pasted_image_{}.{}", 
+            // Generate a unique filename using timestamp and counter
+            let filename = format!("pasted_image_{}_{}.{}", 
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap_or_default()
                     .as_millis(),
+                attachment_count,
                 extension
             );
+            attachment_count += 1;
 
             // Add the file as an attachment
             self.state.attached_files.push(AttachedFile {
-                filename,
+                filename: filename.clone(),
                 mime_type: mime_type.to_string(),
                 data_url: full_match.as_str().to_string(),
             });
 
-            log!("Detected pasted image: {} ({})", mime_type, self.state.attached_files.last().unwrap().filename);
+            log!("Detected pasted image: {} ({})", mime_type, filename);
         }
 
         // Add remaining text after last data URL
@@ -900,5 +903,51 @@ impl AppMain for App {
         if let Some(idx) = self.ui.drop_down(id!(agent_dropdown)).changed(&actions) {
             self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use regex::Regex;
+
+    #[test]
+    fn test_data_url_detection() {
+        let data_url_pattern = Regex::new(
+            r"data:(image/(?:png|jpeg|jpg|gif|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)"
+        ).unwrap();
+
+        // Test simple PNG data URL
+        let text1 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        assert!(data_url_pattern.is_match(text1));
+
+        // Test JPEG data URL
+        let text2 = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+        assert!(data_url_pattern.is_match(text2));
+
+        // Test mixed content
+        let text3 = "Here is an image: data:image/png;base64,ABC123== and some text after";
+        let matches: Vec<_> = data_url_pattern.find_iter(text3).collect();
+        assert_eq!(matches.len(), 1);
+
+        // Test no match
+        let text4 = "This is just plain text";
+        assert!(!data_url_pattern.is_match(text4));
+
+        // Test extraction
+        let text5 = "Before data:image/png;base64,ABC123== After";
+        let captures = data_url_pattern.captures(text5).unwrap();
+        assert_eq!(captures.get(1).unwrap().as_str(), "image/png");
+        assert_eq!(captures.get(2).unwrap().as_str(), "ABC123==");
+    }
+
+    #[test]
+    fn test_text_extraction() {
+        let data_url_pattern = Regex::new(
+            r"data:(image/(?:png|jpeg|jpg|gif|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)"
+        ).unwrap();
+
+        let text = "Start data:image/png;base64,ABC== Middle data:image/jpeg;base64,DEF== End";
+        let result = data_url_pattern.replace_all(text, "");
+        assert_eq!(result, "Start  Middle  End");
     }
 }
