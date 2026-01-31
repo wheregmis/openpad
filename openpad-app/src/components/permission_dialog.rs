@@ -176,7 +176,7 @@ impl Widget for PermissionDialog {
             self.view.handle_event(cx, event, scope);
         });
 
-        if self.view.button(id!(accept_button)).clicked(&actions) {
+        if self.view.button(&[id!(accept_button)]).clicked(&actions) {
             if let Some(permission_id) = self.get_request_id() {
                 cx.action(AppAction::PermissionResponded {
                     request_id: permission_id,
@@ -186,7 +186,7 @@ impl Widget for PermissionDialog {
             self.hide(cx);
         }
 
-        if self.view.button(id!(reject_button)).clicked(&actions) {
+        if self.view.button(&[id!(reject_button)]).clicked(&actions) {
             if let Some(permission_id) = self.get_request_id() {
                 cx.action(AppAction::PermissionResponded {
                     request_id: permission_id,
@@ -196,7 +196,7 @@ impl Widget for PermissionDialog {
             self.hide(cx);
         }
 
-        if self.view.button(id!(always_button)).clicked(&actions) {
+        if self.view.button(&[id!(always_button)]).clicked(&actions) {
             if let Some(permission_id) = self.get_request_id() {
                 cx.action(AppAction::PermissionResponded {
                     request_id: permission_id,
@@ -230,24 +230,24 @@ impl PermissionDialog {
             permission.to_uppercase()
         );
 
-        self.view.label(id!(description)).set_text(cx, &description);
+        self.view.label(&[id!(description)]).set_text(cx, &description);
         self.view
-            .label(id!(permission_type))
+            .label(&[id!(permission_type)])
             .set_text(cx, &permission.to_uppercase());
         let patterns_text = if patterns.is_empty() {
             "Patterns: (none)".to_string()
         } else {
             format!("Patterns:\n{}", patterns.join("\n"))
         };
-        self.view.label(id!(pattern)).set_text(cx, &patterns_text);
+        self.view.label(&[id!(pattern)]).set_text(cx, &patterns_text);
         if let Some(context_text) = context.filter(|text| !text.trim().is_empty()) {
             self.view
-                .label(id!(context))
+                .label(&[id!(context)])
                 .set_text(cx, &format!("Context:\n{}", context_text));
-            self.view.widget(id!(context)).set_visible(cx, true);
+            self.view.widget(&[id!(context)]).set_visible(cx, true);
         } else {
-            self.view.label(id!(context)).set_text(cx, "");
-            self.view.widget(id!(context)).set_visible(cx, false);
+            self.view.label(&[id!(context)]).set_text(cx, "");
+            self.view.widget(&[id!(context)]).set_visible(cx, false);
         }
 
         self.view.set_visible(cx, true);

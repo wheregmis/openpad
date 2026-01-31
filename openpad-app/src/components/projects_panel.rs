@@ -299,32 +299,32 @@ impl Widget for ProjectsPanel {
             self.view.handle_event(cx, event, scope);
         });
 
-        let list = self.view.portal_list(id!(list));
+        let list = self.view.portal_list(&[id!(list)]);
         for (item_id, widget) in list.items_with_actions(&actions) {
             if item_id >= self.items.len() {
                 continue;
             }
             match &self.items[item_id] {
                 PanelItemKind::NewSession { project_id } => {
-                    if widget.button(id!(new_session_button)).clicked(&actions) {
+                    if widget.button(&[id!(new_session_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
                     }
                 }
                 PanelItemKind::SessionRow { session_id, .. } => {
-                    if widget.button(id!(session_button)).clicked(&actions) {
+                    if widget.button(&[id!(session_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
 
-                    if widget.button(id!(delete_button)).clicked(&actions) {
+                    if widget.button(&[id!(delete_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::DeleteSession(session_id.clone()));
                     }
-                    if widget.button(id!(rename_button)).clicked(&actions) {
+                    if widget.button(&[id!(rename_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::RenameSession(session_id.clone()));
                     }
-                    if widget.button(id!(branch_button)).clicked(&actions) {
+                    if widget.button(&[id!(branch_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::BranchSession(session_id.clone()));
                     }
-                    if widget.button(id!(abort_button)).clicked(&actions) {
+                    if widget.button(&[id!(abort_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::AbortSession(session_id.clone()));
                     }
                 }
@@ -361,10 +361,10 @@ impl Widget for ProjectsPanel {
 
                     match &panel_item {
                         PanelItemKind::ProjectHeader { name, .. } => {
-                            item_widget.label(id!(project_name)).set_text(cx, name);
+                            item_widget.label(&[id!(project_name)]).set_text(cx, name);
                         }
                         PanelItemKind::SessionRow { session_id, title } => {
-                            item_widget.button(id!(session_button)).set_text(cx, title);
+                            item_widget.button(&[id!(session_button)]).set_text(cx, title);
                             let selected = self
                                 .selected_session_id
                                 .as_ref()
@@ -375,7 +375,7 @@ impl Widget for ProjectsPanel {
                             } else {
                                 COLOR_SESSION_NORMAL
                             };
-                            item_widget.button(id!(session_button)).apply_over(
+                            item_widget.button(&[id!(session_button)]).apply_over(
                                 cx,
                                 live! {
                                     draw_bg: { color: (color) }

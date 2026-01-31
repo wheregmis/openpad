@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-makepad-widgets = "1.0.0"
+makepad-widgets = { path = "/Users/wheregmis/Documents/GitHub/makepad/widgets" }

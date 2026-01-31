@@ -260,7 +260,7 @@ impl Widget for Terminal {
         {
             if !input.is_empty() {
                 self.send_command(cx, &input);
-                self.view.text_input(id!(input_field)).set_text(cx, "");
+                self.view.text_input(&[id!(input_field)]).set_text(cx, "");
             }
         }
     }
@@ -286,6 +286,24 @@ impl Widget for Terminal {
                             });
                             
                             tab_widget.draw_all(cx, scope);
+                let total_items = self.output_lines.len() + 1;
+                list.set_item_range(cx, 0, total_items);
+
+                while let Some(item_id) = list.next_visible_item(cx) {
+                    if item_id < self.output_lines.len() {
+                        let spans = &self.output_lines[item_id];
+                        let item_widget = list.item(cx, item_id, live_id!(OutputLine));
+
+                        let full_text: String = spans.iter().map(|s| s.text.as_str()).collect();
+                        let label = item_widget.label(&[id!(line_label)]);
+                        label.set_text(cx, &full_text);
+                        if let Some(first) = spans.first() {
+                            label.apply_over(
+                                cx,
+                                live! {
+                                    draw_text: { color: (first.color) }
+                                },
+                            );
                         }
                     }
                 } else if let Some(active_terminal) = self.terminals.get(self.active_terminal_index) {
@@ -318,6 +336,13 @@ impl Widget for Terminal {
                                 .set_text(cx, &active_terminal.prompt_string);
                             item_widget.draw_all(cx, scope);
                         }
+                        item_widget.draw_all(cx, scope);
+                    } else if item_id == self.output_lines.len() {
+                        let item_widget = list.item(cx, item_id, live_id!(InputLine));
+                        item_widget
+                            .label(&[id!(prompt_label)])
+                            .set_text(cx, &self.prompt_string);
+                        item_widget.draw_all(cx, scope);
                     }
                 }
             }
@@ -809,6 +834,11 @@ impl Terminal {
                         // Show last ~40 items so user sees recent output + input line
                         list.set_first_id(total_items.saturating_sub(40));
                     }
+                let list = self.view.portal_list(&[id!(output_list)]);
+                let total_items = self.output_lines.len() + 1;
+                if total_items > 0 {
+                    // Show last ~40 items so user sees recent output + input line
+                    list.set_first_id(total_items.saturating_sub(40));
                 }
             }
             TerminalAction::None => {}

@@ -124,6 +124,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 println!("   → Part updated (delta: {})", delta.is_some());
                                 match part {
                                     Part::Text { text, .. } => println!("      Text: {}...", text.chars().take(50).collect::<String>()),
+                                    Part::File { .. } => println!("      File part updated"),
                                     Part::Unknown => println!("      Unknown part type"),
                                 }
                             }

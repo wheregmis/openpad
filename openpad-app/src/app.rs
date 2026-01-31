@@ -5,10 +5,54 @@ use crate::components::simple_dialog::SimpleDialogWidgetRefExt;
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::SidePanelWidgetRefExt;
-use std::sync::Arc;
+use regex::Regex;
+use std::sync::{Arc, OnceLock};
+
+// Lazy-initialized regex for detecting image data URLs
+static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
+
+fn get_image_data_url_regex() -> &'static Regex {
+    IMAGE_DATA_URL_REGEX.get_or_init(|| {
+        Regex::new(r"data:(image/(?:png|jpeg|jpg|gif|webp|tiff|svg\+xml));base64,([A-Za-z0-9+/=]+)")
+            .expect("Failed to compile image data URL regex")
+    })
+}
+
+fn image_extension_for_mime(mime_type: &str) -> &'static str {
+    match mime_type {
+        "image/png" => "png",
+        "image/jpeg" | "image/jpg" => "jpg",
+        "image/gif" => "gif",
+        "image/webp" => "webp",
+        "image/tiff" => "tiff",
+        "image/svg+xml" => "svg",
+        _ => "png",
+    }
+}
+
+fn detect_image_mime_type(data: &[u8]) -> Option<&'static str> {
+    if data.starts_with(&[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) {
+        return Some("image/png");
+    }
+    if data.len() >= 3 && data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff {
+        return Some("image/jpeg");
+    }
+    if data.starts_with(b"GIF87a") || data.starts_with(b"GIF89a") {
+        return Some("image/gif");
+    }
+    if data.len() >= 12 && data.starts_with(b"RIFF") && &data[8..12] == b"WEBP" {
+        return Some("image/webp");
+    }
+    if data.starts_with(b"II*\0") || data.starts_with(b"MM\0*") {
+        return Some("image/tiff");
+    }
+    None
+}
 
 app_main!(App);
 
@@ -189,6 +233,40 @@ live_design! {
                             input_row = <View> {
                                 width: Fill, height: Fit
                                 padding: { left: 32, right: 32, top: 12, bottom: 20 }
+                                flow: Down, spacing: 8
+
+                                // Attachments preview area
+                                attachments_preview = <RoundedView> {
+                                    visible: false
+                                    width: Fill, height: Fit
+                                    flow: Right, spacing: 8
+                                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
+                                    show_bg: true
+                                    draw_bg: {
+                                        color: #2a2a2a
+                                        border_radius: 8.0
+                                    }
+
+                                    attachments_label = <Label> {
+                                        text: "Attached:"
+                                        draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    }
+                                    attachments_list = <Label> {
+                                        text: ""
+                                        draw_text: { color: #aaa, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    }
+                                    <View> { width: Fill }
+                                    clear_attachments_button = <Button> {
+                                        width: Fit, height: 20
+                                        text: "Clear"
+                                        draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                        draw_bg: {
+                                            color: #0000
+                                            color_hover: #333
+                                        }
+                                    }
+                                }
+
                                 <InputBar> {
                                     width: Fill
                                     input_box = <InputField> {}
@@ -279,6 +357,135 @@ impl App {
         }
     }
 
+    /// Helper to get a session's directory by session ID
+    fn get_session_directory(&self, session_id: &str) -> Option<String> {
+        self.state
+            .sessions
+            .iter()
+            .find(|s| s.id == session_id)
+            .map(|s| s.directory.clone())
+    }
+
+    /// Update the attachments preview UI
+    fn update_attachments_ui(&self, cx: &mut Cx) {
+        let has_attachments = !self.state.attached_files.is_empty();
+        self.ui
+            .view(&[id!(attachments_preview)])
+            .set_visible(cx, has_attachments);
+
+        if has_attachments {
+            let filenames: Vec<String> = self
+                .state
+                .attached_files
+                .iter()
+                .map(|f| f.filename.clone())
+                .collect();
+            let text = filenames.join(", ");
+            self.ui.label(&[id!(attachments_list)]).set_text(cx, &text);
+        }
+        self.ui.redraw(cx);
+    }
+
+    /// Extract data URLs from text and add them as attachments
+    /// Returns the text with data URLs removed
+    fn process_pasted_content(&mut self, cx: &mut Cx, text: &str) -> String {
+        use crate::state::handlers::AttachedFile;
+
+        let data_url_pattern = get_image_data_url_regex();
+
+        let mut remaining_text = String::new();
+        let mut last_end = 0;
+        let mut attachment_count = 0;
+
+        for captures in data_url_pattern.captures_iter(text) {
+            let full_match = &captures[0];
+            let mime_type = &captures[1];
+
+            // Add text before the data URL
+            remaining_text.push_str(&text[last_end..captures.get(0).unwrap().start()]);
+            last_end = captures.get(0).unwrap().end();
+
+            // Determine file extension from mime type
+            let extension = image_extension_for_mime(mime_type);
+
+            // Generate a unique filename using timestamp and counter
+            let filename = format!(
+                "attachment_{}_{}.{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis(),
+                attachment_count,
+                extension
+            );
+            attachment_count += 1;
+
+            // Add the file as an attachment
+            self.state.attached_files.push(AttachedFile {
+                filename: filename.clone(),
+                mime_type: mime_type.to_string(),
+                data_url: full_match.to_string(),
+                raw_text: None,
+            });
+
+            log!("Detected pasted image: {} ({})", mime_type, filename);
+        }
+
+        // Add remaining text after last data URL
+        remaining_text.push_str(&text[last_end..]);
+
+        // Update UI to show attachments
+        self.update_attachments_ui(cx);
+
+        remaining_text
+    }
+
+    fn handle_image_input(&mut self, cx: &mut Cx, image: &ImageInputEvent) {
+        use crate::state::handlers::AttachedFile;
+
+        if image.data.is_empty() {
+            return;
+        }
+
+        if !self.ui.text_input(&[id!(input_box)]).key_focus(cx) {
+            return;
+        }
+
+        let Some(mime_type) = detect_image_mime_type(&image.data) else {
+            log!(
+                "Unsupported clipboard image format ({} bytes)",
+                image.data.len()
+            );
+            return;
+        };
+
+        let extension = image_extension_for_mime(mime_type);
+        let filename = format!(
+            "attachment_{}_{}.{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis(),
+            self.state.attached_files.len(),
+            extension
+        );
+        let data_url = format!("data:{};base64,{}", mime_type, STANDARD.encode(&image.data));
+
+        self.state.attached_files.push(AttachedFile {
+            filename: filename.clone(),
+            mime_type: mime_type.to_string(),
+            data_url,
+            raw_text: None,
+        });
+
+        log!(
+            "Detected pasted image from clipboard: {} ({})",
+            mime_type,
+            filename
+        );
+        self.update_attachments_ui(cx);
+    }
+
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let client = Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL));
@@ -297,7 +504,7 @@ impl App {
             // Handle TerminalAction from background thread
             if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
                 self.ui
-                    .terminal(id!(terminal_panel))
+                    .terminal(&[id!(terminal_panel)])
                     .handle_action(cx, terminal_action);
             }
 
@@ -314,7 +521,9 @@ impl App {
                             request_id,
                         );
                         self.respond_to_permission(cx, request_id.clone(), reply.clone());
-                        self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
+                        self.ui
+                            .permission_dialog(&[id!(permission_dialog)])
+                            .hide(cx);
                     }
                     AppAction::RevertToMessage {
                         session_id,
@@ -331,6 +540,10 @@ impl App {
                     AppAction::Connected => {
                         state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                         self.load_providers_and_agents();
+                    }
+                    AppAction::ProjectsLoaded(projects) => {
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
+                        self.load_all_sessions(projects.clone());
                     }
                     _ => {
                         state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
@@ -362,6 +575,16 @@ impl App {
         async_runtime::spawn_pending_permissions_loader(runtime, client);
     }
 
+    fn load_all_sessions(&mut self, projects: Vec<openpad_protocol::Project>) {
+        let Some(client) = self.client.clone() else {
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+        async_runtime::spawn_all_sessions_loader(runtime, client, projects);
+    }
+
     fn load_messages(&mut self, session_id: String) {
         let Some(client) = self.client.clone() else {
             return;
@@ -370,10 +593,13 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_message_loader(runtime, client, session_id);
+        // Find the session to get its directory
+        let directory = self.get_session_directory(&session_id);
+
+        async_runtime::spawn_message_loader(runtime, client, session_id, directory);
     }
 
-    fn send_message(&mut self, _cx: &mut Cx, text: String) {
+    fn send_message(&mut self, cx: &mut Cx, text: String) {
         let Some(client) = self.client.clone() else {
             self.state.error_message = Some("Not connected".to_string());
             return;
@@ -390,18 +616,62 @@ impl App {
                     .sessions
                     .iter()
                     .find(|session| &session.id == sid)
-                    .map(|session| session.directory.clone())
+                    .map(|session| {
+                        log!(
+                            "Sending message to session: id={}, directory={}, project_id={}",
+                            session.id,
+                            session.directory,
+                            session.project_id
+                        );
+                        session.directory.clone()
+                    })
             })
             .or_else(|| {
-                self.state
-                    .current_project
-                    .as_ref()
-                    .map(|project| project.worktree.clone())
+                self.state.current_project.as_ref().map(|project| {
+                    let dir = Self::normalize_project_directory(&project.worktree);
+                    log!(
+                        "No session - using current_project: id={}, worktree={}, normalized_dir={}",
+                        project.id,
+                        project.worktree,
+                        dir
+                    );
+                    dir
+                })
             });
         let model_spec = self.state.selected_model_spec();
+
+        // Convert attached files to PartInput
+        let attachments: Vec<openpad_protocol::PartInput> = self
+            .state
+            .attached_files
+            .iter()
+            .map(|file| {
+                if let Some(raw_text) = &file.raw_text {
+                    // Text attachments are sent as text parts
+                    openpad_protocol::PartInput::text(raw_text)
+                } else {
+                    openpad_protocol::PartInput::file_with_filename(
+                        file.mime_type.clone(),
+                        file.filename.clone(),
+                        file.data_url.clone(),
+                    )
+                }
+            })
+            .collect();
+
         async_runtime::spawn_message_sender(
-            runtime, client, session_id, text, model_spec, directory,
+            runtime,
+            client,
+            session_id,
+            text,
+            model_spec,
+            directory,
+            attachments,
         );
+
+        // Clear attached files after sending
+        self.state.attached_files.clear();
+        self.update_attachments_ui(cx);
     }
 
     fn create_session(&mut self, _cx: &mut Cx, project_id: Option<String>) {
@@ -422,8 +692,9 @@ impl App {
                 .map(|p| {
                     let normalized = Self::normalize_project_directory(&p.worktree);
                     log!(
-                        "Create session: project_id={:?} worktree={} directory={}",
+                        "Creating session for project: id={}, name={:?}, worktree={}, normalized_directory={}",
                         pid,
+                        p.name,
                         p.worktree,
                         normalized
                     );
@@ -453,7 +724,7 @@ impl App {
 
     fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
         // Show confirmation dialog
-        self.ui.simple_dialog(id!(simple_dialog)).show_confirm(
+        self.ui.simple_dialog(&[id!(simple_dialog)]).show_confirm(
             cx,
             "Delete Session",
             "Are you sure you want to delete this session? This action cannot be undone.",
@@ -472,7 +743,7 @@ impl App {
             .unwrap_or_else(|| "Session".to_string());
 
         // Show input dialog
-        self.ui.simple_dialog(id!(simple_dialog)).show_input(
+        self.ui.simple_dialog(&[id!(simple_dialog)]).show_input(
             cx,
             "Rename Session",
             "Enter a new name for this session:",
@@ -502,7 +773,10 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_session_brancher(runtime, client, parent_session_id);
+        // Find the parent session to get its directory for the new branched session
+        let directory = self.get_session_directory(&parent_session_id);
+
+        async_runtime::spawn_session_brancher(runtime, client, parent_session_id, directory);
     }
 
     fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
@@ -514,7 +788,10 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id);
+        // Find the session to get its directory
+        let directory = self.get_session_directory(&session_id);
+
+        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id, directory);
     }
 
     fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {
@@ -526,7 +803,10 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_session_unreverter(runtime, client, session_id);
+        // Find the session to get its directory
+        let directory = self.get_session_directory(&session_id);
+
+        async_runtime::spawn_session_unreverter(runtime, client, session_id, directory);
     }
 
     fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {
@@ -543,13 +823,21 @@ impl App {
             return;
         };
 
+        let directory = self.get_session_directory(data);
+
         match action {
             "delete_session" => {
-                async_runtime::spawn_session_deleter(runtime, client, data.to_string());
+                async_runtime::spawn_session_deleter(runtime, client, data.to_string(), directory);
             }
             "rename_session" => {
                 if !value.is_empty() {
-                    async_runtime::spawn_session_updater(runtime, client, data.to_string(), value);
+                    async_runtime::spawn_session_updater(
+                        runtime,
+                        client,
+                        data.to_string(),
+                        value,
+                        directory,
+                    );
                 }
             }
             _ => {}
@@ -563,17 +851,20 @@ impl AppMain for App {
             Event::Startup => {
                 self.connect_to_opencode(cx);
                 // Initialize terminal
-                self.ui.terminal(id!(terminal_panel)).init_pty(cx);
+                self.ui.terminal(&[id!(terminal_panel)]).init_pty(cx);
 
                 // Initialize sidebar to open
                 self.sidebar_open = true;
-                self.ui.side_panel(id!(side_panel)).set_open(cx, true);
+                self.ui.side_panel(&[id!(side_panel)]).set_open(cx, true);
                 self.ui
-                    .side_panel(id!(traffic_light_spacer))
+                    .side_panel(&[id!(traffic_light_spacer)])
                     .set_open(cx, false);
                 self.ui
-                    .view(id!(hamburger_button))
-                    .animator_play(cx, id!(open.on));
+                    .view(&[id!(hamburger_button)])
+                    .animator_play(cx, &[id!(open), id!(on)]);
+            }
+            Event::ImageInput(image) => {
+                self.handle_image_input(cx, image);
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
@@ -593,10 +884,12 @@ impl AppMain for App {
                     ProjectsPanelAction::SelectSession(session_id) => {
                         self.state.selected_session_id = Some(session_id.clone());
                         self.state.current_session_id = Some(session_id.clone());
-                        self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
+                        self.ui
+                            .permission_dialog(&[id!(permission_dialog)])
+                            .hide(cx);
                         self.state.messages_data.clear();
                         self.ui
-                            .message_list(id!(message_list))
+                            .message_list(&[id!(message_list)])
                             .set_messages(cx, &self.state.messages_data);
                         self.state.update_projects_panel(&self.ui, cx);
                         self.state.update_session_title_ui(&self.ui, cx);
@@ -645,7 +938,7 @@ impl AppMain for App {
             // Handle TerminalAction
             if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
                 self.ui
-                    .terminal(id!(terminal_panel))
+                    .terminal(&[id!(terminal_panel)])
                     .handle_action(cx, terminal_action);
             }
 
@@ -663,72 +956,161 @@ impl AppMain for App {
                             request_id,
                         );
                         self.respond_to_permission(cx, request_id.clone(), reply.clone());
-                        self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
+                        self.ui
+                            .permission_dialog(&[id!(permission_dialog)])
+                            .hide(cx);
                     }
                     _ => {}
                 }
             }
         }
 
+        // Detect pasted images (data URLs) and long text on input change,
+        // converting them to attachments immediately.
+        const LONG_TEXT_THRESHOLD: usize = 2000;
+        if let Some(new_text) = self.ui.text_input(&[id!(input_box)]).changed(&actions) {
+            let remaining = self.process_pasted_content(cx, &new_text);
+            if remaining.len() > LONG_TEXT_THRESHOLD {
+                use crate::state::handlers::AttachedFile;
+
+                let filename = format!(
+                    "pasted_text_{}.txt",
+                    std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .unwrap_or_default()
+                        .as_millis(),
+                );
+
+                self.state.attached_files.push(AttachedFile {
+                    filename,
+                    mime_type: "text/plain".to_string(),
+                    data_url: String::new(),
+                    raw_text: Some(remaining.clone()),
+                });
+
+                self.ui.text_input(&[id!(input_box)]).set_text(cx, "");
+                self.update_attachments_ui(cx);
+            } else if remaining != new_text {
+                // Images were extracted — update the input with remaining text
+                self.ui
+                    .text_input(&[id!(input_box)])
+                    .set_text(cx, &remaining);
+            }
+        }
+
         // Check for text input return
-        if let Some((text, _modifiers)) = self.ui.text_input(id!(input_box)).returned(&actions) {
+        if let Some((text, _modifiers)) = self.ui.text_input(&[id!(input_box)]).returned(&actions) {
             if !text.is_empty() {
-                self.send_message(cx, text.clone());
-                self.ui.text_input(id!(input_box)).set_text(cx, "");
+                let processed_text = self.process_pasted_content(cx, &text);
+                self.send_message(cx, processed_text);
+                self.ui.text_input(&[id!(input_box)]).set_text(cx, "");
             }
         }
 
         // Handle unrevert button
-        if self.ui.button(id!(unrevert_button)).clicked(&actions) {
+        if self.ui.button(&[id!(unrevert_button)]).clicked(&actions) {
             if let Some(session_id) = &self.state.current_session_id {
                 self.unrevert_session(cx, session_id.clone());
             }
         }
 
-        if self.ui.button(id!(hamburger_button)).clicked(&actions) {
+        if self.ui.button(&[id!(hamburger_button)]).clicked(&actions) {
             self.sidebar_open = !self.sidebar_open;
 
             // Toggle sidebar and synchronized spacer
             self.ui
-                .side_panel(id!(side_panel))
+                .side_panel(&[id!(side_panel)])
                 .set_open(cx, self.sidebar_open);
             self.ui
-                .side_panel(id!(traffic_light_spacer))
+                .side_panel(&[id!(traffic_light_spacer)])
                 .set_open(cx, !self.sidebar_open);
 
             if self.sidebar_open {
                 self.ui
-                    .view(id!(hamburger_button))
-                    .animator_play(cx, id!(open.on));
+                    .view(&[id!(hamburger_button)])
+                    .animator_play(cx, &[id!(open), id!(on)]);
             } else {
                 self.ui
-                    .view(id!(hamburger_button))
-                    .animator_play(cx, id!(open.off));
+                    .view(&[id!(hamburger_button)])
+                    .animator_play(cx, &[id!(open), id!(off)]);
             }
         }
 
-        if self.ui.button(id!(send_button)).clicked(&actions) {
-            let text = self.ui.text_input(id!(input_box)).text();
+        if self.ui.button(&[id!(send_button)]).clicked(&actions) {
+            let text = self.ui.text_input(&[id!(input_box)]).text();
             if !text.is_empty() {
-                self.send_message(cx, text.clone());
-                self.ui.text_input(id!(input_box)).set_text(cx, "");
+                let processed_text = self.process_pasted_content(cx, &text);
+                self.send_message(cx, processed_text);
+                self.ui.text_input(&[id!(input_box)]).set_text(cx, "");
             }
+        }
+
+        // Handle clear attachments button
+        if self
+            .ui
+            .button(&[id!(clear_attachments_button)])
+            .clicked(&actions)
+        {
+            self.state.attached_files.clear();
+            self.update_attachments_ui(cx);
         }
 
         // Handle dropdown selections
-        if let Some(idx) = self.ui.drop_down(id!(model_dropdown)).changed(&actions) {
+        if let Some(idx) = self.ui.drop_down(&[id!(model_dropdown)]).changed(&actions) {
             if let Some(entry) = self.state.model_entries.get(idx) {
                 if entry.selectable {
                     self.state.selected_model_entry = idx;
                 } else if self.state.model_entries.len() > self.state.selected_model_entry {
                     self.ui
-                        .drop_down(id!(model_dropdown))
+                        .drop_down(&[id!(model_dropdown)])
                         .set_selected_item(cx, self.state.selected_model_entry);
                 }
             }
         }
-        if let Some(idx) = self.ui.drop_down(id!(agent_dropdown)).changed(&actions) {
+        if let Some(idx) = self.ui.drop_down(&[id!(agent_dropdown)]).changed(&actions) {
             self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::get_image_data_url_regex;
+
+    #[test]
+    fn test_data_url_detection() {
+        let data_url_pattern = get_image_data_url_regex();
+
+        // Test simple PNG data URL
+        let text1 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+        assert!(data_url_pattern.is_match(text1));
+
+        // Test JPEG data URL
+        let text2 = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+        assert!(data_url_pattern.is_match(text2));
+
+        // Test mixed content
+        let text3 = "Here is an image: data:image/png;base64,ABC123== and some text after";
+        let matches: Vec<_> = data_url_pattern.find_iter(text3).collect();
+        assert_eq!(matches.len(), 1);
+
+        // Test no match
+        let text4 = "This is just plain text";
+        assert!(!data_url_pattern.is_match(text4));
+
+        // Test extraction
+        let text5 = "Before data:image/png;base64,ABC123== After";
+        let captures = data_url_pattern.captures(text5).unwrap();
+        assert_eq!(&captures[1], "image/png");
+        assert_eq!(&captures[2], "ABC123==");
+    }
+
+    #[test]
+    fn test_text_extraction() {
+        let data_url_pattern = get_image_data_url_regex();
+
+        let text = "Start data:image/png;base64,ABC== Middle data:image/jpeg;base64,DEF== End";
+        let result = data_url_pattern.replace_all(text, "");
+        assert_eq!(result, "Start  Middle  End");
     }
 }
