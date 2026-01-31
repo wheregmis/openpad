@@ -370,7 +370,15 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_message_loader(runtime, client, session_id);
+        // Find the session to get its directory
+        let directory = self
+            .state
+            .sessions
+            .iter()
+            .find(|s| s.id == session_id)
+            .map(|s| s.directory.clone());
+
+        async_runtime::spawn_message_loader(runtime, client, session_id, directory);
     }
 
     fn send_message(&mut self, _cx: &mut Cx, text: String) {
@@ -396,7 +404,7 @@ impl App {
                 self.state
                     .current_project
                     .as_ref()
-                    .map(|project| project.worktree.clone())
+                    .map(|project| Self::normalize_project_directory(&project.worktree))
             });
         let model_spec = self.state.selected_model_spec();
         async_runtime::spawn_message_sender(
@@ -502,7 +510,15 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_session_brancher(runtime, client, parent_session_id);
+        // Find the parent session to get its directory for the new branched session
+        let directory = self
+            .state
+            .sessions
+            .iter()
+            .find(|s| s.id == parent_session_id)
+            .map(|s| s.directory.clone());
+
+        async_runtime::spawn_session_brancher(runtime, client, parent_session_id, directory);
     }
 
     fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
@@ -514,7 +530,15 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id);
+        // Find the session to get its directory
+        let directory = self
+            .state
+            .sessions
+            .iter()
+            .find(|s| s.id == session_id)
+            .map(|s| s.directory.clone());
+
+        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id, directory);
     }
 
     fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {
@@ -526,7 +550,15 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_session_unreverter(runtime, client, session_id);
+        // Find the session to get its directory
+        let directory = self
+            .state
+            .sessions
+            .iter()
+            .find(|s| s.id == session_id)
+            .map(|s| s.directory.clone());
+
+        async_runtime::spawn_session_unreverter(runtime, client, session_id, directory);
     }
 
     fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {

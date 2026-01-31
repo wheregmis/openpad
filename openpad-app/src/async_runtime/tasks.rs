@@ -70,9 +70,17 @@ pub fn spawn_message_loader(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     session_id: String,
+    directory: Option<String>,
 ) {
     runtime.spawn(async move {
-        match client.list_messages(&session_id).await {
+        // Use session-specific directory if provided
+        let target_client = if let Some(dir) = directory {
+            Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL).with_directory(dir))
+        } else {
+            client
+        };
+        
+        match target_client.list_messages(&session_id).await {
             Ok(messages) => {
                 Cx::post_action(AppAction::MessagesLoaded(messages));
             }
@@ -329,6 +337,7 @@ pub fn spawn_session_brancher(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     parent_session_id: String,
+    directory: Option<String>,
 ) {
     runtime.spawn(async move {
         let request = SessionCreateRequest {
@@ -337,9 +346,17 @@ pub fn spawn_session_brancher(
             permission: None,
         };
 
-        match client.create_session_with_options(request).await {
+        // Use session-specific directory if provided
+        let target_client = if let Some(dir) = directory {
+            Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL).with_directory(dir))
+        } else {
+            client.clone()
+        };
+
+        match target_client.create_session_with_options(request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
+                // Reload all sessions using the original client
                 if let Ok(sessions) = client.list_sessions().await {
                     Cx::post_action(AppAction::SessionsLoaded(sessions));
                 }
@@ -365,16 +382,24 @@ pub fn spawn_message_reverter(
     client: Arc<OpenCodeClient>,
     session_id: String,
     message_id: String,
+    directory: Option<String>,
 ) {
     use openpad_protocol::RevertRequest;
 
     runtime.spawn(async move {
+        // Use session-specific directory if provided
+        let target_client = if let Some(dir) = directory {
+            Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL).with_directory(dir))
+        } else {
+            client.clone()
+        };
+
         let request = RevertRequest { message_id };
-        match client.revert_message(&session_id, request).await {
+        match target_client.revert_message(&session_id, request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionUpdated(session));
-                // Reload messages for the session
-                if let Ok(messages) = client.list_messages(&session_id).await {
+                // Reload messages for the session using the same directory-aware client
+                if let Ok(messages) = target_client.list_messages(&session_id).await {
                     Cx::post_action(AppAction::MessagesLoaded(messages));
                 }
             }
@@ -393,13 +418,21 @@ pub fn spawn_session_unreverter(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     session_id: String,
+    directory: Option<String>,
 ) {
     runtime.spawn(async move {
-        match client.unrevert_session(&session_id).await {
+        // Use session-specific directory if provided
+        let target_client = if let Some(dir) = directory {
+            Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL).with_directory(dir))
+        } else {
+            client.clone()
+        };
+
+        match target_client.unrevert_session(&session_id).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionUpdated(session));
-                // Reload messages for the session
-                if let Ok(messages) = client.list_messages(&session_id).await {
+                // Reload messages for the session using the same directory-aware client
+                if let Ok(messages) = target_client.list_messages(&session_id).await {
                     Cx::post_action(AppAction::MessagesLoaded(messages));
                 }
             }
