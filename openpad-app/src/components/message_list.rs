@@ -150,7 +150,7 @@ live_design! {
 pub struct DisplayMessage {
     pub role: String,
     pub text: String,
-    pub message_id: String,
+    pub message_id: Option<String>,
 }
 
 #[derive(Live, LiveHook, Widget)]
@@ -188,7 +188,7 @@ impl MessageList {
             display.push(DisplayMessage {
                 role: role.to_string(),
                 text,
-                message_id,
+                message_id: Some(message_id),
             });
         }
         display
@@ -210,8 +210,9 @@ impl Widget for MessageList {
             }
             
             if widget.button(id!(revert_button)).clicked(&actions) {
-                let message_id = self.messages[item_id].message_id.clone();
-                cx.action(MessageListAction::RevertToMessage(message_id));
+                if let Some(message_id) = &self.messages[item_id].message_id {
+                    cx.action(MessageListAction::RevertToMessage(message_id.clone()));
+                }
             }
         }
     }
@@ -275,7 +276,7 @@ impl MessageListRef {
             inner.messages.push(DisplayMessage {
                 role: role.to_string(),
                 text: text.to_string(),
-                message_id: message_id.to_string(),
+                message_id: Some(message_id.to_string()),
             });
             inner.redraw(cx);
         }
@@ -286,7 +287,7 @@ impl MessageListRef {
             inner.messages.push(DisplayMessage {
                 role: "user".to_string(),
                 text: text.to_string(),
-                message_id: "".to_string(), // User messages don't have IDs yet
+                message_id: None, // User messages don't have IDs yet
             });
             inner.redraw(cx);
         }

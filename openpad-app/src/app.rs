@@ -354,13 +354,9 @@ impl App {
     
     fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {
         // Parse the dialog_type which is in format "action:data"
-        let parts: Vec<&str> = dialog_type.split(':').collect();
-        if parts.len() < 2 {
+        let Some((action, data)) = dialog_type.split_once(':') else {
             return;
-        }
-        
-        let action = parts[0];
-        let data = parts[1];
+        };
         
         let Some(client) = self.client.clone() else {
             self.state.error_message = Some("Not connected".to_string());
