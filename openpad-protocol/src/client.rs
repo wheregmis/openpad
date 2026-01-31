@@ -276,7 +276,7 @@ impl OpenCodeClient {
     }
 
     pub async fn agents(&self) -> Result<Vec<Agent>> {
-        self.get_json("/app/agents", "get agents").await
+        self.get_json("/agent", "get agents").await
     }
 
     // ========================================================================

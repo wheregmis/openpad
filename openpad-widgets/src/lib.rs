@@ -177,10 +177,9 @@ pub mod openpad {
 
         pub InputBar = <RoundedView> {
             width: Fill, height: Fit
-            flow: Right,
-            spacing: 8,
-            padding: { left: 18, right: 10, top: 10, bottom: 10 }
-            align: { y: 1.0 }
+            flow: Down,
+            spacing: 4,
+            padding: { left: 18, right: 10, top: 10, bottom: 8 }
             show_bg: true
             draw_bg: {
                 color: #252526
@@ -188,6 +187,45 @@ pub mod openpad {
                 border_radius: 12.0
                 border_size: 1.0
             }
+        }
+
+        pub InputBarToolbar = <View> {
+            width: Fill, height: Fit
+            flow: Right
+            spacing: 6
+            padding: { left: 0, right: 0, top: 2, bottom: 2 }
+            align: { y: 0.5 }
+        }
+
+        pub InputBarDropDown = <DropDown> {
+            width: Fit, height: 26
+            padding: { left: 8, right: 20, top: 4, bottom: 4 }
+            draw_text: {
+                text_style: <THEME_FONT_REGULAR> { font_size: 8.5 }
+                fn get_color(self) -> vec4 {
+                    return #aab2bd;
+                }
+            }
+            draw_bg: {
+                fn pixel(self) -> vec4 {
+                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                    sdf.box(1., 1., self.rect_size.x - 2., self.rect_size.y - 2., 4.0);
+                    sdf.fill(#2d2d30);
+                    // Draw dropdown arrow
+                    let arrow_x = self.rect_size.x - 14.0;
+                    let arrow_y = self.rect_size.y * 0.5 - 1.5;
+                    sdf.move_to(arrow_x, arrow_y);
+                    sdf.line_to(arrow_x + 4.0, arrow_y + 4.0);
+                    sdf.line_to(arrow_x + 8.0, arrow_y);
+                    sdf.stroke(#667, 1.2);
+                    return sdf.result;
+                }
+            }
+            popup_menu: {
+                draw_bg: { color: #2d2d30 }
+            }
+            labels: ["Default"]
+            values: []
         }
 
         pub InputField = <TextInput> {

@@ -1,7 +1,7 @@
 use makepad_widgets::*;
 use openpad_protocol::{
-    Event as OcEvent, HealthResponse, Message, MessageWithParts, Part, PermissionReply,
-    PermissionRequest, Project, Session,
+    Agent, Event as OcEvent, HealthResponse, Message, MessageWithParts, Part, PermissionReply,
+    PermissionRequest, Project, ProvidersResponse, Session,
 };
 
 #[derive(Clone, Debug, DefaultNone)]
@@ -49,6 +49,8 @@ pub enum AppAction {
         session_id: String,
         request_id: String,
     },
+    ProvidersLoaded(ProvidersResponse),
+    AgentsLoaded(Vec<Agent>),
 }
 
 #[derive(Clone, Debug, DefaultNone)]

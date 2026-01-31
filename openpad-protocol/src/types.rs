@@ -29,11 +29,15 @@ pub struct LogRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Agent {
-    pub id: String,
-    #[serde(default)]
-    pub name: Option<String>,
+    pub name: String,
     #[serde(default)]
     pub description: Option<String>,
+    #[serde(default)]
+    pub mode: Option<String>,
+    #[serde(default)]
+    pub native: Option<bool>,
+    #[serde(default)]
+    pub hidden: Option<bool>,
 }
 
 // ============================================================================
@@ -77,7 +81,7 @@ pub struct Provider {
     #[serde(default)]
     pub name: Option<String>,
     #[serde(default)]
-    pub models: Option<Vec<Model>>,
+    pub models: Option<HashMap<String, Model>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

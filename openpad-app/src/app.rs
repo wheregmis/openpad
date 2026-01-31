@@ -50,7 +50,7 @@ live_design! {
                     side_panel = <SidePanel> {
                         width: 260.0, height: Fill
                         open_size: 260.0
-                        
+
                         <HeaderBar> {
                             height: 36
                             width: 260
@@ -62,7 +62,7 @@ live_design! {
                                 border_size: 1.0
                             }
                         }
-                        
+
                         projects_panel = <ProjectsPanel> {}
                     }
 
@@ -82,7 +82,7 @@ live_design! {
                                 border_color: #333
                                 border_radius: 0.0
                             }
-                            
+
                             // This spacer expands when the sidebar closes to keep traffic lights clear
                             traffic_light_spacer = <SidePanel> {
                                 width: 0.0, height: Fill
@@ -134,7 +134,7 @@ live_design! {
                                     }
                                 }
                             }
-                            
+
                             <Label> { text: "/", draw_text: { color: #444, text_style: <THEME_FONT_REGULAR> { font_size: 10 } } }
 
                             session_row = <View> {
@@ -149,7 +149,7 @@ live_design! {
                                 visible: false
                                 project_path_label = <Label> { text: "" }
                             }
-                            
+
                             <View> { width: Fill }
 
                             revert_indicator = <View> {
@@ -188,14 +188,22 @@ live_design! {
                             input_row = <View> {
                                 width: Fill, height: Fit
                                 padding: { left: 32, right: 32, top: 12, bottom: 20 }
-                                flow: Right
-                                align: { y: 0.5 }
                                 <InputBar> {
                                     width: Fill
                                     input_box = <InputField> {}
-                                    send_button = <SendButton> {
-                                        margin: { left: 0 }
-                                        width: 32, height: 32
+                                    <InputBarToolbar> {
+                                        agent_dropdown = <InputBarDropDown> {
+                                            labels: ["Agent"]
+                                        }
+                                        model_dropdown = <InputBarDropDown> {
+                                            width: 120
+                                            labels: ["Model"]
+                                        }
+                                        <View> { width: Fill }
+                                        send_button = <SendButton> {
+                                            margin: { left: 0 }
+                                            width: 32, height: 32
+                                        }
                                     }
                                 }
                             }
@@ -207,7 +215,7 @@ live_design! {
                             flow: Down
                             show_bg: true
                             draw_bg: { color: #1e1e1e }
-                            
+
                             // Separator line
                             <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: #333 } }
 
@@ -306,12 +314,27 @@ impl App {
                     AppAction::DialogConfirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
+                    AppAction::Connected => {
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
+                        self.load_providers_and_agents();
+                    }
                     _ => {
                         state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                     }
                 }
             }
         }
+    }
+
+    fn load_providers_and_agents(&mut self) {
+        let Some(client) = self.client.clone() else {
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+        async_runtime::spawn_providers_loader(runtime, client.clone());
+        async_runtime::spawn_agents_loader(runtime, client);
     }
 
     fn load_pending_permissions(&mut self) {
@@ -346,7 +369,8 @@ impl App {
         };
 
         let session_id = self.state.current_session_id.clone();
-        async_runtime::spawn_message_sender(runtime, client, session_id, text);
+        let model_spec = self.state.selected_model_spec();
+        async_runtime::spawn_message_sender(runtime, client, session_id, text, model_spec);
     }
 
     fn create_session(&mut self, _cx: &mut Cx) {
@@ -491,12 +515,16 @@ impl AppMain for App {
                 self.connect_to_opencode(cx);
                 // Initialize terminal
                 self.ui.terminal(id!(terminal_panel)).init_pty(cx);
-                
+
                 // Initialize sidebar to open
                 self.sidebar_open = true;
                 self.ui.side_panel(id!(side_panel)).set_open(cx, true);
-                self.ui.side_panel(id!(traffic_light_spacer)).set_open(cx, false);
-                self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.on));
+                self.ui
+                    .side_panel(id!(traffic_light_spacer))
+                    .set_open(cx, false);
+                self.ui
+                    .view(id!(hamburger_button))
+                    .animator_play(cx, id!(open.on));
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
@@ -606,15 +634,23 @@ impl AppMain for App {
 
         if self.ui.button(id!(hamburger_button)).clicked(&actions) {
             self.sidebar_open = !self.sidebar_open;
-            
+
             // Toggle sidebar and synchronized spacer
-            self.ui.side_panel(id!(side_panel)).set_open(cx, self.sidebar_open);
-            self.ui.side_panel(id!(traffic_light_spacer)).set_open(cx, !self.sidebar_open);
-            
+            self.ui
+                .side_panel(id!(side_panel))
+                .set_open(cx, self.sidebar_open);
+            self.ui
+                .side_panel(id!(traffic_light_spacer))
+                .set_open(cx, !self.sidebar_open);
+
             if self.sidebar_open {
-                self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.on));
+                self.ui
+                    .view(id!(hamburger_button))
+                    .animator_play(cx, id!(open.on));
             } else {
-                self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.off));
+                self.ui
+                    .view(id!(hamburger_button))
+                    .animator_play(cx, id!(open.off));
             }
         }
 
@@ -624,6 +660,15 @@ impl AppMain for App {
                 self.send_message(cx, text.clone());
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
             }
+        }
+
+        // Handle dropdown selections
+        if let Some(idx) = self.ui.drop_down(id!(model_dropdown)).changed(&actions) {
+            // idx 0 = "Default" (no model override), idx >= 1 maps to model_list[idx-1]
+            self.state.selected_model_idx = if idx > 0 { Some(idx - 1) } else { None };
+        }
+        if let Some(idx) = self.ui.drop_down(id!(agent_dropdown)).changed(&actions) {
+            self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
         }
     }
 }

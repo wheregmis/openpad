@@ -1,8 +1,9 @@
 use crate::state::actions::AppAction;
 use makepad_widgets::Cx;
 use openpad_protocol::{
-    OpenCodeClient, PermissionAction, PermissionReply, PermissionReplyRequest, PermissionRule,
-    PermissionRuleset, Session, SessionCreateRequest,
+    ModelSpec, OpenCodeClient, PartInput, PermissionAction, PermissionReply,
+    PermissionReplyRequest, PermissionRule, PermissionRuleset, PromptRequest, Session,
+    SessionCreateRequest,
 };
 use std::sync::Arc;
 
@@ -86,6 +87,7 @@ pub fn spawn_message_sender(
     client: Arc<OpenCodeClient>,
     session_id: Option<String>,
     text: String,
+    model_spec: Option<ModelSpec>,
 ) {
     runtime.spawn(async move {
         // Create session if needed
@@ -110,8 +112,13 @@ pub fn spawn_message_sender(
             }
         };
 
-        // Send prompt
-        if let Err(e) = client.send_prompt(&sid, &text).await {
+        // Send prompt with optional model selection
+        let request = PromptRequest {
+            model: model_spec,
+            parts: vec![PartInput::text(&text)],
+            no_reply: None,
+        };
+        if let Err(e) = client.send_prompt_with_options(&sid, request).await {
             Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
         }
     });
@@ -190,6 +197,34 @@ fn default_permission_ruleset() -> PermissionRuleset {
         pattern: "*".to_string(),
         action: PermissionAction::Ask,
     }]
+}
+
+/// Spawns a task to fetch providers (and their models)
+pub fn spawn_providers_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
+    runtime.spawn(async move {
+        match client.get_providers().await {
+            Ok(providers_response) => {
+                Cx::post_action(AppAction::ProvidersLoaded(providers_response));
+            }
+            Err(e) => {
+                eprintln!("Failed to load providers: {}", e);
+            }
+        }
+    });
+}
+
+/// Spawns a task to fetch available agents
+pub fn spawn_agents_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
+    runtime.spawn(async move {
+        match client.agents().await {
+            Ok(agents) => {
+                Cx::post_action(AppAction::AgentsLoaded(agents));
+            }
+            Err(e) => {
+                eprintln!("Failed to load agents: {}", e);
+            }
+        }
+    });
 }
 
 /// Spawns a task to delete a session

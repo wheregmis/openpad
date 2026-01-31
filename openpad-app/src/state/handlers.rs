@@ -6,7 +6,10 @@ use crate::constants::*;
 use crate::state::actions::AppAction;
 use crate::ui::state_updates;
 use makepad_widgets::*;
-use openpad_protocol::{Event as OcEvent, MessageWithParts, PermissionRequest, Project, Session};
+use openpad_protocol::{
+    Agent, Event as OcEvent, MessageWithParts, ModelSpec, PermissionRequest, Project, Provider,
+    Session,
+};
 
 /// Data structure holding application state for event handling
 #[derive(Default)]
@@ -21,6 +24,26 @@ pub struct AppState {
     pub health_ok: Option<bool>,
     pub error_message: Option<String>,
     pub pending_permissions: Vec<PermissionRequest>,
+    pub providers: Vec<Provider>,
+    pub agents: Vec<Agent>,
+    /// Flat list of (provider_id, model_id, display_label) for the model dropdown
+    pub model_list: Vec<(String, String, String)>,
+    pub selected_model_idx: Option<usize>,
+    pub selected_agent_idx: Option<usize>,
+}
+
+impl AppState {
+    /// Get the currently selected ModelSpec, if any
+    pub fn selected_model_spec(&self) -> Option<ModelSpec> {
+        self.selected_model_idx.and_then(|idx| {
+            self.model_list
+                .get(idx)
+                .map(|(provider_id, model_id, _)| ModelSpec {
+                    provider_id: provider_id.clone(),
+                    model_id: model_id.clone(),
+                })
+        })
+    }
 }
 
 impl AppState {
@@ -182,6 +205,48 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         AppAction::PendingPermissionsLoaded(permissions) => {
             state.pending_permissions = permissions.clone();
             show_next_pending_permission(state, ui, cx);
+        }
+        AppAction::ProvidersLoaded(providers_response) => {
+            log!(
+                "ProvidersLoaded: {} providers",
+                providers_response.providers.len()
+            );
+            state.providers = providers_response.providers.clone();
+            // Build flat model list for dropdown
+            state.model_list.clear();
+            for provider in &state.providers {
+                if let Some(models) = &provider.models {
+                    for (_key, model) in models {
+                        let display_name = model.name.as_deref().unwrap_or(&model.id);
+                        let label = format!(
+                            "{}/{}",
+                            provider.name.as_deref().unwrap_or(&provider.id),
+                            display_name
+                        );
+                        state
+                            .model_list
+                            .push((provider.id.clone(), model.id.clone(), label));
+                    }
+                }
+            }
+            // Populate model dropdown labels
+            let mut labels: Vec<String> = vec!["Default".to_string()];
+            labels.extend(state.model_list.iter().map(|(_, _, label)| label.clone()));
+            log!("Setting model dropdown labels: {} items", labels.len());
+            ui.drop_down(id!(model_dropdown)).set_labels(cx, labels);
+            ui.drop_down(id!(model_dropdown)).set_selected_item(cx, 0);
+            state.selected_model_idx = None;
+            cx.redraw_all();
+        }
+        AppAction::AgentsLoaded(agents) => {
+            log!("AgentsLoaded: {} agents", agents.len());
+            state.agents = agents.clone();
+            let mut labels: Vec<String> = vec!["Default".to_string()];
+            labels.extend(state.agents.iter().map(|a| a.name.clone()));
+            ui.drop_down(id!(agent_dropdown)).set_labels(cx, labels);
+            ui.drop_down(id!(agent_dropdown)).set_selected_item(cx, 0);
+            state.selected_agent_idx = None;
+            cx.redraw_all();
         }
         _ => {}
     }
