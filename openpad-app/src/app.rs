@@ -47,7 +47,7 @@ live_design! {
                     <View> { width: Fill }
                     app_title = <Label> {
                         text: "Openpad"
-                        draw_text: { color: #e6e9ee, text_style: { font_size: 12 } }
+                        draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 12 } }
                     }
                     <View> { width: Fill }
                     status_row = <View> {
@@ -58,7 +58,7 @@ live_design! {
                         status_dot = <StatusDot> {}
                         status_label = <Label> {
                             text: "Connecting..."
-                            draw_text: { color: #aab3bd, text_style: { font_size: 11 } }
+                            draw_text: { color: #aab3bd, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                         }
                     }
                 }
@@ -90,7 +90,7 @@ live_design! {
                             }
                             session_title = <Label> {
                                 text: "Select a session or start a new one"
-                                draw_text: { color: #6b7b8c, text_style: { font_size: 11 } }
+                                draw_text: { color: #6b7b8c, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                             }
                             revert_indicator = <View> {
                                 visible: false
@@ -98,7 +98,7 @@ live_design! {
 
                                 revert_indicator_label = <Label> {
                                     text: "⟲ Reverted"
-                                    draw_text: { color: #f59e0b, text_style: { font_size: 10 } }
+                                    draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                                 }
                             }
                             <View> { width: Fill }
@@ -115,7 +115,7 @@ live_design! {
                                         border_radius: 6.0
                                         border_size: 0.0
                                     }
-                                    draw_text: { color: #ffffff, text_style: { font_size: 10 } }
+                                    draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                                 }
                             }
                         }

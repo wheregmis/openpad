@@ -59,7 +59,7 @@ live_design! {
                     text: ""
                     draw_text: {
                         color: #cbd3dc
-                        text_style: { font_size: 10 }
+                        text_style: <THEME_FONT_REGULAR> { font_size: 10 }
                     }
                 }
             }
@@ -70,36 +70,46 @@ live_design! {
             text: ""
             draw_text: {
                 color: #aab3bd
-                text_style: { font_size: 11 }
+                text_style: <THEME_FONT_REGULAR> { font_size: 11 }
                 wrap: Word
             }
         }
 
         details_view = <RoundedView> {
-            width: Fill, height: Fit
+            width: Fill, height: 200
             padding: 10,
             draw_bg: {
                 color: #15181d
                 border_radius: 8.0
             }
 
-            pattern = <Label> {
-                width: Fill, height: Fit
-                text: ""
-                draw_text: {
-                    color: #6b7b8c
-                    text_style: { font_size: 10, font_family: "Mono" }
-                    wrap: Word
-                }
-            }
+            <ScrollYView> {
+                width: Fill, height: Fill
 
-            context = <Label> {
-                width: Fill, height: Fit
-                text: ""
-                draw_text: {
-                    color: #8fa0b3
-                    text_style: { font_size: 10 }
-                    wrap: Word
+                <View> {
+                    width: Fill, height: Fit
+                    flow: Down,
+                    spacing: 6,
+
+                    pattern = <Label> {
+                        width: Fill, height: Fit
+                        text: ""
+                        draw_text: {
+                            color: #6b7b8c
+                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                            wrap: Word
+                        }
+                    }
+
+                    context = <Label> {
+                        width: Fill, height: Fit
+                        text: ""
+                        draw_text: {
+                            color: #8fa0b3
+                            text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                            wrap: Word
+                        }
+                    }
                 }
             }
         }
@@ -119,7 +129,7 @@ live_design! {
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: #e6e9ee }
+                draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
             }
 
             always_button = <Button> {
@@ -131,7 +141,7 @@ live_design! {
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: #e6e9ee }
+                draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
             }
 
             accept_button = <Button> {
@@ -143,7 +153,7 @@ live_design! {
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: #ffffff }
+                draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
             }
         }
     }

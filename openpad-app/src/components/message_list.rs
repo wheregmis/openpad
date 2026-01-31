@@ -29,7 +29,7 @@ live_design! {
                         margin: { bottom: 4 }
                         draw_text: {
                             color: #7a8ea5,
-                            text_style: { font_size: 9 },
+                            text_style: <THEME_FONT_REGULAR> { font_size: 9 },
                         }
                         text: "..."
                     }
@@ -38,7 +38,7 @@ live_design! {
                         width: Fill, height: Fit
                         draw_text: {
                             color: #eef3f7,
-                            text_style: { font_size: 11, line_spacing: 1.5 },
+                            text_style: <THEME_FONT_REGULAR> { font_size: 11, line_spacing: 1.5 },
                             word: Wrap
                         }
                     }
@@ -66,7 +66,7 @@ live_design! {
                             width: Fit, height: Fit
                             draw_text: {
                                 color: #7a8894,
-                                text_style: { font_size: 9 },
+                                text_style: <THEME_FONT_REGULAR> { font_size: 9 },
                             }
                             text: "..."
                         }
@@ -75,7 +75,7 @@ live_design! {
                             width: Fit, height: Fit
                             draw_text: {
                                 color: #626970,
-                                text_style: { font_size: 9 },
+                                text_style: <THEME_FONT_REGULAR> { font_size: 9 },
                             }
                             text: "..."
                         }
@@ -134,7 +134,7 @@ live_design! {
                             draw_text: {
                                 color: #6b7b8c
                                 color_hover: #ffffff
-                                text_style: { font_size: 9 }
+                                text_style: <THEME_FONT_REGULAR> { font_size: 9 }
                             }
                         }
                     }

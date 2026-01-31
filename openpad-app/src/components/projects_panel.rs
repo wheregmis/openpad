@@ -25,10 +25,10 @@ live_design! {
                 flow: Down,
                 padding: { top: 6, bottom: 6 }
                 project_name = <Label> {
-                    draw_text: { color: #e6e9ee, text_style: { font_size: 12 } }
+                    draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 12 } }
                 }
                 project_path = <Label> {
-                    draw_text: { color: #aab3bd, text_style: { font_size: 10 } }
+                    draw_text: { color: #aab3bd, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                 }
             }
 
@@ -46,7 +46,7 @@ live_design! {
                         border_color_1: #313842
                         border_color_2: #2a3039
                     }
-                    draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
+                    draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                 }
             }
 
@@ -67,7 +67,7 @@ live_design! {
                         border_radius: 8.0
                         border_size: 0.0
                     }
-                    draw_text: { color: #e6e9ee, text_style: { font_size: 11 } }
+                    draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                 }
 
                 // Action buttons container

@@ -207,7 +207,7 @@ pub mod openpad {
                 border_color_1_disabled: #0000
                 border_color_2_disabled: #0000
             }
-            draw_text: { color: #e6e9ee, text_style: { font_size: 12 } }
+            draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 12 } }
             text: ""
         }
 
