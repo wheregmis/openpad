@@ -145,8 +145,9 @@ pub fn spawn_session_creator(
         match session_result {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
-                // Use the original client to list sessions, which uses the startup directory
-                // Note: The newly created session will also appear via SSE SessionCreated event
+                // Reload all sessions using the original client
+                // The OpenCode server returns all sessions across projects,
+                // which are then grouped by project_id in the UI
                 if let Ok(sessions) = client.list_sessions().await {
                     Cx::post_action(AppAction::SessionsLoaded(sessions));
                 }
