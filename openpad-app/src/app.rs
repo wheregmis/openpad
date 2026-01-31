@@ -47,11 +47,10 @@ live_design! {
                     flow: Right,
                     spacing: 0,
 
-                    side_panel_wrap = <View> {
-                        width: 260, height: Fill
-                        flow: Down
-                        clip_x: true
-                        // Sidebar Header (Space for traffic lights when open)
+                    side_panel = <SidePanel> {
+                        width: 260.0, height: Fill
+                        open_size: 260.0
+                        
                         <HeaderBar> {
                             height: 36
                             width: 260
@@ -60,18 +59,14 @@ live_design! {
                                 color: #1e1e1e
                                 border_color: #333
                                 border_radius: 0.0
+                                border_size: 1.0
                             }
                         }
-
-                        side_panel = <SidePanel> {
-                            open_size: 260.0
-                            draw_bg: { border_size: 0.0 }
-                            projects_panel = <ProjectsPanel> {}
-                        }
+                        
+                        projects_panel = <ProjectsPanel> {}
                     }
 
-                    // Vertical Separator
-                    vertical_separator = <View> { width: 1, height: Fill, show_bg: true, draw_bg: { color: #333 } }
+
 
                     <View> {
                         width: Fill, height: Fill
@@ -87,6 +82,15 @@ live_design! {
                                 border_color: #333
                                 border_radius: 0.0
                             }
+                            
+                            // This spacer expands when the sidebar closes to keep traffic lights clear
+                            traffic_light_spacer = <SidePanel> {
+                                width: 0.0, height: Fill
+                                open_size: 80.0
+                                close_size: 0.0
+                                draw_bg: { color: #0000, border_size: 0.0 } // Transparent!
+                            }
+
                             hamburger_button = <HamburgerButton> {
                                 width: 32, height: 32
                             }
@@ -491,6 +495,7 @@ impl AppMain for App {
                 // Initialize sidebar to open
                 self.sidebar_open = true;
                 self.ui.side_panel(id!(side_panel)).set_open(cx, true);
+                self.ui.side_panel(id!(traffic_light_spacer)).set_open(cx, false);
                 self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.on));
             }
             Event::Actions(actions) => {
@@ -602,18 +607,13 @@ impl AppMain for App {
         if self.ui.button(id!(hamburger_button)).clicked(&actions) {
             self.sidebar_open = !self.sidebar_open;
             
-            // Toggle sidebar visibility
+            // Toggle sidebar and synchronized spacer
             self.ui.side_panel(id!(side_panel)).set_open(cx, self.sidebar_open);
-            self.ui.view(id!(side_panel_wrap)).set_visible(cx, self.sidebar_open);
+            self.ui.side_panel(id!(traffic_light_spacer)).set_open(cx, !self.sidebar_open);
             
-            // Adjust layout widths and padding
             if self.sidebar_open {
-                self.ui.view(id!(vertical_separator)).set_visible(cx, true);
-                self.ui.view(id!(main_header)).apply_over(cx, live!{ padding: { left: 16 } });
                 self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.on));
             } else {
-                self.ui.view(id!(vertical_separator)).set_visible(cx, false);
-                self.ui.view(id!(main_header)).apply_over(cx, live!{ padding: { left: 80 } });
                 self.ui.view(id!(hamburger_button)).animator_play(cx, id!(open.off));
             }
         }

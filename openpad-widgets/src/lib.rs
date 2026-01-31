@@ -41,8 +41,11 @@ pub mod openpad {
 
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
+                    sdf.rect(0.0, 0.0, self.rect_size.x, self.rect_size.y);
                     sdf.fill_keep(self.color);
+                    // Draw only bottom border
+                    sdf.move_to(0.0, self.rect_size.y - 1.0);
+                    sdf.line_to(self.rect_size.x, self.rect_size.y - 1.0);
                     sdf.stroke(self.border_color, self.border_size);
                     return sdf.result;
                 }
@@ -130,6 +133,7 @@ pub mod openpad {
 
         pub SidePanelBase = {{SidePanel}} {}
         pub SidePanel = <SidePanelBase> {
+            width: 280.0, height: Fill
             flow: Down,
             padding: 0,
             spacing: 0,
@@ -143,8 +147,11 @@ pub mod openpad {
                 uniform border_size: 1.0
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.rect(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0);
+                    sdf.rect(0.0, 0.0, self.rect_size.x, self.rect_size.y);
                     sdf.fill_keep(self.color);
+                    // Draw only right border
+                    sdf.move_to(self.rect_size.x - 1.0, 0.0);
+                    sdf.line_to(self.rect_size.x - 1.0, self.rect_size.y);
                     sdf.stroke(self.border_color, self.border_size);
                     return sdf.result;
                 }
@@ -154,13 +161,13 @@ pub mod openpad {
                     default: off,
                     off = {
                         redraw: true
-                        from: {all: Forward {duration: 1.0}}
+                        from: {all: Forward {duration: 0.4}}
                         ease: ExpDecay {d1: 0.80, d2: 0.97}
                         apply: {animator_panel_progress: 0.0}
                     }
                     on = {
                         redraw: true
-                        from: {all: Forward {duration: 1.0}}
+                        from: {all: Forward {duration: 0.4}}
                         ease: ExpDecay {d1: 0.80, d2: 0.97}
                         apply: {animator_panel_progress: 1.0}
                     }
