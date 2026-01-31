@@ -118,15 +118,36 @@ pub fn spawn_message_sender(
 }
 
 /// Spawns a task to create a new session
-pub fn spawn_session_creator(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
+pub fn spawn_session_creator(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    project_directory: Option<String>,
+) {
     runtime.spawn(async move {
-        let request = SessionCreateRequest {
-            parent_id: None,
-            title: None,
-            permission: Some(default_permission_ruleset()),
+        // If a specific directory is provided, create a new client for this request
+        // Otherwise, use the default client
+        let session_result = if let Some(directory) = project_directory {
+            let project_client = OpenCodeClient::new("http://localhost:4096")
+                .with_directory(directory);
+            
+            let request = SessionCreateRequest {
+                parent_id: None,
+                title: None,
+                permission: Some(default_permission_ruleset()),
+            };
+            
+            project_client.create_session_with_options(request).await
+        } else {
+            let request = SessionCreateRequest {
+                parent_id: None,
+                title: None,
+                permission: Some(default_permission_ruleset()),
+            };
+            
+            client.create_session_with_options(request).await
         };
 
-        match client.create_session_with_options(request).await {
+        match session_result {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
                 if let Ok(sessions) = client.list_sessions().await {
