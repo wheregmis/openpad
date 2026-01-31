@@ -191,7 +191,8 @@ let restored = client.unrevert_session(&session_id).await?;
 
 // Respond to permission request
 client.respond_to_permission(&session_id, &permission_id, PermissionResponse {
-    allow: true,
+    response: PermissionDecision::Allow,
+    remember: Some(true),
 }).await?;
 ```
 

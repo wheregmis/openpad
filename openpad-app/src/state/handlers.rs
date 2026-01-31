@@ -71,6 +71,7 @@ pub struct AppState {
     pub connected: bool,
     pub health_ok: Option<bool>,
     pub error_message: Option<String>,
+    pub is_working: bool,
     pub pending_permissions: Vec<PermissionRequest>,
     pub providers: Vec<Provider>,
     pub agents: Vec<Agent>,
@@ -223,12 +224,16 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         AppAction::Connected => {
             state.connected = true;
             state.error_message = None;
+            state.is_working = false;
             state_updates::set_status_connected(ui, cx);
+            state_updates::update_work_indicator(ui, cx, false);
             cx.redraw_all();
         }
         AppAction::ConnectionFailed(err) => {
             state.error_message = Some(err.clone());
+            state.is_working = false;
             state_updates::set_status_error(ui, cx, err);
+            state_updates::update_work_indicator(ui, cx, false);
             cx.redraw_all();
         }
         AppAction::HealthUpdated(health) => {
@@ -239,7 +244,9 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 state_updates::set_status_connected(ui, cx);
             } else {
                 state.connected = false;
+                state.is_working = false;
                 state_updates::set_status_disconnected(ui, cx);
+                state_updates::update_work_indicator(ui, cx, false);
             }
             cx.redraw_all();
         }
@@ -282,8 +289,10 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             if state.current_session_id.as_ref() == Some(session_id) {
                 state.current_session_id = None;
                 state.selected_session_id = None;
+                state.is_working = false;
                 state.clear_messages(ui, cx);
                 state.update_session_title_ui(ui, cx);
+                state_updates::update_work_indicator(ui, cx, false);
             } else if state.selected_session_id.as_ref() == Some(session_id) {
                 state.selected_session_id = None;
             }
@@ -310,7 +319,9 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
+            state.is_working = false;
             state_updates::set_status_error(ui, cx, err);
+            state_updates::update_work_indicator(ui, cx, false);
             cx.redraw_all();
         }
         AppAction::PendingPermissionsLoaded(permissions) => {
@@ -390,6 +401,7 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             if state.current_session_id.as_ref() == Some(&session.id) {
                 state.current_session_id = None;
                 state.selected_session_id = None;
+                update_work_indicator(state, ui, cx, false);
                 state.clear_messages(ui, cx);
             } else if state.selected_session_id.as_ref() == Some(&session.id) {
                 state.selected_session_id = None;
@@ -421,6 +433,9 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             }
             remove_pending_permission(state, request_id);
             show_next_pending_permission(state, ui, cx);
+        }
+        OcEvent::SessionError { .. } => {
+            update_work_indicator(state, ui, cx, false);
         }
         _ => {}
     }
@@ -455,6 +470,11 @@ fn handle_message_updated(
         return;
     }
 
+    if let openpad_protocol::Message::Assistant(msg) = message {
+        let working = msg.time.completed.is_none() && msg.error.is_none();
+        update_work_indicator(state, ui, cx, working);
+    }
+
     // Find existing or add new MessageWithParts entry
     if let Some(existing) = state
         .messages_data
@@ -481,11 +501,15 @@ fn handle_part_updated(
     part: &openpad_protocol::Part,
 ) {
     if let (Some(_), Some(msg_id)) = (part.text_content(), part.message_id()) {
+        let mut should_update_work = false;
         if let Some(mwp) = state
             .messages_data
             .iter_mut()
             .find(|m| m.info.id() == msg_id)
         {
+            if matches!(mwp.info, openpad_protocol::Message::Assistant(_)) {
+                should_update_work = true;
+            }
             let part_id = match &part {
                 openpad_protocol::Part::Text { id, .. } => id.as_str(),
                 _ => "",
@@ -508,7 +532,19 @@ fn handle_part_updated(
             ui.message_list(&[id!(message_list)])
                 .set_messages(cx, &state.messages_data);
         }
+
+        if should_update_work {
+            update_work_indicator(state, ui, cx, true);
+        }
     }
+}
+
+fn update_work_indicator(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, working: bool) {
+    if state.is_working == working {
+        return;
+    }
+    state.is_working = working;
+    state_updates::update_work_indicator(ui, cx, working);
 }
 
 fn format_permission_context(request: &PermissionRequest) -> Option<String> {

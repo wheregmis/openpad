@@ -178,46 +178,54 @@ pub mod openpad {
         pub InputBar = <RoundedView> {
             width: Fill, height: Fit
             flow: Down,
-            spacing: 4,
-            padding: { left: 18, right: 10, top: 10, bottom: 8 }
+            spacing: 6,
+            padding: { left: 18, right: 14, top: 12, bottom: 10 }
             show_bg: true
             draw_bg: {
                 color: #252526
-                border_color: #333
-                border_radius: 12.0
+                border_color: #2f3238
+                border_radius: 14.0
                 border_size: 1.0
             }
         }
 
-        pub InputBarToolbar = <View> {
-            width: Fill, height: Fit
+        pub InputBarToolbar = <RoundedView> {
+            width: Fill, height: 34
             flow: Right
-            spacing: 6
-            padding: { left: 0, right: 0, top: 2, bottom: 2 }
+            spacing: 8
+            padding: { left: 8, right: 8, top: 4, bottom: 4 }
             align: { y: 0.5 }
+            show_bg: true
+            draw_bg: {
+                color: #202225
+                border_color: #2c2f36
+                border_radius: 10.0
+                border_size: 1.0
+            }
         }
 
         pub InputBarDropDown = <DropDown> {
             width: Fit, height: 26
-            padding: { left: 8, right: 20, top: 4, bottom: 4 }
+            padding: { left: 10, right: 22, top: 4, bottom: 4 }
             draw_text: {
                 text_style: <THEME_FONT_REGULAR> { font_size: 8.5 }
                 fn get_color(self) -> vec4 {
-                    return #aab2bd;
+                    return #c5cbd6;
                 }
             }
             draw_bg: {
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.box(1., 1., self.rect_size.x - 2., self.rect_size.y - 2., 4.0);
-                    sdf.fill(#2d2d30);
+                    sdf.box(1., 1., self.rect_size.x - 2., self.rect_size.y - 2., 6.0);
+                    sdf.fill(#25262b);
+                    sdf.stroke(#343843, 1.0);
                     // Draw dropdown arrow
                     let arrow_x = self.rect_size.x - 14.0;
                     let arrow_y = self.rect_size.y * 0.5 - 1.5;
                     sdf.move_to(arrow_x, arrow_y);
                     sdf.line_to(arrow_x + 4.0, arrow_y + 4.0);
                     sdf.line_to(arrow_x + 8.0, arrow_y);
-                    sdf.stroke(#667, 1.2);
+                    sdf.stroke(#7b8190, 1.2);
                     return sdf.result;
                 }
             }
@@ -247,9 +255,9 @@ pub mod openpad {
         }
 
         pub SendButton = <Button> {
-            width: 36, height: 36
-            margin: { left: 6 }
-            padding: { left: 8, right: 8, top: 8, bottom: 8 }
+            width: 32, height: 32
+            margin: { left: 4 }
+            padding: { left: 7, right: 7, top: 7, bottom: 7 }
             text: ""
             icon_walk: { width: 16, height: Fit }
             draw_icon: {
@@ -259,11 +267,11 @@ pub mod openpad {
                 color_down: #aab2bd
             }
             draw_bg: {
-                border_radius: 10.0
+                border_radius: 9.0
                 border_size: 0.0
-                color: #2d2d30
-                color_hover: #34343a
-                color_down: #27272b
+                color: #2a2b30
+                color_hover: #33353b
+                color_down: #24252a
             }
         }
     }

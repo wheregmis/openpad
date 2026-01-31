@@ -255,17 +255,26 @@ pub fn spawn_permission_reply(
     reply: PermissionReply,
 ) {
     runtime.spawn(async move {
-        let allow = !matches!(reply, PermissionReply::Reject);
-        let response = PermissionReplyRequest { reply };
+        let response = match reply {
+            PermissionReply::Reject => openpad_protocol::PermissionDecision::Reject,
+            PermissionReply::Once | PermissionReply::Always => {
+                openpad_protocol::PermissionDecision::Allow
+            }
+        };
+        let remember = matches!(reply, PermissionReply::Always);
+        let request = PermissionReplyRequest { reply };
         if client
-            .reply_to_permission(&request_id, response)
+            .reply_to_permission(&request_id, request)
             .await
             .is_ok()
         {
             return;
         }
 
-        let response = openpad_protocol::PermissionResponse { allow };
+        let response = openpad_protocol::PermissionResponse {
+            response,
+            remember: Some(remember),
+        };
         if let Err(e) = client
             .respond_to_permission(&session_id, &request_id, response)
             .await

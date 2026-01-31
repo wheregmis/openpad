@@ -464,8 +464,17 @@ pub struct RevertRequest {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PermissionDecision {
+    Allow,
+    Reject,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PermissionResponse {
-    pub allow: bool,
+    pub response: PermissionDecision,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remember: Option<bool>,
 }
 
 /// Message timing information with millisecond-precision timestamps.

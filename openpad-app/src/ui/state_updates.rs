@@ -30,6 +30,10 @@ pub fn set_status_error(ui: &WidgetRef, cx: &mut Cx, error: &str) {
     update_status_indicator(ui, cx, &msg, COLOR_STATUS_ERROR);
 }
 
+pub fn update_work_indicator(ui: &WidgetRef, cx: &mut Cx, working: bool) {
+    ui.view(&[id!(work_indicator)]).set_visible(cx, working);
+}
+
 /// Updates the session title label with appropriate styling
 pub fn update_session_title_ui(ui: &WidgetRef, cx: &mut Cx, title: &str, is_active: bool) {
     let color = if is_active {
