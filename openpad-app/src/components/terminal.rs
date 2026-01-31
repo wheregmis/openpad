@@ -108,7 +108,12 @@ impl LiveHook for Terminal {
     fn after_new_from_doc(&mut self, _cx: &mut Cx) {
         self.output_lines = Vec::new();
         self.partial_spans = Vec::new();
-        self.current_color = Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 }; // Default gray
+        self.current_color = Vec4 {
+            x: 0.8,
+            y: 0.8,
+            z: 0.8,
+            w: 1.0,
+        }; // Default gray
         self.prompt_string = Self::build_prompt_string(&std::path::PathBuf::from("."));
     }
 }
@@ -145,21 +150,21 @@ impl Widget for Terminal {
                     if item_id < self.output_lines.len() {
                         let spans = &self.output_lines[item_id];
                         let item_widget = list.item(cx, item_id, live_id!(OutputLine));
-                        
-                        // For simplicity, we concatenate spans for now or use a single label with first span's color
-                        // A better approach would be multiple labels, but that requires more complex DSL/management.
-                        // Let's at least show the first span's color or basic text.
+
                         let full_text: String = spans.iter().map(|s| s.text.as_str()).collect();
                         let label = item_widget.label(id!(line_label));
                         label.set_text(cx, &full_text);
                         if let Some(first) = spans.first() {
-                             label.apply_over(cx, live!{
-                                 draw_text: { color: (first.color) }
-                             });
+                            label.apply_over(
+                                cx,
+                                live! {
+                                    draw_text: { color: (first.color) }
+                                },
+                            );
                         }
-                        
+
                         item_widget.draw_all(cx, scope);
-                    } else {
+                    } else if item_id == self.output_lines.len() {
                         let item_widget = list.item(cx, item_id, live_id!(InputLine));
                         item_widget
                             .label(id!(prompt_label))
@@ -190,24 +195,114 @@ impl Terminal {
 
     fn color_from_ansi(code: u8) -> Vec4 {
         match code {
-            0 => Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 },   // Reset/Gray
-            30 => Vec4 { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },  // Black
-            31 => Vec4 { x: 0.9, y: 0.3, z: 0.3, w: 1.0 },  // Red
-            32 => Vec4 { x: 0.3, y: 0.8, z: 0.3, w: 1.0 },  // Green
-            33 => Vec4 { x: 0.8, y: 0.8, z: 0.2, w: 1.0 },  // Yellow
-            34 => Vec4 { x: 0.3, y: 0.3, z: 0.9, w: 1.0 },  // Blue
-            35 => Vec4 { x: 0.8, y: 0.3, z: 0.8, w: 1.0 },  // Magenta
-            36 => Vec4 { x: 0.3, y: 0.8, z: 0.8, w: 1.0 },  // Cyan
-            37 => Vec4 { x: 0.9, y: 0.9, z: 0.9, w: 1.0 },  // White
-            90 => Vec4 { x: 0.5, y: 0.5, z: 0.5, w: 1.0 },  // Bright Black
-            91 => Vec4 { x: 1.0, y: 0.4, z: 0.4, w: 1.0 },  // Bright Red
-            92 => Vec4 { x: 0.4, y: 1.0, z: 0.4, w: 1.0 },  // Bright Green
-            93 => Vec4 { x: 1.0, y: 1.0, z: 0.4, w: 1.0 },  // Bright Yellow
-            94 => Vec4 { x: 0.5, y: 0.5, z: 1.0, w: 1.0 },  // Bright Blue
-            95 => Vec4 { x: 1.0, y: 0.5, z: 1.0, w: 1.0 },  // Bright Magenta
-            96 => Vec4 { x: 0.5, y: 1.0, z: 1.0, w: 1.0 },  // Bright Cyan
-            97 => Vec4 { x: 1.0, y: 1.0, z: 1.0, w: 1.0 },  // Bright White
-            _ => Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 },
+            0 => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            }, // Reset/Gray
+            30 => Vec4 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+                w: 1.0,
+            }, // Black
+            31 => Vec4 {
+                x: 0.9,
+                y: 0.3,
+                z: 0.3,
+                w: 1.0,
+            }, // Red
+            32 => Vec4 {
+                x: 0.3,
+                y: 0.8,
+                z: 0.3,
+                w: 1.0,
+            }, // Green
+            33 => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.2,
+                w: 1.0,
+            }, // Yellow
+            34 => Vec4 {
+                x: 0.3,
+                y: 0.3,
+                z: 0.9,
+                w: 1.0,
+            }, // Blue
+            35 => Vec4 {
+                x: 0.8,
+                y: 0.3,
+                z: 0.8,
+                w: 1.0,
+            }, // Magenta
+            36 => Vec4 {
+                x: 0.3,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            }, // Cyan
+            37 => Vec4 {
+                x: 0.9,
+                y: 0.9,
+                z: 0.9,
+                w: 1.0,
+            }, // White
+            90 => Vec4 {
+                x: 0.5,
+                y: 0.5,
+                z: 0.5,
+                w: 1.0,
+            }, // Bright Black
+            91 => Vec4 {
+                x: 1.0,
+                y: 0.4,
+                z: 0.4,
+                w: 1.0,
+            }, // Bright Red
+            92 => Vec4 {
+                x: 0.4,
+                y: 1.0,
+                z: 0.4,
+                w: 1.0,
+            }, // Bright Green
+            93 => Vec4 {
+                x: 1.0,
+                y: 1.0,
+                z: 0.4,
+                w: 1.0,
+            }, // Bright Yellow
+            94 => Vec4 {
+                x: 0.5,
+                y: 0.5,
+                z: 1.0,
+                w: 1.0,
+            }, // Bright Blue
+            95 => Vec4 {
+                x: 1.0,
+                y: 0.5,
+                z: 1.0,
+                w: 1.0,
+            }, // Bright Magenta
+            96 => Vec4 {
+                x: 0.5,
+                y: 1.0,
+                z: 1.0,
+                w: 1.0,
+            }, // Bright Cyan
+            97 => Vec4 {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0,
+                w: 1.0,
+            }, // Bright White
+            _ => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            },
         }
     }
 
@@ -336,7 +431,7 @@ impl Terminal {
         if t.is_empty() {
             return true;
         }
-        
+
         // Exact or trimmed match to our expected prompt
         let our_trimmed = our_prompt.trim();
         if t == our_trimmed || t.ends_with(our_trimmed) {
@@ -345,8 +440,10 @@ impl Terminal {
 
         // Check for common shell prompt patterns
         // e.g. "user@host path %" or just "% "
-        if (t.contains('@') && (t.contains('%') || t.contains('$') || t.contains('#'))) 
-           || t == "%" || t == "$" || t == "#" 
+        if (t.contains('@') && (t.contains('%') || t.contains('$') || t.contains('#')))
+            || t == "%"
+            || t == "$"
+            || t == "#"
         {
             // If it's short and looks like a prompt, it probably is.
             // We avoid skipping long lines that just happen to have these chars.
@@ -354,7 +451,7 @@ impl Terminal {
                 return true;
             }
         }
-        
+
         false
     }
 
@@ -409,7 +506,7 @@ impl Terminal {
                         });
                         current_text.clear();
                     }
-                    
+
                     let line_spans = std::mem::take(&mut self.partial_spans);
                     // Simple prompt check on the concatenated text
                     let full_text: String = line_spans.iter().map(|s| s.text.as_str()).collect();
