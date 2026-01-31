@@ -96,7 +96,7 @@ Pasted images get unique filenames based on:
 ## Limitations
 
 ### Current Limitations
-1. **Direct Clipboard Image Support**: Makepad's TextInput doesn't expose native clipboard events, so we can't directly access images copied to the clipboard. Instead, we rely on detecting data URLs in pasted text.
+1. **Direct Clipboard Image Support**: macOS now supports native clipboard image paste via Makepad's `ImageInput` events (PNG/TIFF). Other platforms still rely on detecting data URLs in pasted text.
 
 2. **Browser/Tool Dependency**: Whether an image pastes as a data URL depends on the source application:
    - ✅ Works: Some screenshot tools, browser "Copy Image", HTML content
@@ -105,7 +105,7 @@ Pasted images get unique filenames based on:
 3. **Large Images**: Data URLs can be very long for large images, which may impact performance when pasting.
 
 ### Future Enhancements
-- Direct native clipboard image support (requires Makepad enhancement)
+- Expand native clipboard image support to Windows/Linux/Web
 - Image preview thumbnails in attachments area
 - Support for more file types (PDFs, videos, audio)
 - Drag-and-drop file support

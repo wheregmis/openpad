@@ -54,6 +54,9 @@ pub struct AttachedFile {
     pub filename: String,
     pub mime_type: String,
     pub data_url: String,
+    /// For text/plain attachments, store the raw text to send as a PartInput::Text
+    /// instead of a file attachment. This avoids server-side file processing artifacts.
+    pub raw_text: Option<String>,
 }
 
 /// Data structure holding application state for event handling

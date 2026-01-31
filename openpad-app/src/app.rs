@@ -5,6 +5,8 @@ use crate::components::simple_dialog::SimpleDialogWidgetRefExt;
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::SidePanelWidgetRefExt;
@@ -16,9 +18,40 @@ static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
 
 fn get_image_data_url_regex() -> &'static Regex {
     IMAGE_DATA_URL_REGEX.get_or_init(|| {
-        Regex::new(r"data:(image/(?:png|jpeg|jpg|gif|webp|svg\+xml));base64,([A-Za-z0-9+/=]+)")
+        Regex::new(r"data:(image/(?:png|jpeg|jpg|gif|webp|tiff|svg\+xml));base64,([A-Za-z0-9+/=]+)")
             .expect("Failed to compile image data URL regex")
     })
+}
+
+fn image_extension_for_mime(mime_type: &str) -> &'static str {
+    match mime_type {
+        "image/png" => "png",
+        "image/jpeg" | "image/jpg" => "jpg",
+        "image/gif" => "gif",
+        "image/webp" => "webp",
+        "image/tiff" => "tiff",
+        "image/svg+xml" => "svg",
+        _ => "png",
+    }
+}
+
+fn detect_image_mime_type(data: &[u8]) -> Option<&'static str> {
+    if data.starts_with(&[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) {
+        return Some("image/png");
+    }
+    if data.len() >= 3 && data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff {
+        return Some("image/jpeg");
+    }
+    if data.starts_with(b"GIF87a") || data.starts_with(b"GIF89a") {
+        return Some("image/gif");
+    }
+    if data.len() >= 12 && data.starts_with(b"RIFF") && &data[8..12] == b"WEBP" {
+        return Some("image/webp");
+    }
+    if data.starts_with(b"II*\0") || data.starts_with(b"MM\0*") {
+        return Some("image/tiff");
+    }
+    None
 }
 
 app_main!(App);
@@ -373,14 +406,7 @@ impl App {
             last_end = captures.get(0).unwrap().end();
 
             // Determine file extension from mime type
-            let extension = match mime_type {
-                "image/png" => "png",
-                "image/jpeg" | "image/jpg" => "jpg",
-                "image/gif" => "gif",
-                "image/webp" => "webp",
-                "image/svg+xml" => "svg",
-                _ => "png",
-            };
+            let extension = image_extension_for_mime(mime_type);
 
             // Generate a unique filename using timestamp and counter
             let filename = format!(
@@ -399,6 +425,7 @@ impl App {
                 filename: filename.clone(),
                 mime_type: mime_type.to_string(),
                 data_url: full_match.to_string(),
+                raw_text: None,
             });
 
             log!("Detected pasted image: {} ({})", mime_type, filename);
@@ -411,6 +438,52 @@ impl App {
         self.update_attachments_ui(cx);
 
         remaining_text
+    }
+
+    fn handle_image_input(&mut self, cx: &mut Cx, image: &ImageInputEvent) {
+        use crate::state::handlers::AttachedFile;
+
+        if image.data.is_empty() {
+            return;
+        }
+
+        if !self.ui.text_input(&[id!(input_box)]).key_focus(cx) {
+            return;
+        }
+
+        let Some(mime_type) = detect_image_mime_type(&image.data) else {
+            log!(
+                "Unsupported clipboard image format ({} bytes)",
+                image.data.len()
+            );
+            return;
+        };
+
+        let extension = image_extension_for_mime(mime_type);
+        let filename = format!(
+            "attachment_{}_{}.{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis(),
+            self.state.attached_files.len(),
+            extension
+        );
+        let data_url = format!("data:{};base64,{}", mime_type, STANDARD.encode(&image.data));
+
+        self.state.attached_files.push(AttachedFile {
+            filename: filename.clone(),
+            mime_type: mime_type.to_string(),
+            data_url,
+            raw_text: None,
+        });
+
+        log!(
+            "Detected pasted image from clipboard: {} ({})",
+            mime_type,
+            filename
+        );
+        self.update_attachments_ui(cx);
     }
 
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
@@ -573,11 +646,16 @@ impl App {
             .attached_files
             .iter()
             .map(|file| {
-                openpad_protocol::PartInput::file_with_filename(
-                    file.mime_type.clone(),
-                    file.filename.clone(),
-                    file.data_url.clone(),
-                )
+                if let Some(raw_text) = &file.raw_text {
+                    // Text attachments are sent as text parts
+                    openpad_protocol::PartInput::text(raw_text)
+                } else {
+                    openpad_protocol::PartInput::file_with_filename(
+                        file.mime_type.clone(),
+                        file.filename.clone(),
+                        file.data_url.clone(),
+                    )
+                }
             })
             .collect();
 
@@ -785,6 +863,9 @@ impl AppMain for App {
                     .view(&[id!(hamburger_button)])
                     .animator_play(cx, &[id!(open), id!(on)]);
             }
+            Event::ImageInput(image) => {
+                self.handle_image_input(cx, image);
+            }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
             }
@@ -891,11 +972,7 @@ impl AppMain for App {
             let remaining = self.process_pasted_content(cx, &new_text);
             if remaining.len() > LONG_TEXT_THRESHOLD {
                 use crate::state::handlers::AttachedFile;
-                use base64::Engine;
 
-                let encoded =
-                    base64::engine::general_purpose::STANDARD.encode(remaining.as_bytes());
-                let data_url = format!("data:text/plain;base64,{}", encoded);
                 let filename = format!(
                     "pasted_text_{}.txt",
                     std::time::SystemTime::now()
@@ -907,7 +984,8 @@ impl AppMain for App {
                 self.state.attached_files.push(AttachedFile {
                     filename,
                     mime_type: "text/plain".to_string(),
-                    data_url,
+                    data_url: String::new(),
+                    raw_text: Some(remaining.clone()),
                 });
 
                 self.ui.text_input(&[id!(input_box)]).set_text(cx, "");

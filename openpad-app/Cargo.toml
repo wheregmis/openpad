@@ -8,7 +8,7 @@ name = "openpad"
 path = "src/main.rs"
 
 [dependencies]
-makepad-widgets = { git = "https://github.com/makepad/makepad.git", branch = "dev" }
+makepad-widgets = { path = "/Users/wheregmis/Documents/GitHub/makepad/widgets" }
 openpad-widgets = { path = "../openpad-widgets" }
 openpad-protocol = { path = "../openpad-protocol" }
 tokio = { workspace = true }
