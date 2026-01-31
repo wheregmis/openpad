@@ -114,9 +114,11 @@ impl Widget for Terminal {
         
         if let Event::Actions(actions) = event {
             // Handle input field Enter key
-            if let Some(input) = self.view.text_input(id!(input_field)).changed(actions) {
-                self.send_command(cx, &input);
-                self.view.text_input(id!(input_field)).set_text(cx, "");
+            if let Some((input, _modifiers)) = self.view.text_input(id!(input_field)).returned(actions) {
+                if !input.is_empty() {
+                    self.send_command(cx, &input);
+                    self.view.text_input(id!(input_field)).set_text(cx, "");
+                }
             }
             
             // Handle clear button
