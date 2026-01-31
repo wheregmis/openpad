@@ -97,6 +97,9 @@ pub fn handle_app_action(
         }
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
+            state.messages_data.clear();
+            ui.message_list(id!(message_list))
+                .set_messages(cx, &state.messages_data);
             state.update_session_title_ui(ui, cx);
             cx.redraw_all();
         }
@@ -124,6 +127,10 @@ pub fn handle_opencode_event(
         OcEvent::SessionCreated(session) => {
             if state.current_session_id.is_none() {
                 state.current_session_id = Some(session.id.clone());
+                // Clear messages when starting a new session
+                state.messages_data.clear();
+                ui.message_list(id!(message_list))
+                    .set_messages(cx, &state.messages_data);
             }
             state.sessions.push(session.clone());
             state.update_projects_panel(ui, cx);
