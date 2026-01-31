@@ -44,12 +44,78 @@ live_design! {
                     margin: { right: 80 }
                     flow: Down,
 
-                    msg_text = <Label> {
+                    msg_text = <Markdown> {
                         width: Fit, height: Fit
-                        draw_text: {
-                            color: #e6e9ee,
-                            text_style: { font_size: 11 },
-                            word: Wrap
+                        font_size: 11
+                        font_color: #e6e9ee
+                        paragraph_spacing: 8
+                        pre_code_spacing: 6
+                        use_code_block_widget: true
+
+                        draw_normal: {
+                            text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                            color: #e6e9ee
+                        }
+                        draw_italic: {
+                            text_style: <THEME_FONT_ITALIC> { font_size: 11 }
+                            color: #e6e9ee
+                        }
+                        draw_bold: {
+                            text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                            color: #e6e9ee
+                        }
+                        draw_bold_italic: {
+                            text_style: <THEME_FONT_BOLD_ITALIC> { font_size: 11 }
+                            color: #e6e9ee
+                        }
+                        draw_fixed: {
+                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                            color: #d7dce2
+                        }
+
+                        code_block = <View> {
+                            width: Fill, height: Fit
+                            margin: { top: 6, bottom: 6 }
+                            padding: { left: 8, right: 8, top: 6, bottom: 6 }
+                            show_bg: true
+                            draw_bg: {
+                                color: #1f2329
+                                border_radius: 4.0
+                            }
+
+                            code_view = <TextInput> {
+                                width: Fill, height: Fit
+                                is_read_only: true
+                                padding: { left: 0, right: 0, top: 0, bottom: 0 }
+                                margin: { left: 0, right: 0, top: 0, bottom: 0 }
+
+                                draw_text: {
+                                    color: #d7dce2,
+                                    text_style: <THEME_FONT_CODE> { font_size: 10 }
+                                }
+                                draw_bg: {
+                                    color: #0000
+                                    border_radius: 0.0
+                                    border_size: 0.0
+                                    color_hover: #0000
+                                    color_focus: #0000
+                                    color_down: #0000
+                                    color_empty: #0000
+                                    color_disabled: #0000
+                                    border_color_1: #0000
+                                    border_color_2: #0000
+                                    border_color_1_hover: #0000
+                                    border_color_2_hover: #0000
+                                    border_color_1_focus: #0000
+                                    border_color_2_focus: #0000
+                                    border_color_1_down: #0000
+                                    border_color_2_down: #0000
+                                    border_color_1_empty: #0000
+                                    border_color_2_empty: #0000
+                                    border_color_1_disabled: #0000
+                                    border_color_2_disabled: #0000
+                                }
+                            }
                         }
                     }
                 }
@@ -131,7 +197,7 @@ impl Widget for MessageList {
                     };
 
                     let item_widget = list.item(cx, item_id, template);
-                    item_widget.label(id!(msg_text)).set_text(cx, &msg.text);
+                    item_widget.widget(id!(msg_text)).set_text(cx, &msg.text);
                     item_widget.draw_all(cx, scope);
                 }
             }

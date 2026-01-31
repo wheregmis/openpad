@@ -55,10 +55,10 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 ### Phase 1: Core Chat Polish
 
 #### Markdown & Rich Text Rendering
-- [ ] Parse markdown in assistant messages (bold, italic, headers, lists)
-- [ ] Code block rendering with syntax highlighting
-- [ ] Inline code styling
-- [ ] Link rendering
+- [x] Parse markdown in assistant messages (bold, italic, headers, lists)
+- [ ] Code block rendering with syntax highlighting (rendering done; highlighting pending)
+- [x] Inline code styling
+- [x] Link rendering
 
 #### Permission System
 - [ ] Wire `PermissionRequested` SSE events to show PermissionDialog
