@@ -20,6 +20,7 @@ pub struct AppState {
     pub connected: bool,
     pub health_ok: Option<bool>,
     pub error_message: Option<String>,
+    pub pending_permissions: Vec<PermissionRequest>,
 }
 
 impl AppState {
@@ -37,10 +38,24 @@ impl AppState {
         }
     }
 
+    /// Check if the current session is reverted
+    pub fn is_current_session_reverted(&self) -> bool {
+        if let Some(sid) = &self.current_session_id {
+            if let Some(session) = self.sessions.iter().find(|s| &s.id == sid) {
+                return session.revert.is_some();
+            }
+        }
+        false
+    }
+
     /// Updates UI to reflect current session title
     pub fn update_session_title_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
         let (title, is_active) = self.get_session_title();
         ui_state::update_session_title_ui(ui, cx, &title, is_active);
+
+        // Update revert indicator
+        let is_reverted = self.is_current_session_reverted();
+        ui_state::update_revert_indicator(ui, cx, is_reverted);
     }
 
     /// Updates projects panel with current data
@@ -104,6 +119,30 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.update_session_title_ui(ui, cx);
             cx.redraw_all();
         }
+        AppAction::SessionDeleted(session_id) => {
+            // If the deleted session is currently selected, clear it
+            if state.current_session_id.as_ref() == Some(session_id) {
+                state.current_session_id = None;
+                state.selected_session_id = None;
+                state.clear_messages(ui, cx);
+                state.update_session_title_ui(ui, cx);
+            } else if state.selected_session_id.as_ref() == Some(session_id) {
+                state.selected_session_id = None;
+            }
+            // Remove from sessions list
+            state.sessions.retain(|s| &s.id != session_id);
+            state.update_projects_panel(ui, cx);
+            cx.redraw_all();
+        }
+        AppAction::SessionUpdated(session) => {
+            // Update the session in the list
+            if let Some(existing) = state.sessions.iter_mut().find(|s| s.id == session.id) {
+                *existing = session.clone();
+            }
+            state.update_projects_panel(ui, cx);
+            state.update_session_title_ui(ui, cx);
+            cx.redraw_all();
+        }
         AppAction::MessagesLoaded(messages) => {
             state.messages_data = messages.clone();
             ui.message_list(id!(message_list))
@@ -111,7 +150,12 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
+            ui_state::set_status_error(ui, cx, err);
             cx.redraw_all();
+        }
+        AppAction::PendingPermissionsLoaded(permissions) => {
+            state.pending_permissions = permissions.clone();
+            show_next_pending_permission(state, ui, cx);
         }
         _ => {}
     }
@@ -136,6 +180,20 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
         }
+        OcEvent::SessionDeleted(session) => {
+            // If the deleted session is currently selected, clear it
+            if state.current_session_id.as_ref() == Some(&session.id) {
+                state.current_session_id = None;
+                state.selected_session_id = None;
+                state.clear_messages(ui, cx);
+                state.update_session_title_ui(ui, cx);
+            } else if state.selected_session_id.as_ref() == Some(&session.id) {
+                state.selected_session_id = None;
+            }
+            // Remove from sessions list
+            state.sessions.retain(|s| s.id != session.id);
+            state.update_projects_panel(ui, cx);
+        }
         OcEvent::MessageUpdated(message) => {
             handle_message_updated(state, ui, cx, message);
         }
@@ -143,19 +201,33 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             handle_part_updated(state, ui, cx, part);
         }
         OcEvent::PermissionAsked(request) => {
-            let context = format_permission_context(request);
-            ui.permission_dialog(id!(permission_dialog))
-                .show_permission_request(
-                    cx,
-                    request.session_id.clone(),
-                    request.id.clone(),
-                    request.permission.clone(),
-                    request.patterns.clone(),
-                    context,
-                );
+            enqueue_pending_permission(state, request);
+            show_next_pending_permission(state, ui, cx);
+        }
+        OcEvent::PermissionReplied { request_id, .. } => {
+            // If the current dialog is for this request, hide it
+            // (another client or auto-reply may have responded)
+            let dialog_request_id = ui
+                .permission_dialog(id!(permission_dialog))
+                .get_request_id();
+            if dialog_request_id.as_deref() == Some(request_id.as_str()) {
+                ui.permission_dialog(id!(permission_dialog)).hide(cx);
+            }
+            remove_pending_permission(state, request_id);
+            show_next_pending_permission(state, ui, cx);
         }
         _ => {}
     }
+}
+
+pub fn handle_permission_responded(
+    state: &mut AppState,
+    ui: &WidgetRef,
+    cx: &mut Cx,
+    request_id: &str,
+) {
+    remove_pending_permission(state, request_id);
+    show_next_pending_permission(state, ui, cx);
 }
 
 /// Handles message update events
@@ -260,4 +332,54 @@ fn format_permission_context(request: &PermissionRequest) -> Option<String> {
     } else {
         Some(lines.join("\n"))
     }
+}
+
+fn enqueue_pending_permission(state: &mut AppState, request: &PermissionRequest) {
+    if state
+        .pending_permissions
+        .iter()
+        .any(|pending| pending.id == request.id)
+    {
+        return;
+    }
+    state.pending_permissions.push(request.clone());
+}
+
+fn remove_pending_permission(state: &mut AppState, request_id: &str) {
+    state
+        .pending_permissions
+        .retain(|permission| permission.id != request_id);
+}
+
+fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx) {
+    if ui
+        .permission_dialog(id!(permission_dialog))
+        .get_request_id()
+        .is_some()
+    {
+        return;
+    }
+
+    let Some(current_session_id) = &state.current_session_id else {
+        return;
+    };
+
+    let Some(request) = state
+        .pending_permissions
+        .iter()
+        .find(|permission| &permission.session_id == current_session_id)
+    else {
+        return;
+    };
+
+    let context = format_permission_context(request);
+    ui.permission_dialog(id!(permission_dialog))
+        .show_permission_request(
+            cx,
+            request.session_id.clone(),
+            request.id.clone(),
+            request.permission.clone(),
+            request.patterns.clone(),
+            context,
+        );
 }

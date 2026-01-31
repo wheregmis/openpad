@@ -450,6 +450,12 @@ impl OpenCodeClient {
             .await
     }
 
+    /// List all pending permission requests.
+    pub async fn list_pending_permissions(&self) -> Result<Vec<PermissionRequest>> {
+        self.get_json("/permission", "list pending permissions")
+            .await
+    }
+
     // ========================================================================
     // File/Find APIs
     // ========================================================================

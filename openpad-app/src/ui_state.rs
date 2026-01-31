@@ -54,3 +54,13 @@ pub fn update_session_title_ui(
         },
     );
 }
+
+/// Updates the revert indicator visibility based on session revert state
+pub fn update_revert_indicator(
+    ui: &WidgetRef,
+    cx: &mut Cx,
+    is_reverted: bool,
+) {
+    ui.view(id!(revert_indicator)).set_visible(cx, is_reverted);
+    ui.view(id!(unrevert_wrap)).set_visible(cx, is_reverted);
+}

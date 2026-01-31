@@ -29,7 +29,7 @@ live_design! {
                         margin: { bottom: 4 }
                         draw_text: {
                             color: #7a8ea5,
-                            text_style: { font_size: 9 },
+                            text_style: <THEME_FONT_REGULAR> { font_size: 9 },
                         }
                         text: "..."
                     }
@@ -38,7 +38,7 @@ live_design! {
                         width: Fill, height: Fit
                         draw_text: {
                             color: #eef3f7,
-                            text_style: { font_size: 11, line_spacing: 1.5 },
+                            text_style: <THEME_FONT_REGULAR> { font_size: 11, line_spacing: 1.5 },
                             word: Wrap
                         }
                     }
@@ -61,21 +61,21 @@ live_design! {
                         flow: Right,
                         spacing: 12,
                         margin: { bottom: 4 }
-                        
+
                         model_label = <Label> {
                             width: Fit, height: Fit
                             draw_text: {
                                 color: #7a8894,
-                                text_style: { font_size: 9 },
+                                text_style: <THEME_FONT_REGULAR> { font_size: 9 },
                             }
                             text: "..."
                         }
-                        
+
                         timestamp_label = <Label> {
                             width: Fit, height: Fit
                             draw_text: {
                                 color: #626970,
-                                text_style: { font_size: 9 },
+                                text_style: <THEME_FONT_REGULAR> { font_size: 9 },
                             }
                             text: "..."
                         }
@@ -111,6 +111,33 @@ live_design! {
                         }
 
                     }
+
+                    // Add action buttons for messages
+                    msg_actions = <View> {
+                        width: Fit, height: Fit
+                        flow: Right,
+                        spacing: 6,
+                        margin: { top: 6 }
+
+                        revert_button = <Button> {
+                            width: Fit, height: 24
+                            padding: { left: 8, right: 8 }
+                            text: "Revert to here"
+                            draw_bg: {
+                                color: #262b33
+                                color_hover: #f59e0b
+                                border_radius: 4.0
+                                border_size: 1.0
+                                border_color_1: #3a414a
+                                border_color_2: #3a414a
+                            }
+                            draw_text: {
+                                color: #6b7b8c
+                                color_hover: #ffffff
+                                text_style: <THEME_FONT_REGULAR> { font_size: 9 }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -121,7 +148,8 @@ live_design! {
 pub struct DisplayMessage {
     pub role: String,
     pub text: String,
-    pub timestamp: Option<i64>,  // Unix timestamp in milliseconds
+    pub message_id: Option<String>,
+    pub timestamp: Option<i64>,   // Unix timestamp in milliseconds
     pub model_id: Option<String>, // Model ID (for assistant messages)
 }
 
@@ -151,6 +179,8 @@ impl MessageList {
                 }
             };
 
+            let message_id = mwp.info.id().to_string();
+
             let text: String = mwp
                 .parts
                 .iter()
@@ -165,6 +195,7 @@ impl MessageList {
             display.push(DisplayMessage {
                 role: role.to_string(),
                 text,
+                message_id: Some(message_id),
                 timestamp,
                 model_id,
             });
@@ -175,7 +206,24 @@ impl MessageList {
 
 impl Widget for MessageList {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.view.handle_event(cx, event, scope);
+        use crate::actions::MessageListAction;
+
+        let actions = cx.capture_actions(|cx| {
+            self.view.handle_event(cx, event, scope);
+        });
+
+        let list = self.view.portal_list(id!(list));
+        for (item_id, widget) in list.items_with_actions(&actions) {
+            if item_id >= self.messages.len() {
+                continue;
+            }
+
+            if widget.button(id!(revert_button)).clicked(&actions) {
+                if let Some(message_id) = &self.messages[item_id].message_id {
+                    cx.action(MessageListAction::RevertToMessage(message_id.clone()));
+                }
+            }
+        }
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
@@ -202,20 +250,22 @@ impl Widget for MessageList {
 
                     let item_widget = list.item(cx, item_id, template);
                     item_widget.widget(id!(msg_text)).set_text(cx, &msg.text);
-                    
+
                     // Set timestamp if available
                     if let Some(timestamp) = msg.timestamp {
                         let formatted = crate::utils::format_timestamp(timestamp);
-                        item_widget.label(id!(timestamp_label)).set_text(cx, &formatted);
+                        item_widget
+                            .label(id!(timestamp_label))
+                            .set_text(cx, &formatted);
                     }
-                    
+
                     // Set model ID for assistant messages
                     if msg.role == "assistant" {
                         if let Some(ref model_id) = msg.model_id {
                             item_widget.label(id!(model_label)).set_text(cx, model_id);
                         }
                     }
-                    
+
                     item_widget.draw_all(cx, scope);
                 }
             }
@@ -231,12 +281,18 @@ impl MessageListRef {
         messages_with_parts: &[openpad_protocol::MessageWithParts],
     ) {
         if let Some(mut inner) = self.borrow_mut() {
+            let was_empty = inner.messages.is_empty();
             inner.messages = MessageList::rebuild_from_parts(messages_with_parts);
+            // Reset scroll position when loading a new set of messages
+            // to avoid stale first_id from a previous longer list
+            if was_empty || messages_with_parts.is_empty() {
+                inner.view.portal_list(id!(list)).set_first_id(0);
+            }
             inner.redraw(cx);
         }
     }
 
-    pub fn append_text_for_message(&self, cx: &mut Cx, role: &str, _message_id: &str, text: &str) {
+    pub fn append_text_for_message(&self, cx: &mut Cx, role: &str, message_id: &str, text: &str) {
         if let Some(mut inner) = self.borrow_mut() {
             // Try to find an existing message to append to (by checking last message)
             // SSE parts arrive in order, so the last message of the matching role is the target
@@ -251,6 +307,7 @@ impl MessageListRef {
             inner.messages.push(DisplayMessage {
                 role: role.to_string(),
                 text: text.to_string(),
+                message_id: Some(message_id.to_string()),
                 timestamp: None,
                 model_id: None,
             });
@@ -265,10 +322,11 @@ impl MessageListRef {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as i64;
-            
+
             inner.messages.push(DisplayMessage {
                 role: "user".to_string(),
                 text: text.to_string(),
+                message_id: None, // User messages don't have IDs yet
                 timestamp: Some(now),
                 model_id: None,
             });

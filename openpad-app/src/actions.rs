@@ -1,7 +1,7 @@
 use makepad_widgets::*;
 use openpad_protocol::{
-    Event as OcEvent, HealthResponse, Message, MessageWithParts, Part, PermissionReply, Project,
-    Session,
+    Event as OcEvent, HealthResponse, Message, MessageWithParts, Part, PermissionReply,
+    PermissionRequest, Project, Session,
 };
 
 #[derive(Clone, Debug, DefaultNone)]
@@ -15,6 +15,8 @@ pub enum AppAction {
     SessionsLoaded(Vec<Session>),
     SessionCreated(Session),
     SessionLoaded(Session),
+    SessionDeleted(String),
+    SessionUpdated(Session),
     MessagesLoaded(Vec<MessageWithParts>),
     MessageReceived(Message),
     PartReceived {
@@ -33,6 +35,20 @@ pub enum AppAction {
         request_id: String,
         reply: PermissionReply,
     },
+    RevertToMessage {
+        session_id: String,
+        message_id: String,
+    },
+    UnrevertSession(String),
+    DialogConfirmed {
+        dialog_type: String,
+        value: String,
+    },
+    PendingPermissionsLoaded(Vec<PermissionRequest>),
+    PermissionDismissed {
+        session_id: String,
+        request_id: String,
+    },
 }
 
 #[derive(Clone, Debug, DefaultNone)]
@@ -40,5 +56,14 @@ pub enum ProjectsPanelAction {
     None,
     SelectSession(String),
     CreateSession(Option<String>),
-    RunSession(String),
+    DeleteSession(String),
+    RenameSession(String),
+    AbortSession(String),
+    BranchSession(String),
+}
+
+#[derive(Clone, Debug, DefaultNone)]
+pub enum MessageListAction {
+    None,
+    RevertToMessage(String),
 }

@@ -169,11 +169,11 @@ pub mod openpad {
         }
 
         pub InputBar = <RoundedView> {
-            width: Fill, height: 48
+            width: Fill, height: Fit
             flow: Right,
             spacing: 8,
             padding: { left: 14, right: 10, top: 6, bottom: 6 }
-            align: { y: 0.5 }
+            align: { y: 1.0 }
             draw_bg: {
                 color: #1f2329
                 border_color: #2e343c
@@ -183,7 +183,7 @@ pub mod openpad {
         }
 
         pub InputField = <TextInput> {
-            width: Fill, height: 36
+            width: Fill, height: Fit
             empty_text: "Ask anything..."
             draw_bg: {
                 color: #0000
@@ -207,7 +207,7 @@ pub mod openpad {
                 border_color_1_disabled: #0000
                 border_color_2_disabled: #0000
             }
-            draw_text: { color: #e6e9ee, text_style: { font_size: 12 } }
+            draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 12 } }
             text: ""
         }
 
