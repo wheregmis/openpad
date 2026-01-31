@@ -8,22 +8,60 @@ live_design! {
     use openpad_widgets::openpad::*;
 
     pub PermissionDialog = {{PermissionDialog}} {
-        width: 400, height: Fit
-        padding: 20,
-        spacing: 16,
+        width: Fill, height: Fit
+        flow: Down
+        padding: { left: 14, right: 14, top: 12, bottom: 12 }
+        spacing: 10,
+        visible: false
+        show_bg: true
 
         draw_bg: {
-            color: #1c2026
-            border_color: #2b3138
-            border_radius: 12.0
-            border_size: 1.0
+            color: #1f2329
+            uniform border_color: #2b3138
+            uniform border_radius: 10.0
+            uniform border_size: 1.0
+
+            fn pixel(self) -> vec4 {
+                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
+                sdf.fill_keep(self.color);
+                sdf.stroke(self.border_color, self.border_size);
+                return sdf.result;
+            }
         }
 
-        title = <Label> {
-            text: "Permission Request"
-            draw_text: {
-                color: #e6e9ee
-                text_style: <THEME_FONT_BOLD> { font_size: 14 }
+        header_row = <View> {
+            width: Fill, height: Fit
+            flow: Right,
+            spacing: 8,
+            align: { y: 0.5 }
+
+            title = <Label> {
+                text: "Permission required"
+                draw_text: {
+                    color: #e6e9ee
+                    text_style: <THEME_FONT_BOLD> { font_size: 12 }
+                }
+            }
+
+            <View> { width: Fill }
+
+            permission_badge = <RoundedView> {
+                width: Fit, height: Fit
+                padding: { left: 8, right: 8, top: 4, bottom: 4 }
+                draw_bg: {
+                    color: #27303a
+                    border_radius: 10.0
+                }
+
+                permission_type = <Label> {
+                    width: Fit, height: Fit
+                    text: ""
+                    draw_text: {
+                        color: #cbd3dc
+                        text_style: { font_size: 10 }
+                    }
+                }
             }
         }
 
@@ -39,19 +77,10 @@ live_design! {
 
         details_view = <RoundedView> {
             width: Fill, height: Fit
-            padding: 12,
+            padding: 10,
             draw_bg: {
-                color: #14161a
+                color: #15181d
                 border_radius: 8.0
-            }
-
-            permission_type = <Label> {
-                width: Fill, height: Fit
-                text: ""
-                draw_text: {
-                    color: #e6e9ee
-                    text_style: { font_size: 11 }
-                }
             }
 
             pattern = <Label> {
@@ -78,11 +107,11 @@ live_design! {
         buttons_row = <View> {
             width: Fill, height: Fit
             flow: Right,
-            spacing: 12,
-            align: { x: 1.0 }
+            spacing: 10,
+            align: { x: 1.0, y: 0.5 }
 
             reject_button = <Button> {
-                width: 100, height: 36
+                width: 90, height: 32
                 text: "Reject"
                 draw_bg: {
                     color: #2a2f36
@@ -94,7 +123,7 @@ live_design! {
             }
 
             always_button = <Button> {
-                width: 130, height: 36
+                width: 120, height: 32
                 text: "Always allow"
                 draw_bg: {
                     color: #334155
@@ -106,8 +135,8 @@ live_design! {
             }
 
             accept_button = <Button> {
-                width: 100, height: 36
-                text: "Accept"
+                width: 110, height: 32
+                text: "Allow once"
                 draw_bg: {
                     color: #3b82f6
                     color_hover: #1d4ed8
@@ -187,14 +216,14 @@ impl PermissionDialog {
         self.permission_id = Some(permission_id);
 
         let description = format!(
-            "The session is requesting {} permission for:",
+            "This session is requesting {} access:",
             permission.to_uppercase()
         );
 
         self.view.label(id!(description)).set_text(cx, &description);
         self.view
             .label(id!(permission_type))
-            .set_text(cx, &format!("Type: {}", permission));
+            .set_text(cx, &permission.to_uppercase());
         let patterns_text = if patterns.is_empty() {
             "Patterns: (none)".to_string()
         } else {
@@ -211,12 +240,14 @@ impl PermissionDialog {
             self.view.widget(id!(context)).set_visible(cx, false);
         }
 
+        self.view.set_visible(cx, true);
         self.redraw(cx);
     }
 
     pub fn hide(&mut self, cx: &mut Cx) {
         self.session_id = None;
         self.permission_id = None;
+        self.view.set_visible(cx, false);
         self.redraw(cx);
     }
 

@@ -70,6 +70,7 @@ live_design! {
                         width: Fill, height: Fill
                         flow: Down,
                         spacing: 8,
+                        align: { x: 0.0 }
 
                         // Session context bar
                         session_info = <RoundedView> {
@@ -89,21 +90,27 @@ live_design! {
                         }
 
                         // Messages area
-                        message_list = <MessageList> {}
+                        message_list = <MessageList> { width: Fill, height: Fill }
+
+                        // Inline permission prompt (shown only when needed)
+                        permission_dialog = <PermissionDialog> { width: Fill }
 
                         // Input area (fixed at bottom)
-                        <InputBar> {
-                            input_box = <InputField> {}
-                            send_button = <SendButton> {}
+                        input_row = <View> {
+                            width: Fill, height: Fit
+                            flow: Right
+                            align: { y: 0.5 }
+
+                            <InputBar> {
+                                width: Fill
+                                input_box = <InputField> {}
+                                send_button = <SendButton> {}
+                            }
                         }
                     }
                 }
             }
 
-            permission_modal = <Modal> {
-                width: Fill, height: Fill
-                content = <PermissionDialog> {}
-            }
         }
     }
 }
@@ -164,7 +171,6 @@ impl App {
                     AppAction::PermissionResponded { request_id, reply } => {
                         self.respond_to_permission(cx, request_id.clone(), reply.clone());
                         self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
-                        self.ui.modal(id!(permission_modal)).close(cx);
                     }
                     _ => {
                         event_handlers::handle_app_action(

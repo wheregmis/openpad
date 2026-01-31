@@ -153,7 +153,6 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
                     request.patterns.clone(),
                     context,
                 );
-            ui.modal(id!(permission_modal)).open(cx);
         }
         _ => {}
     }
