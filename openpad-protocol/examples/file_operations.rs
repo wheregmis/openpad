@@ -13,8 +13,7 @@
 //! ```
 
 use openpad_protocol::{
-    OpenCodeClient, TextSearchRequest, FilesSearchRequest,
-    FileReadRequest, SymbolsSearchRequest,
+    FileReadRequest, FilesSearchRequest, OpenCodeClient, SymbolsSearchRequest, TextSearchRequest,
 };
 
 #[tokio::main]
@@ -23,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("===================================================\n");
 
     let client = OpenCodeClient::new("http://localhost:4096");
-    
+
     // Check server health first
     match client.health().await {
         Ok(health) => {
@@ -38,13 +37,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 1. Search for text in files
     println!("1. Searching for 'OpenCodeClient' in Rust files...");
-    match client.search_text(TextSearchRequest {
-        pattern: "OpenCodeClient".to_string(),
-    }).await {
+    match client
+        .search_text(TextSearchRequest {
+            pattern: "OpenCodeClient".to_string(),
+        })
+        .await
+    {
         Ok(results) => {
             println!("   Found {} matches", results.len());
             for (i, result) in results.iter().take(5).enumerate() {
-                println!("   {}. {} (line {})", i + 1, result.path, result.line_number);
+                println!(
+                    "   {}. {} (line {})",
+                    i + 1,
+                    result.path,
+                    result.line_number
+                );
                 println!("      {}", result.lines.trim());
             }
             if results.len() > 5 {
@@ -56,12 +63,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 2. Find Rust files
     println!("\n2. Finding Rust source files...");
-    match client.search_files(FilesSearchRequest {
-        query: "*.rs".to_string(),
-        type_filter: Some("file".to_string()),
-        directory: None,
-        limit: Some(10),
-    }).await {
+    match client
+        .search_files(FilesSearchRequest {
+            query: "*.rs".to_string(),
+            type_filter: Some("file".to_string()),
+            directory: None,
+            limit: Some(10),
+        })
+        .await
+    {
         Ok(files) => {
             println!("   Found {} Rust files (showing first 10)", files.len());
             for (i, file) in files.iter().enumerate() {
@@ -73,12 +83,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 3. Find directories
     println!("\n3. Finding 'src' directories...");
-    match client.search_files(FilesSearchRequest {
-        query: "src".to_string(),
-        type_filter: Some("directory".to_string()),
-        directory: None,
-        limit: Some(5),
-    }).await {
+    match client
+        .search_files(FilesSearchRequest {
+            query: "src".to_string(),
+            type_filter: Some("directory".to_string()),
+            directory: None,
+            limit: Some(5),
+        })
+        .await
+    {
         Ok(dirs) => {
             println!("   Found {} directories", dirs.len());
             for (i, dir) in dirs.iter().enumerate() {
@@ -90,9 +103,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 4. Read a file
     println!("\n4. Reading README.md...");
-    match client.read_file(FileReadRequest {
-        path: "README.md".to_string(),
-    }).await {
+    match client
+        .read_file(FileReadRequest {
+            path: "README.md".to_string(),
+        })
+        .await
+    {
         Ok(content) => {
             println!("   ✓ File read successfully");
             println!("   Type: {}", content.type_name);
@@ -113,8 +129,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(files) => {
             println!("   Found {} tracked files", files.len());
             for (i, file) in files.iter().take(10).enumerate() {
-                println!("   {}. {} ({})", i + 1, file.path, 
-                    file.status.as_deref().unwrap_or("unknown"));
+                println!(
+                    "   {}. {} ({})",
+                    i + 1,
+                    file.path,
+                    file.status.as_deref().unwrap_or("unknown")
+                );
             }
             if files.len() > 10 {
                 println!("   ... and {} more files", files.len() - 10);
@@ -125,14 +145,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // 6. Search for symbols
     println!("\n6. Searching for 'Client' symbols...");
-    match client.search_symbols(SymbolsSearchRequest {
-        query: "Client".to_string(),
-    }).await {
+    match client
+        .search_symbols(SymbolsSearchRequest {
+            query: "Client".to_string(),
+        })
+        .await
+    {
         Ok(symbols) => {
             println!("   Found {} symbols", symbols.len());
             for (i, symbol) in symbols.iter().take(10).enumerate() {
-                println!("   {}. {} ({})", i + 1, symbol.name, 
-                    symbol.kind.as_deref().unwrap_or("unknown"));
+                println!(
+                    "   {}. {} ({})",
+                    i + 1,
+                    symbol.name,
+                    symbol.kind.as_deref().unwrap_or("unknown")
+                );
                 if let Some(loc) = &symbol.location {
                     println!("      at {}:{}:{}", loc.path, loc.line, loc.column);
                 }

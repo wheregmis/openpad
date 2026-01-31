@@ -76,45 +76,105 @@ live_design! {
                         flow: Down,
                         spacing: 8,
 
-                        // Session context bar
+                        // Session context bar with active project badge
                         session_info = <RoundedView> {
                             width: Fill, height: Fit
-                            padding: { left: 12, right: 12, top: 8, bottom: 8 }
-                            flow: Right,
-                            spacing: 8,
+                            padding: { left: 12, right: 12, top: 10, bottom: 12 }
+                            flow: Down,
+                            spacing: 6,
                             align: { y: 0.5 }
                             draw_bg: {
                                 color: #232830
                                 border_radius: 8.0
                             }
-                            session_title = <Label> {
-                                text: "Select a session or start a new one"
-                                draw_text: { color: #6b7b8c, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
-                            }
-                            revert_indicator = <View> {
-                                visible: false
-                                width: Fit, height: Fit
 
-                                revert_indicator_label = <Label> {
-                                    text: "⟲ Reverted"
-                                    draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                            project_row = <View> {
+                                width: Fill, height: Fit
+                                flow: Down
+                                spacing: 2
+
+                                project_name_row = <View> {
+                                    width: Fill, height: Fit
+                                    flow: Right
+                                    spacing: 8
+                                    align: { y: 0.5 }
+
+                                    project_badge = <RoundedView> {
+                                        height: Fit
+                                        padding: { left: 10, right: 10, top: 3, bottom: 3 }
+                                        show_bg: true
+                                        draw_bg: {
+                                            color: #1f262f
+                                            border_radius: 999.0
+                                        }
+                                        animator: {
+                                            hover = {
+                                                default: off
+                                                off = {
+                                                    from: { all: Forward { duration: 0.18 } }
+                                                    apply: {
+                                                        draw_bg: { color: #1f262f }
+                                                    }
+                                                }
+                                                on = {
+                                                    from: { all: Forward { duration: 0.18 } }
+                                                    apply: {
+                                                        draw_bg: { color: #29323c }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        project_badge_label = <Label> {
+                                            text: "No active project"
+                                            draw_text: { color: #9aa4b2, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                                        }
+                                    }
+
+                                    <View> { width: Fill }
+                                }
+
+                                project_path_label = <Label> {
+                                    text: ""
+                                    draw_text: { color: #7a8794, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                                 }
                             }
-                            <View> { width: Fill }
-                            unrevert_wrap = <View> {
-                                visible: false
-                                width: Fit, height: Fit
 
-                                unrevert_button = <Button> {
-                                    width: Fit, height: 28
-                                    text: "↻ Unrevert"
-                                    draw_bg: {
-                                        color: #3b82f6
-                                        color_hover: #1d4fed
-                                        border_radius: 6.0
-                                        border_size: 0.0
+                            session_row = <View> {
+                                width: Fill, height: Fit
+                                flow: Right
+                                spacing: 8
+                                align: { y: 0.5 }
+
+                                session_title = <Label> {
+                                    text: "Select a session or start a new one"
+                                    draw_text: { color: #6b7b8c, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                                }
+                                <View> { width: Fill }
+                                revert_indicator = <View> {
+                                    visible: false
+                                    width: Fit, height: Fit
+
+                                    revert_indicator_label = <Label> {
+                                        text: "⟲ Reverted"
+                                        draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                                     }
-                                    draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                }
+                                unrevert_wrap = <View> {
+                                    visible: false
+                                    width: Fit, height: Fit
+
+                                    unrevert_button = <Button> {
+                                        width: Fit, height: 28
+                                        text: "↻ Unrevert"
+                                        draw_bg: {
+                                            color: #3b82f6
+                                            color_hover: #1d4fed
+                                            border_radius: 6.0
+                                            border_size: 0.0
+                                        }
+                                        draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                    }
                                 }
                             }
                         }
@@ -195,12 +255,7 @@ impl App {
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
                     AppAction::OpenCodeEvent(oc_event) => {
-                        state::handle_opencode_event(
-                            &mut self.state,
-                            &self.ui,
-                            cx,
-                            oc_event,
-                        );
+                        state::handle_opencode_event(&mut self.state, &self.ui, cx, oc_event);
                     }
                     AppAction::PermissionResponded { request_id, reply } => {
                         state::handle_permission_responded(
@@ -225,12 +280,7 @@ impl App {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
                     _ => {
-                        state::handle_app_action(
-                            &mut self.state,
-                            &self.ui,
-                            cx,
-                            app_action,
-                        );
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                     }
                 }
             }
@@ -438,6 +488,7 @@ impl AppMain for App {
                             .set_messages(cx, &self.state.messages_data);
                         self.state.update_projects_panel(&self.ui, cx);
                         self.state.update_session_title_ui(&self.ui, cx);
+                        self.state.update_project_context_ui(&self.ui, cx);
                         self.load_messages(session_id.clone());
                         self.load_pending_permissions();
                     }
@@ -461,7 +512,9 @@ impl AppMain for App {
             }
 
             // Handle MessageListAction
-            if let Some(msg_action) = action.downcast_ref::<crate::state::actions::MessageListAction>() {
+            if let Some(msg_action) =
+                action.downcast_ref::<crate::state::actions::MessageListAction>()
+            {
                 use crate::state::actions::MessageListAction;
                 match msg_action {
                     MessageListAction::RevertToMessage(message_id) => {

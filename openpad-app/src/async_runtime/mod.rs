@@ -1,9 +1,8 @@
 pub mod tasks;
 
 pub use tasks::{
-    get_session_title, spawn_health_checker, spawn_message_loader, spawn_message_sender,
-    spawn_pending_permissions_loader, spawn_permission_reply, spawn_project_loader,
-    spawn_session_aborter, spawn_session_brancher, spawn_session_creator,
-    spawn_session_deleter, spawn_session_unreverter, spawn_session_updater,
-    spawn_sse_subscriber, spawn_message_reverter,
+    get_session_title, spawn_health_checker, spawn_message_loader, spawn_message_reverter,
+    spawn_message_sender, spawn_pending_permissions_loader, spawn_permission_reply,
+    spawn_project_loader, spawn_session_aborter, spawn_session_brancher, spawn_session_creator,
+    spawn_session_deleter, spawn_session_unreverter, spawn_session_updater, spawn_sse_subscriber,
 };

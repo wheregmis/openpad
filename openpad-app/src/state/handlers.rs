@@ -1,9 +1,9 @@
-use crate::state::actions::AppAction;
+use crate::async_runtime::tasks;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
 use crate::constants::*;
-use crate::async_runtime::tasks;
+use crate::state::actions::AppAction;
 use crate::ui::state_updates;
 use makepad_widgets::*;
 use openpad_protocol::{Event as OcEvent, MessageWithParts, PermissionRequest, Project, Session};
@@ -58,6 +58,26 @@ impl AppState {
         state_updates::update_revert_indicator(ui, cx, is_reverted);
     }
 
+    fn project_for_current_session(&self) -> Option<&Project> {
+        let session_project_id = self.current_session_id.as_ref().and_then(|session_id| {
+            self.sessions
+                .iter()
+                .find(|session| &session.id == session_id)
+                .map(|session| &session.project_id)
+        });
+        session_project_id.and_then(|project_id| {
+            self.projects
+                .iter()
+                .find(|project| &project.id == project_id)
+        })
+    }
+
+    pub fn update_project_context_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
+        let project_for_session = self.project_for_current_session();
+        let project = project_for_session.or_else(|| self.current_project.as_ref());
+        state_updates::update_project_context_ui(ui, cx, project);
+    }
+
     /// Updates projects panel with current data
     pub fn update_projects_panel(&self, ui: &WidgetRef, cx: &mut Cx) {
         ui.projects_panel(id!(projects_panel)).set_data(
@@ -105,18 +125,22 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         AppAction::ProjectsLoaded(projects) => {
             state.projects = projects.clone();
             state.update_projects_panel(ui, cx);
+            state.update_project_context_ui(ui, cx);
         }
         AppAction::CurrentProjectLoaded(project) => {
             state.current_project = Some(project.clone());
+            state.update_project_context_ui(ui, cx);
         }
         AppAction::SessionsLoaded(sessions) => {
             state.sessions = sessions.clone();
             state.update_projects_panel(ui, cx);
+            state.update_project_context_ui(ui, cx);
         }
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
             state.clear_messages(ui, cx);
             state.update_session_title_ui(ui, cx);
+            state.update_project_context_ui(ui, cx);
             cx.redraw_all();
         }
         AppAction::SessionDeleted(session_id) => {
@@ -132,6 +156,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             // Remove from sessions list
             state.sessions.retain(|s| &s.id != session_id);
             state.update_projects_panel(ui, cx);
+            state.update_project_context_ui(ui, cx);
             cx.redraw_all();
         }
         AppAction::SessionUpdated(session) => {
@@ -141,6 +166,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             }
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
+            state.update_project_context_ui(ui, cx);
             cx.redraw_all();
         }
         AppAction::MessagesLoaded(messages) => {
@@ -172,6 +198,7 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             state.sessions.push(session.clone());
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
+            state.update_project_context_ui(ui, cx);
         }
         OcEvent::SessionUpdated(session) => {
             if let Some(existing) = state.sessions.iter_mut().find(|s| s.id == session.id) {
@@ -179,6 +206,7 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             }
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
+            state.update_project_context_ui(ui, cx);
         }
         OcEvent::SessionDeleted(session) => {
             // If the deleted session is currently selected, clear it
@@ -186,13 +214,14 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
                 state.current_session_id = None;
                 state.selected_session_id = None;
                 state.clear_messages(ui, cx);
-                state.update_session_title_ui(ui, cx);
             } else if state.selected_session_id.as_ref() == Some(&session.id) {
                 state.selected_session_id = None;
             }
             // Remove from sessions list
             state.sessions.retain(|s| s.id != session.id);
             state.update_projects_panel(ui, cx);
+            state.update_session_title_ui(ui, cx);
+            state.update_project_context_ui(ui, cx);
         }
         OcEvent::MessageUpdated(message) => {
             handle_message_updated(state, ui, cx, message);
