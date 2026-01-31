@@ -114,19 +114,22 @@ live_design! {
 
                     // Add action buttons for messages
                     msg_actions = <View> {
-                        width: Fill, height: Fit
+                        width: Fit, height: Fit
                         flow: Right,
                         spacing: 6,
-                        margin: { top: 8 }
+                        margin: { top: 6 }
 
                         revert_button = <Button> {
                             width: Fit, height: 24
-                            text: "⟲ Revert to here"
+                            padding: { left: 8, right: 8 }
+                            text: "Revert to here"
                             draw_bg: {
-                                color: #1f2329
+                                color: #262b33
                                 color_hover: #f59e0b
                                 border_radius: 4.0
-                                border_size: 0.0
+                                border_size: 1.0
+                                border_color_1: #3a414a
+                                border_color_2: #3a414a
                             }
                             draw_text: {
                                 color: #6b7b8c

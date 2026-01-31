@@ -61,6 +61,6 @@ pub fn update_revert_indicator(
     cx: &mut Cx,
     is_reverted: bool,
 ) {
-    ui.label(id!(revert_indicator)).set_visible(cx, is_reverted);
-    ui.button(id!(unrevert_button)).set_visible(cx, is_reverted);
+    ui.view(id!(revert_indicator)).set_visible(cx, is_reverted);
+    ui.view(id!(unrevert_wrap)).set_visible(cx, is_reverted);
 }

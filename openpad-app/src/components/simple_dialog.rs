@@ -65,20 +65,24 @@ live_design! {
                     }
                 }
                 
-                input_field = <TextInput> {
-                    width: Fill, height: 32
+                input_row = <View> {
+                    width: Fill, height: Fit
                     visible: false
-                    padding: 8,
-                    draw_text: {
-                        color: #e6e9ee
-                        text_style: { font_size: 11 }
-                    }
-                    draw_bg: {
-                        color: #15181d
-                        border_radius: 6.0
-                        border_size: 1.0
-                        border_color_1: #2b3138
-                        border_color_2: #2b3138
+
+                    input_field = <TextInput> {
+                        width: Fill, height: 32
+                        padding: 8,
+                        draw_text: {
+                            color: #e6e9ee
+                            text_style: { font_size: 11 }
+                        }
+                        draw_bg: {
+                            color: #15181d
+                            border_radius: 6.0
+                            border_size: 1.0
+                            border_color_1: #2b3138
+                            border_color_2: #2b3138
+                        }
                     }
                 }
                 
@@ -177,7 +181,7 @@ impl SimpleDialogRef {
             
             inner.view.label(id!(title_label)).set_text(cx, title);
             inner.view.label(id!(message_label)).set_text(cx, message);
-            inner.view.text_input(id!(input_field)).set_visible(cx, false);
+            inner.view.view(id!(input_row)).set_visible(cx, false);
             
             inner.view.set_visible(cx, true);
             inner.redraw(cx);
@@ -192,7 +196,7 @@ impl SimpleDialogRef {
             inner.view.label(id!(title_label)).set_text(cx, title);
             inner.view.label(id!(message_label)).set_text(cx, message);
             inner.view.text_input(id!(input_field)).set_text(cx, default_value);
-            inner.view.text_input(id!(input_field)).set_visible(cx, true);
+            inner.view.view(id!(input_row)).set_visible(cx, true);
             
             inner.view.set_visible(cx, true);
             inner.redraw(cx);

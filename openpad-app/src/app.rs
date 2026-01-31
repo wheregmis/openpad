@@ -31,7 +31,11 @@ live_design! {
             window: { inner_size: vec2(1200, 800) }
             pass: { clear_color: #1a1a1a }
 
-            body = <AppBg> {
+            body = <View> {
+                width: Fill, height: Fill
+                flow: Overlay
+
+                <AppBg> {
                 width: Fill, height: Fill
                 flow: Down,
                 spacing: 12,
@@ -88,23 +92,31 @@ live_design! {
                                 text: "Select a session or start a new one"
                                 draw_text: { color: #6b7b8c, text_style: { font_size: 11 } }
                             }
-                            revert_indicator = <Label> {
+                            revert_indicator = <View> {
                                 visible: false
-                                text: "⟲ Reverted"
-                                draw_text: { color: #f59e0b, text_style: { font_size: 10 } }
+                                width: Fit, height: Fit
+
+                                revert_indicator_label = <Label> {
+                                    text: "⟲ Reverted"
+                                    draw_text: { color: #f59e0b, text_style: { font_size: 10 } }
+                                }
                             }
                             <View> { width: Fill }
-                            unrevert_button = <Button> {
+                            unrevert_wrap = <View> {
                                 visible: false
-                                width: Fit, height: 28
-                                text: "↻ Unrevert"
-                                draw_bg: {
-                                    color: #3b82f6
-                                    color_hover: #1d4fed
-                                    border_radius: 6.0
-                                    border_size: 0.0
+                                width: Fit, height: Fit
+
+                                unrevert_button = <Button> {
+                                    width: Fit, height: 28
+                                    text: "↻ Unrevert"
+                                    draw_bg: {
+                                        color: #3b82f6
+                                        color_hover: #1d4fed
+                                        border_radius: 6.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text: { color: #ffffff, text_style: { font_size: 10 } }
                                 }
-                                draw_text: { color: #ffffff, text_style: { font_size: 10 } }
                             }
                         }
 
@@ -128,10 +140,11 @@ live_design! {
                         }
                     }
                 }
-            }
+                }
 
-            // Simple dialog for confirmations and inputs (shown as overlay)
-            simple_dialog = <SimpleDialog> {}
+                // Simple dialog for confirmations and inputs (shown as overlay)
+                simple_dialog = <SimpleDialog> {}
+            }
         }
     }
 }
@@ -194,7 +207,10 @@ impl App {
                         self.respond_to_permission(cx, request_id.clone(), reply.clone());
                         self.ui.permission_dialog(id!(permission_dialog)).hide(cx);
                     }
-                    AppAction::RevertToMessage { session_id, message_id } => {
+                    AppAction::RevertToMessage {
+                        session_id,
+                        message_id,
+                    } => {
                         self.revert_to_message(cx, session_id.clone(), message_id.clone());
                     }
                     AppAction::UnrevertSession(session_id) => {
@@ -271,14 +287,12 @@ impl App {
 
     fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
         // Show confirmation dialog
-        self.ui
-            .simple_dialog(id!(simple_dialog))
-            .show_confirm(
-                cx,
-                "Delete Session",
-                "Are you sure you want to delete this session? This action cannot be undone.",
-                format!("delete_session:{}", session_id),
-            );
+        self.ui.simple_dialog(id!(simple_dialog)).show_confirm(
+            cx,
+            "Delete Session",
+            "Are you sure you want to delete this session? This action cannot be undone.",
+            format!("delete_session:{}", session_id),
+        );
     }
 
     fn rename_session(&mut self, cx: &mut Cx, session_id: String) {
@@ -290,17 +304,15 @@ impl App {
             .find(|s| s.id == session_id)
             .map(|s| network::get_session_title(s))
             .unwrap_or_else(|| "Session".to_string());
-        
+
         // Show input dialog
-        self.ui
-            .simple_dialog(id!(simple_dialog))
-            .show_input(
-                cx,
-                "Rename Session",
-                "Enter a new name for this session:",
-                &current_title,
-                format!("rename_session:{}", session_id),
-            );
+        self.ui.simple_dialog(id!(simple_dialog)).show_input(
+            cx,
+            "Rename Session",
+            "Enter a new name for this session:",
+            &current_title,
+            format!("rename_session:{}", session_id),
+        );
     }
 
     fn abort_session(&mut self, _cx: &mut Cx, session_id: String) {
@@ -350,13 +362,13 @@ impl App {
 
         network::spawn_session_unreverter(runtime, client, session_id);
     }
-    
+
     fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {
         // Parse the dialog_type which is in format "action:data"
         let Some((action, data)) = dialog_type.split_once(':') else {
             return;
         };
-        
+
         let Some(client) = self.client.clone() else {
             self.state.error_message = Some("Not connected".to_string());
             return;
@@ -364,7 +376,7 @@ impl App {
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
-        
+
         match action {
             "delete_session" => {
                 network::spawn_session_deleter(runtime, client, data.to_string());
@@ -429,7 +441,7 @@ impl AppMain for App {
                     _ => {}
                 }
             }
-            
+
             // Handle MessageListAction
             if let Some(msg_action) = action.downcast_ref::<crate::actions::MessageListAction>() {
                 use crate::actions::MessageListAction;
@@ -438,6 +450,16 @@ impl AppMain for App {
                         if let Some(session_id) = &self.state.current_session_id {
                             self.revert_to_message(cx, session_id.clone(), message_id.clone());
                         }
+                    }
+                    _ => {}
+                }
+            }
+
+            // Handle AppAction from captured UI actions (e.g. DialogConfirmed from SimpleDialog)
+            if let Some(app_action) = action.downcast_ref::<AppAction>() {
+                match app_action {
+                    AppAction::DialogConfirmed { dialog_type, value } => {
+                        self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
                     _ => {}
                 }
@@ -451,7 +473,7 @@ impl AppMain for App {
                 self.ui.text_input(id!(input_box)).set_text(cx, "");
             }
         }
-        
+
         // Handle unrevert button
         if self.ui.button(id!(unrevert_button)).clicked(&actions) {
             if let Some(session_id) = &self.state.current_session_id {

@@ -14,7 +14,11 @@ live_design! {
     pub ProjectsPanel = {{ProjectsPanel}} {
         width: Fill, height: Fill
         list = <PortalList> {
-            scroll_bar: <ScrollBar> {}
+            scroll_bar: <ScrollBar> {
+                bar_size: 4.0
+                bar_side_margin: 6.0
+                smoothing: 0.15
+            }
 
             ProjectHeader = <View> {
                 width: Fill, height: Fit
@@ -51,11 +55,13 @@ live_design! {
                 padding: { top: 2, bottom: 2 }
                 flow: Right,
                 spacing: 4,
+                align: { y: 0.5 }
 
                 session_button = <Button> {
                     width: Fill, height: 34
+                    margin: { right: 8 }
                     text: "Session"
-                    draw_bg: {
+                  draw_bg: {
                         color: #1f2329
                         color_hover: #242a32
                         border_radius: 8.0
@@ -69,88 +75,96 @@ live_design! {
                     width: Fit, height: Fit
                     flow: Right,
                     spacing: 4,
-                    
+                    margin: { right: 4 },
+                    align: { y: 0.5 }
+
                     abort_button = <Button> {
                         width: 28, height: 28
                         visible: false
-                        text: "⏹"
+                    text: ""
+                    icon_walk: { width: 12, height: 12 }
+                    label_walk: { width: 0, height: 0 }
+                    align: { x: 0.5, y: 0.5 }
+                        draw_icon: {
+                            svg_file: dep("crate://self/resources/icons/stop.svg")
+                            color: #6b7b8c
+                            color_hover: #ffffff
+                            color_down: #ffffff
+                        }
                         draw_bg: {
                             color: #1f2329
                             color_hover: #ef4444
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: {
-                            color: #6b7b8c
-                            color_hover: #ffffff
-                            text_style: { font_size: 10 }
-                        }
+                        draw_text: { color: #0000 }
                     }
 
                     rename_button = <Button> {
                         width: 28, height: 28
-                        text: "✎"
+                    text: ""
+                    icon_walk: { width: 12, height: 12 }
+                    label_walk: { width: 0, height: 0 }
+                    align: { x: 0.5, y: 0.5 }
+                        draw_icon: {
+                            svg_file: dep("crate://self/resources/icons/pencil.svg")
+                            color: #6b7b8c
+                            color_hover: #ffffff
+                            color_down: #ffffff
+                        }
                         draw_bg: {
                             color: #1f2329
                             color_hover: #3b82f6
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: {
-                            color: #6b7b8c
-                            color_hover: #ffffff
-                            text_style: { font_size: 10 }
-                        }
+                        draw_text: { color: #0000 }
                     }
 
                     branch_button = <Button> {
                         width: 28, height: 28
-                        text: "⑂"
+                    text: ""
+                    icon_walk: { width: 12, height: 12 }
+                    label_walk: { width: 0, height: 0 }
+                    align: { x: 0.5, y: 0.5 }
+                        draw_icon: {
+                            svg_file: dep("crate://self/resources/icons/branch.svg")
+                            color: #6b7b8c
+                            color_hover: #ffffff
+                            color_down: #ffffff
+                        }
                         draw_bg: {
                             color: #1f2329
                             color_hover: #8b5cf6
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: {
-                            color: #6b7b8c
-                            color_hover: #ffffff
-                            text_style: { font_size: 10 }
-                        }
+                        draw_text: { color: #0000 }
                     }
 
                     delete_button = <Button> {
                         width: 28, height: 28
-                        text: "🗑"
+                    text: ""
+                    icon_walk: { width: 12, height: 12 }
+                    label_walk: { width: 0, height: 0 }
+                    align: { x: 0.5, y: 0.5 }
+                        draw_icon: {
+                            svg_file: dep("crate://self/resources/icons/trash.svg")
+                            color: #6b7b8c
+                            color_hover: #ffffff
+                            color_down: #ffffff
+                        }
                         draw_bg: {
                             color: #1f2329
                             color_hover: #ef4444
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: {
-                            color: #6b7b8c
-                            color_hover: #ffffff
-                            text_style: { font_size: 10 }
-                        }
+                        draw_text: { color: #0000 }
                     }
                 }
 
-                run_button = <Button> {
-                    width: 34, height: 34
-                    text: "▶"
-                    draw_bg: {
-                        color: #1f2329
-                        color_hover: #3b82f6
-                        border_radius: 8.0
-                        border_size: 0.0
-                    }
-                    draw_text: {
-                        color: #6b7b8c
-                        color_hover: #ffffff
-                        text_style: { font_size: 10 }
-                    }
-                }
+
             }
 
             Spacer = <View> { width: Fill, height: 12 }
@@ -316,9 +330,7 @@ impl Widget for ProjectsPanel {
                     if widget.button(id!(session_button)).clicked(&actions) {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
-                    if widget.button(id!(run_button)).clicked(&actions) {
-                        cx.action(ProjectsPanelAction::RunSession(session_id.clone()));
-                    }
+
                     if widget.button(id!(delete_button)).clicked(&actions) {
                         cx.action(ProjectsPanelAction::DeleteSession(session_id.clone()));
                     }

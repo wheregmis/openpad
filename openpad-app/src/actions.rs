@@ -51,7 +51,6 @@ pub enum ProjectsPanelAction {
     None,
     SelectSession(String),
     CreateSession(Option<String>),
-    RunSession(String),
     DeleteSession(String),
     RenameSession(String),
     AbortSession(String),
