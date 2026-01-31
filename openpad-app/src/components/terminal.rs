@@ -1,0 +1,629 @@
+//! Terminal widget - A simple terminal emulator widget.
+//!
+//! This component provides a basic terminal interface using portable-pty.
+
+use makepad_widgets::text_input::TextInputAction;
+use makepad_widgets::*;
+use portable_pty::{native_pty_system, CommandBuilder, PtySize};
+use std::io::{Read, Write};
+use std::sync::{Arc, Mutex};
+
+live_design! {
+    use link::theme::*;
+    use link::shaders::*;
+    use link::widgets::*;
+
+    pub Terminal = {{Terminal}} {
+        width: Fill, height: Fill
+        terminal_output = <View> {
+            width: Fill, height: Fill
+            flow: Down
+            spacing: 0
+            show_bg: true
+            draw_bg: {
+                color: #1a1a1a
+            }
+
+            output_list = <PortalList> {
+                auto_tail: true
+                OutputLine = <View> {
+                    width: Fill, height: Fit
+                    padding: { left: 10, right: 10, top: 0, bottom: 0 }
+
+                    line_label = <Label> {
+                        width: Fill, height: Fit
+                        draw_text: {
+                            color: #cccccc
+                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                        }
+                    }
+                }
+
+                InputLine = <View> {
+                    width: Fill, height: Fit
+                    flow: Right
+                    padding: { left: 10, right: 10, top: 0, bottom: 0 }
+                    spacing: 0
+                    align: { y: 0.5 }
+
+                    prompt_label = <Label> {
+                        width: Fit, height: Fit
+                        text: " % "
+                        draw_text: {
+                            color: #cccccc
+                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                        }
+                    }
+
+                    input_field = <TextInput> {
+                        width: Fill, height: Fit
+                        padding: { left: 0, right: 10, top: 4, bottom: 4 }
+                        empty_text: ""
+                        draw_bg: {
+                            color: #0000
+                            color_focus: #0000
+                            color_empty: #0000
+                            border_radius: 0.0
+                            border_size: 0.0
+                        }
+                        draw_text: {
+                            color: #ffffff
+                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TerminalSpan {
+    pub text: String,
+    pub color: Vec4,
+}
+
+#[derive(Live, Widget)]
+pub struct Terminal {
+    #[deref]
+    view: View,
+
+    #[rust]
+    output_lines: Vec<Vec<TerminalSpan>>,
+
+    #[rust]
+    partial_spans: Vec<TerminalSpan>,
+
+    #[rust]
+    current_color: Vec4,
+
+    /// Full prompt shown before cursor: e.g. "wheregmis@MacBookPro openpad % "
+    #[rust]
+    prompt_string: String,
+
+    #[rust]
+    pty_writer: Option<Arc<Mutex<Box<dyn Write + Send>>>>,
+}
+
+impl LiveHook for Terminal {
+    fn after_new_from_doc(&mut self, _cx: &mut Cx) {
+        self.output_lines = Vec::new();
+        self.partial_spans = Vec::new();
+        self.current_color = Vec4 {
+            x: 0.8,
+            y: 0.8,
+            z: 0.8,
+            w: 1.0,
+        }; // Default gray
+        self.prompt_string = Self::build_prompt_string(&std::path::PathBuf::from("."));
+    }
+}
+
+impl Widget for Terminal {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        let actions = cx.capture_actions(|cx| {
+            self.view.handle_event(cx, event, scope);
+        });
+
+        if let TextInputAction::Returned(input, _modifiers) =
+            actions.widget_action(&[live_id!(input_field)]).cast()
+        {
+            if !input.is_empty() {
+                self.send_command(cx, &input);
+                self.view.text_input(id!(input_field)).set_text(cx, "");
+            }
+        }
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
+            if let Some(mut list) = item.as_portal_list().borrow_mut() {
+                let total_items = self.output_lines.len() + 1;
+                list.set_item_range(cx, 0, total_items);
+
+                while let Some(item_id) = list.next_visible_item(cx) {
+                    if item_id < self.output_lines.len() {
+                        let spans = &self.output_lines[item_id];
+                        let item_widget = list.item(cx, item_id, live_id!(OutputLine));
+
+                        let full_text: String = spans.iter().map(|s| s.text.as_str()).collect();
+                        let label = item_widget.label(id!(line_label));
+                        label.set_text(cx, &full_text);
+                        if let Some(first) = spans.first() {
+                            label.apply_over(
+                                cx,
+                                live! {
+                                    draw_text: { color: (first.color) }
+                                },
+                            );
+                        }
+
+                        item_widget.draw_all(cx, scope);
+                    } else if item_id == self.output_lines.len() {
+                        let item_widget = list.item(cx, item_id, live_id!(InputLine));
+                        item_widget
+                            .label(id!(prompt_label))
+                            .set_text(cx, &self.prompt_string);
+                        item_widget.draw_all(cx, scope);
+                    }
+                }
+            }
+        }
+        DrawStep::done()
+    }
+}
+
+impl Terminal {
+    /// Build full prompt string: "• user@host dirname % "
+    fn build_prompt_string(cwd: &std::path::Path) -> String {
+        let user = std::env::var("USER").unwrap_or_else(|_| "user".into());
+        let host = hostname::get()
+            .ok()
+            .and_then(|h| h.into_string().ok())
+            .unwrap_or_else(|| "localhost".into());
+        let dir_name = cwd
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| ".".into());
+        format!("{}@{} {} % ", user, host, dir_name)
+    }
+
+    fn color_from_ansi(code: u8) -> Vec4 {
+        match code {
+            0 => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            }, // Reset/Gray
+            30 => Vec4 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+                w: 1.0,
+            }, // Black
+            31 => Vec4 {
+                x: 0.9,
+                y: 0.3,
+                z: 0.3,
+                w: 1.0,
+            }, // Red
+            32 => Vec4 {
+                x: 0.3,
+                y: 0.8,
+                z: 0.3,
+                w: 1.0,
+            }, // Green
+            33 => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.2,
+                w: 1.0,
+            }, // Yellow
+            34 => Vec4 {
+                x: 0.3,
+                y: 0.3,
+                z: 0.9,
+                w: 1.0,
+            }, // Blue
+            35 => Vec4 {
+                x: 0.8,
+                y: 0.3,
+                z: 0.8,
+                w: 1.0,
+            }, // Magenta
+            36 => Vec4 {
+                x: 0.3,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            }, // Cyan
+            37 => Vec4 {
+                x: 0.9,
+                y: 0.9,
+                z: 0.9,
+                w: 1.0,
+            }, // White
+            90 => Vec4 {
+                x: 0.5,
+                y: 0.5,
+                z: 0.5,
+                w: 1.0,
+            }, // Bright Black
+            91 => Vec4 {
+                x: 1.0,
+                y: 0.4,
+                z: 0.4,
+                w: 1.0,
+            }, // Bright Red
+            92 => Vec4 {
+                x: 0.4,
+                y: 1.0,
+                z: 0.4,
+                w: 1.0,
+            }, // Bright Green
+            93 => Vec4 {
+                x: 1.0,
+                y: 1.0,
+                z: 0.4,
+                w: 1.0,
+            }, // Bright Yellow
+            94 => Vec4 {
+                x: 0.5,
+                y: 0.5,
+                z: 1.0,
+                w: 1.0,
+            }, // Bright Blue
+            95 => Vec4 {
+                x: 1.0,
+                y: 0.5,
+                z: 1.0,
+                w: 1.0,
+            }, // Bright Magenta
+            96 => Vec4 {
+                x: 0.5,
+                y: 1.0,
+                z: 1.0,
+                w: 1.0,
+            }, // Bright Cyan
+            97 => Vec4 {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0,
+                w: 1.0,
+            }, // Bright White
+            _ => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            },
+        }
+    }
+
+    pub fn init_pty(&mut self, cx: &mut Cx) {
+        if self.pty_writer.is_some() {
+            return;
+        }
+        let pty_system = native_pty_system();
+
+        let pty_size = PtySize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 0,
+            pixel_height: 0,
+        };
+
+        let pair = match pty_system.openpty(pty_size) {
+            Ok(pair) => pair,
+            Err(e) => {
+                self.append_output(cx, &format!("Failed to create PTY: {}\n", e));
+                return;
+            }
+        };
+
+        // Spawn shell
+        #[cfg(target_os = "windows")]
+        let shell = "powershell.exe";
+        #[cfg(not(target_os = "windows"))]
+        let shell_path = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+
+        #[cfg(not(target_os = "windows"))]
+        let shell = shell_path.as_str();
+
+        let mut cmd = CommandBuilder::new(shell);
+        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        cmd.cwd(&cwd);
+        self.prompt_string = Self::build_prompt_string(&cwd);
+
+        if let Err(e) = pair.slave.spawn_command(cmd) {
+            self.append_output(cx, &format!("Failed to spawn shell: {}\n", e));
+            return;
+        }
+
+        // Store writer
+        let writer = match pair.master.take_writer() {
+            Ok(w) => Arc::new(Mutex::new(w)),
+            Err(e) => {
+                self.append_output(cx, &format!("Failed to get PTY writer: {}\n", e));
+                return;
+            }
+        };
+        self.pty_writer = Some(writer);
+
+        // Start reading output in background
+        // NOTE: This thread will run until the PTY reader is closed or an error occurs.
+        // Future enhancement: Store thread handle and implement proper cleanup on widget drop.
+        let reader = match pair.master.try_clone_reader() {
+            Ok(r) => r,
+            Err(e) => {
+                self.append_output(cx, &format!("Failed to get PTY reader: {}\n", e));
+                return;
+            }
+        };
+
+        std::thread::spawn(move || {
+            let mut reader = reader;
+            let mut buffer = [0u8; 4096];
+            loop {
+                match reader.read(&mut buffer) {
+                    Ok(n) if n > 0 => {
+                        let text = String::from_utf8_lossy(&buffer[0..n]).to_string();
+                        Cx::post_action(TerminalAction::OutputReceived(text));
+                    }
+                    Ok(_) => break, // EOF
+                    Err(_) => break,
+                }
+            }
+        });
+
+        self.append_output(cx, &format!("Terminal initialized with shell: {}\n", shell));
+    }
+
+    fn send_command(&mut self, cx: &mut Cx, command: &str) {
+        // Do not echo the command here: the PTY/shell already echoes user input.
+        // Echoing ourselves caused duplicate first character (e.g. "ls" -> "lls").
+        if let Some(writer) = &self.pty_writer {
+            let result = {
+                let mut w = match writer.lock() {
+                    Ok(w) => w,
+                    Err(_) => return,
+                };
+                writeln!(w, "{}", command)
+            };
+
+            if let Err(e) = result {
+                self.append_output(cx, &format!("Failed to send command: {}\n", e));
+            }
+        }
+    }
+
+    /// Normalize line for prompt check: aggressively strip ANSI and control chars.
+    fn normalize_for_prompt_check(line: &str) -> String {
+        let mut result = String::with_capacity(line.len());
+        let mut chars = line.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '\x1b' {
+                if chars.peek() == Some(&'[') {
+                    chars.next();
+                    while let Some(&next) = chars.peek() {
+                        chars.next();
+                        if next.is_ascii_alphabetic() || next == '~' {
+                            break;
+                        }
+                    }
+                }
+            } else if !ch.is_control() || ch == '\n' {
+                result.push(ch);
+            }
+        }
+        result.trim().to_string()
+    }
+
+    /// True if the line is only a shell prompt or looks like one.
+    fn is_prompt_only_line(line: &str, our_prompt: &str) -> bool {
+        let t = Self::normalize_for_prompt_check(line);
+        if t.is_empty() {
+            return true;
+        }
+
+        // Exact or trimmed match to our expected prompt
+        let our_trimmed = our_prompt.trim();
+        if t == our_trimmed {
+            return true;
+        }
+
+        // Only filter lines that end with a prompt character and nothing after it
+        if t.ends_with('%')
+            || t.ends_with("% ")
+            || t.ends_with('$')
+            || t.ends_with("$ ")
+            || t.ends_with('#')
+            || t.ends_with("# ")
+        {
+            // Check if it looks like just a prompt (user@host dir %)
+            if (t.contains('@') && t.len() < our_trimmed.len() + 5)
+                || t == "%"
+                || t == "$"
+                || t == "#"
+            {
+                return true;
+            }
+        }
+
+        false
+    }
+
+    fn append_output(&mut self, cx: &mut Cx, text: &str) {
+        let mut chars = text.chars().peekable();
+        let mut current_text = String::new();
+
+        while let Some(ch) = chars.next() {
+            match ch {
+                '\x1b' => {
+                    // Flush current text if any
+                    if !current_text.is_empty() {
+                        self.partial_spans.push(TerminalSpan {
+                            text: current_text.clone(),
+                            color: self.current_color,
+                        });
+                        current_text.clear();
+                    }
+
+                    if chars.next() == Some('[') {
+                        // Skip private mode prefix characters (?, >, =, etc.)
+                        while let Some(&next) = chars.peek() {
+                            if next == '?' || next == '>' || next == '=' || next == '!' {
+                                chars.next();
+                            } else {
+                                break;
+                            }
+                        }
+                        let mut param = String::new();
+                        while let Some(&next) = chars.peek() {
+                            if next.is_ascii_digit() || next == ';' {
+                                param.push(chars.next().unwrap());
+                            } else {
+                                break;
+                            }
+                        }
+                        let command = chars.next();
+                        if command == Some('m') {
+                            // SGR (Select Graphic Rendition)
+                            for p in param.split(';') {
+                                if let Ok(code) = p.parse::<u8>() {
+                                    self.current_color = Self::color_from_ansi(code);
+                                }
+                            }
+                        } else if command == Some('K') {
+                            // Erase in Line - ignore for now
+                        } else if command == Some('H') || command == Some('f') {
+                            // Cursor Position - ignore for now
+                        } else if command == Some('J') {
+                            // Erase in Display - ignore for now
+                        }
+                        // Skip other unknown CSI sequences
+                    }
+                }
+                '\n' => {
+                    if !current_text.is_empty() {
+                        self.partial_spans.push(TerminalSpan {
+                            text: current_text.clone(),
+                            color: self.current_color,
+                        });
+                        current_text.clear();
+                    }
+
+                    let line_spans = std::mem::take(&mut self.partial_spans);
+                    // Simple prompt check on the concatenated text
+                    let full_text: String = line_spans.iter().map(|s| s.text.as_str()).collect();
+                    if !Self::is_prompt_only_line(&full_text, &self.prompt_string) {
+                        self.output_lines.push(line_spans);
+                    }
+                }
+                '\r' => {
+                    // \r\n or \r\r\n = line ending, preserve content and let \n handle it.
+                    // \r at end of chunk = preserve (the \n may arrive in the next chunk).
+                    // \r followed by visible text = shell is redrawing the line, clear and overwrite.
+                    match chars.peek() {
+                        Some(&'\n') | Some(&'\r') | None => {
+                            // Line ending or end of chunk - preserve content
+                        }
+                        Some(&'\x1b') => {
+                            // ANSI escape after \r typically means prompt redraw
+                            self.partial_spans.clear();
+                            current_text.clear();
+                        }
+                        _ => {
+                            // Standalone \r followed by text: shell is redrawing
+                            self.partial_spans.clear();
+                            current_text.clear();
+                        }
+                    }
+                }
+                '\x08' => {
+                    // Backspace: remove last character
+                    if !current_text.is_empty() {
+                        current_text.pop();
+                    } else if let Some(last_span) = self.partial_spans.last_mut() {
+                        last_span.text.pop();
+                        if last_span.text.is_empty() {
+                            self.partial_spans.pop();
+                        }
+                    }
+                }
+                '\t' => {
+                    current_text.push_str("    ");
+                }
+                ch if ch.is_control() => {
+                    // Skip other control characters
+                }
+                _ => {
+                    current_text.push(ch);
+                }
+            }
+        }
+
+        if !current_text.is_empty() {
+            self.partial_spans.push(TerminalSpan {
+                text: current_text,
+                color: self.current_color,
+            });
+        }
+
+        // Limit line count
+        const MAX_LINES: usize = 2000;
+        if self.output_lines.len() > MAX_LINES {
+            let remove_count = self.output_lines.len() - MAX_LINES;
+            self.output_lines.drain(0..remove_count);
+        }
+
+        self.redraw(cx);
+        Cx::post_action(TerminalAction::ScrollToBottom);
+    }
+
+    fn clear_output(&mut self, cx: &mut Cx) {
+        self.output_lines.clear();
+        self.partial_spans.clear();
+        self.redraw(cx);
+    }
+
+    pub fn handle_action(&mut self, cx: &mut Cx, action: &TerminalAction) {
+        match action {
+            TerminalAction::OutputReceived(text) => {
+                self.append_output(cx, text);
+            }
+            TerminalAction::ScrollToBottom => {
+                // Scroll PortalList so the input line (last item) is visible
+                let list = self.view.portal_list(id!(output_list));
+                let total_items = self.output_lines.len() + 1;
+                if total_items > 0 {
+                    // Show last ~40 items so user sees recent output + input line
+                    list.set_first_id(total_items.saturating_sub(40));
+                }
+            }
+            TerminalAction::None => {}
+        }
+    }
+}
+
+#[derive(Clone, Debug, DefaultNone)]
+pub enum TerminalAction {
+    OutputReceived(String),
+    ScrollToBottom,
+    None,
+}
+
+impl TerminalRef {
+    pub fn init_pty(&self, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.init_pty(cx);
+        }
+    }
+
+    pub fn handle_action(&self, cx: &mut Cx, action: &TerminalAction) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.handle_action(cx, action);
+        }
+    }
+}

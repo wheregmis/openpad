@@ -41,8 +41,11 @@ pub mod openpad {
 
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
+                    sdf.rect(0.0, 0.0, self.rect_size.x, self.rect_size.y);
                     sdf.fill_keep(self.color);
+                    // Draw only bottom border
+                    sdf.move_to(0.0, self.rect_size.y - 1.0);
+                    sdf.line_to(self.rect_size.x, self.rect_size.y - 1.0);
                     sdf.stroke(self.border_color, self.border_size);
                     return sdf.result;
                 }
@@ -130,21 +133,25 @@ pub mod openpad {
 
         pub SidePanelBase = {{SidePanel}} {}
         pub SidePanel = <SidePanelBase> {
+            width: 280.0, height: Fill
             flow: Down,
-            padding: 16,
-            spacing: 12,
+            padding: 0,
+            spacing: 0,
             clip_x: true
             show_bg: true
             open_size: 280.0
             close_size: 0.0
             draw_bg: {
-                color: #1c2026
-                uniform border_color: #2b3138
+                color: #1e1e1e
+                uniform border_color: #333
                 uniform border_size: 1.0
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.rect(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0);
+                    sdf.rect(0.0, 0.0, self.rect_size.x, self.rect_size.y);
                     sdf.fill_keep(self.color);
+                    // Draw only right border
+                    sdf.move_to(self.rect_size.x - 1.0, 0.0);
+                    sdf.line_to(self.rect_size.x - 1.0, self.rect_size.y);
                     sdf.stroke(self.border_color, self.border_size);
                     return sdf.result;
                 }
@@ -154,13 +161,13 @@ pub mod openpad {
                     default: off,
                     off = {
                         redraw: true
-                        from: {all: Forward {duration: 1.0}}
+                        from: {all: Forward {duration: 0.4}}
                         ease: ExpDecay {d1: 0.80, d2: 0.97}
                         apply: {animator_panel_progress: 0.0}
                     }
                     on = {
                         redraw: true
-                        from: {all: Forward {duration: 1.0}}
+                        from: {all: Forward {duration: 0.4}}
                         ease: ExpDecay {d1: 0.80, d2: 0.97}
                         apply: {animator_panel_progress: 1.0}
                     }
@@ -172,27 +179,29 @@ pub mod openpad {
             width: Fill, height: Fit
             flow: Right,
             spacing: 8,
-            padding: { left: 14, right: 10, top: 6, bottom: 6 }
+            padding: { left: 18, right: 10, top: 10, bottom: 10 }
             align: { y: 1.0 }
+            show_bg: true
             draw_bg: {
-                color: #1f2329
-                border_color: #2e343c
-                border_radius: 18.0
+                color: #252526
+                border_color: #333
+                border_radius: 12.0
                 border_size: 1.0
             }
         }
 
         pub InputField = <TextInput> {
             width: Fill, height: Fit
+            padding: { left: 12, right: 12, top: 8, bottom: 8 }
             empty_text: "Ask anything..."
             draw_bg: {
-                color: #0000
-                color_hover: #0000
-                color_focus: #0000
-                color_down: #0000
-                color_empty: #0000
-                color_disabled: #0000
-                border_radius: 0.0
+                color: #252526
+                color_hover: #2b2b2d
+                color_focus: #2d2d30
+                color_down: #252526
+                color_empty: #252526
+                color_disabled: #252526
+                border_radius: 8.0
                 border_size: 0.0
                 border_color_1: #0000
                 border_color_2: #0000
@@ -207,7 +216,7 @@ pub mod openpad {
                 border_color_1_disabled: #0000
                 border_color_2_disabled: #0000
             }
-            draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 12 } }
+            draw_text: { color: #ddd, text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 } }
             text: ""
         }
 
@@ -219,16 +228,16 @@ pub mod openpad {
             icon_walk: { width: 16, height: Fit }
             draw_icon: {
                 svg_file: dep("crate://self/resources/icons/send.svg")
-                color: #cbd3dc
+                color: #c2c9d4
                 color_hover: #ffffff
-                color_down: #aeb7c2
+                color_down: #aab2bd
             }
             draw_bg: {
-                border_radius: 8.0
+                border_radius: 10.0
                 border_size: 0.0
-                color: #2a2f36
-                color_hover: #313843
-                color_down: #242a32
+                color: #2d2d30
+                color_hover: #34343a
+                color_down: #27272b
             }
         }
     }
