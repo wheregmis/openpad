@@ -122,8 +122,10 @@ pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&P
         path_text.clone()
     };
 
-    ui.label(id!(project_path_label)).set_text(cx, &display_path);
-    ui.view(id!(project_path_wrap)).set_visible(cx, path_visible);
+    ui.label(id!(project_path_label))
+        .set_text(cx, &display_path);
+    ui.view(id!(project_path_wrap))
+        .set_visible(cx, path_visible);
     ui.label(id!(project_path_label)).apply_over(
         cx,
         live! {

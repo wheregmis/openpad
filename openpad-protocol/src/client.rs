@@ -85,15 +85,24 @@ impl OpenCodeClient {
     // ========================================================================
 
     /// Helper to check response status and return an error if not successful.
-    fn check_response(response: &reqwest::Response, action: &str) -> Result<()> {
+    async fn check_response(
+        response: reqwest::Response,
+        action: &str,
+    ) -> Result<reqwest::Response> {
         if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            let body = if body.is_empty() {
+                "no response body".to_string()
+            } else {
+                body
+            };
             return Err(Error::InvalidResponse(format!(
-                "Failed to {}: {}",
-                action,
-                response.status()
+                "Failed to {}: {} ({})",
+                action, status, body
             )));
         }
-        Ok(())
+        Ok(response)
     }
 
     /// Helper for GET requests that return JSON.
@@ -110,7 +119,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, action)?;
+        let response = Self::check_response(response, action).await?;
         Ok(response.json().await?)
     }
 
@@ -130,7 +139,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, action)?;
+        let response = Self::check_response(response, action).await?;
         Ok(response.json().await?)
     }
 
@@ -150,7 +159,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, action)?;
+        let response = Self::check_response(response, action).await?;
         // Consume the response body to allow connection reuse
         let _ = response.bytes().await?;
         Ok(true)
@@ -170,7 +179,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, action)?;
+        let response = Self::check_response(response, action).await?;
         Ok(response.json().await?)
     }
 
@@ -184,7 +193,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, action)?;
+        let response = Self::check_response(response, action).await?;
         // Consume the response body to allow connection reuse
         let _ = response.bytes().await?;
         Ok(true)
@@ -206,7 +215,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, action)?;
+        let response = Self::check_response(response, action).await?;
         Ok(response.json().await?)
     }
 
@@ -220,7 +229,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, action)?;
+        let response = Self::check_response(response, action).await?;
         // Consume the response body to allow connection reuse
         let _ = response.bytes().await?;
         Ok(true)
@@ -263,7 +272,7 @@ impl OpenCodeClient {
     pub async fn health(&self) -> Result<HealthResponse> {
         let url = format!("{}/global/health", self.base_url);
         let response = self.http.get(&url).send().await?;
-        Self::check_response(&response, "get health")?;
+        let response = Self::check_response(response, "get health").await?;
         Ok(response.json().await?)
     }
 
@@ -470,7 +479,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, "search text")?;
+        let response = Self::check_response(response, "search text").await?;
         Ok(response.json().await?)
     }
 
@@ -494,7 +503,7 @@ impl OpenCodeClient {
 
         let response = self.http.get(&url).query(&query).send().await?;
 
-        Self::check_response(&response, "search files")?;
+        let response = Self::check_response(response, "search files").await?;
         Ok(response.json().await?)
     }
 
@@ -508,7 +517,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, "search symbols")?;
+        let response = Self::check_response(response, "search symbols").await?;
         Ok(response.json().await?)
     }
 
@@ -522,7 +531,7 @@ impl OpenCodeClient {
             .send()
             .await?;
 
-        Self::check_response(&response, "read file")?;
+        let response = Self::check_response(response, "read file").await?;
         Ok(response.json().await?)
     }
 
@@ -538,7 +547,7 @@ impl OpenCodeClient {
 
         let response = self.http.get(&url).query(&query).send().await?;
 
-        Self::check_response(&response, "get file status")?;
+        let response = Self::check_response(response, "get file status").await?;
         Ok(response.json().await?)
     }
 

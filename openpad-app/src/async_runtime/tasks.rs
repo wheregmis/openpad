@@ -1,10 +1,9 @@
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::actions::AppAction;
-use makepad_widgets::Cx;
+use makepad_widgets::{log, Cx};
 use openpad_protocol::{
-    ModelSpec, OpenCodeClient, PartInput, PermissionAction, PermissionReply,
-    PermissionReplyRequest, PermissionRule, PermissionRuleset, PromptRequest, Session,
-    SessionCreateRequest,
+    ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest, PromptRequest,
+    Session, SessionCreateRequest,
 };
 use std::sync::Arc;
 
@@ -89,8 +88,15 @@ pub fn spawn_message_sender(
     session_id: Option<String>,
     text: String,
     model_spec: Option<ModelSpec>,
+    directory: Option<String>,
 ) {
     runtime.spawn(async move {
+        let target_client = if let Some(dir) = directory.clone() {
+            Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL).with_directory(dir))
+        } else {
+            client.clone()
+        };
+
         // Create session if needed
         let sid = if let Some(id) = session_id {
             id
@@ -98,15 +104,16 @@ pub fn spawn_message_sender(
             let request = SessionCreateRequest {
                 parent_id: None,
                 title: None,
-                permission: Some(default_permission_ruleset()),
+                permission: None,
             };
 
-            match client.create_session_with_options(request).await {
+            match target_client.create_session_with_options(request).await {
                 Ok(session) => {
                     Cx::post_action(AppAction::SessionCreated(session.clone()));
                     session.id
                 }
                 Err(e) => {
+                    log!("Failed to create session for message send: {}", e);
                     Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
                     return;
                 }
@@ -119,7 +126,8 @@ pub fn spawn_message_sender(
             parts: vec![PartInput::text(&text)],
             no_reply: None,
         };
-        if let Err(e) = client.send_prompt_with_options(&sid, request).await {
+        if let Err(e) = target_client.send_prompt_with_options(&sid, request).await {
+            log!("Failed to send prompt on session {}: {}", sid, e);
             Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
         }
     });
@@ -136,14 +144,13 @@ pub fn spawn_session_creator(
         let request = SessionCreateRequest {
             parent_id: None,
             title: None,
-            permission: Some(default_permission_ruleset()),
+            permission: None,
         };
 
         // If a specific directory is provided, create a new client for this request
         // Otherwise, use the default client
         let session_result = if let Some(directory) = project_directory {
-            let project_client = OpenCodeClient::new(OPENCODE_SERVER_URL)
-                .with_directory(directory);
+            let project_client = OpenCodeClient::new(OPENCODE_SERVER_URL).with_directory(directory);
             project_client.create_session_with_options(request).await
         } else {
             client.create_session_with_options(request).await
@@ -160,6 +167,7 @@ pub fn spawn_session_creator(
                 }
             }
             Err(e) => {
+                log!("Failed to create session (new session request): {}", e);
                 Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
             }
         }
@@ -208,14 +216,6 @@ pub fn get_session_title(session: &Session) -> String {
     } else {
         session.id.clone()
     }
-}
-
-fn default_permission_ruleset() -> PermissionRuleset {
-    vec![PermissionRule {
-        permission: "*".to_string(),
-        pattern: "*".to_string(),
-        action: PermissionAction::Ask,
-    }]
 }
 
 /// Spawns a task to fetch providers (and their models)
@@ -332,9 +332,9 @@ pub fn spawn_session_brancher(
 ) {
     runtime.spawn(async move {
         let request = SessionCreateRequest {
-            parent_id: Some(parent_session_id),
+            parent_id: Some(parent_session_id.clone()),
             title: None,
-            permission: Some(default_permission_ruleset()),
+            permission: None,
         };
 
         match client.create_session_with_options(request).await {
@@ -345,6 +345,11 @@ pub fn spawn_session_brancher(
                 }
             }
             Err(e) => {
+                log!(
+                    "Failed to branch session from {}: {}",
+                    parent_session_id.clone(),
+                    e
+                );
                 Cx::post_action(AppAction::SendMessageFailed(format!(
                     "Failed to branch session: {}",
                     e

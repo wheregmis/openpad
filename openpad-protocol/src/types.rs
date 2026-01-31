@@ -427,10 +427,10 @@ pub struct ModelSpec {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PromptRequest {
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub model: Option<ModelSpec>,
     pub parts: Vec<PartInput>,
-    #[serde(default, rename = "noReply")]
+    #[serde(default, rename = "noReply", skip_serializing_if = "Option::is_none")]
     pub no_reply: Option<bool>,
 }
 

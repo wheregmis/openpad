@@ -266,6 +266,19 @@ impl LiveRegister for App {
 }
 
 impl App {
+    fn normalize_project_directory(worktree: &str) -> String {
+        if worktree == "." {
+            if let Ok(current_dir) = std::env::current_dir() {
+                return current_dir.to_string_lossy().to_string();
+            }
+        }
+
+        match std::fs::canonicalize(worktree) {
+            Ok(path) => path.to_string_lossy().to_string(),
+            Err(_) => worktree.to_string(),
+        }
+    }
+
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let client = Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL));
@@ -370,8 +383,25 @@ impl App {
         };
 
         let session_id = self.state.current_session_id.clone();
+        let directory = session_id
+            .as_ref()
+            .and_then(|sid| {
+                self.state
+                    .sessions
+                    .iter()
+                    .find(|session| &session.id == sid)
+                    .map(|session| session.directory.clone())
+            })
+            .or_else(|| {
+                self.state
+                    .current_project
+                    .as_ref()
+                    .map(|project| project.worktree.clone())
+            });
         let model_spec = self.state.selected_model_spec();
-        async_runtime::spawn_message_sender(runtime, client, session_id, text, model_spec);
+        async_runtime::spawn_message_sender(
+            runtime, client, session_id, text, model_spec, directory,
+        );
     }
 
     fn create_session(&mut self, _cx: &mut Cx, project_id: Option<String>) {
@@ -389,7 +419,16 @@ impl App {
                 .projects
                 .iter()
                 .find(|p| &p.id == pid)
-                .map(|p| p.worktree.clone())
+                .map(|p| {
+                    let normalized = Self::normalize_project_directory(&p.worktree);
+                    log!(
+                        "Create session: project_id={:?} worktree={} directory={}",
+                        pid,
+                        p.worktree,
+                        normalized
+                    );
+                    normalized
+                })
         });
 
         async_runtime::spawn_session_creator(runtime, client, project_directory);
@@ -566,6 +605,10 @@ impl AppMain for App {
                         self.load_pending_permissions();
                     }
                     ProjectsPanelAction::CreateSession(project_id) => {
+                        log!(
+                            "UI action: create session button clicked (project_id={:?})",
+                            project_id
+                        );
                         self.create_session(cx, project_id.clone());
                     }
                     ProjectsPanelAction::DeleteSession(session_id) => {
