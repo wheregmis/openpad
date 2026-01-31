@@ -279,6 +279,15 @@ impl App {
         }
     }
 
+    /// Helper to get a session's directory by session ID
+    fn get_session_directory(&self, session_id: &str) -> Option<String> {
+        self.state
+            .sessions
+            .iter()
+            .find(|s| s.id == session_id)
+            .map(|s| s.directory.clone())
+    }
+
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let client = Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL));
@@ -370,7 +379,10 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_message_loader(runtime, client, session_id);
+        // Find the session to get its directory
+        let directory = self.get_session_directory(&session_id);
+
+        async_runtime::spawn_message_loader(runtime, client, session_id, directory);
     }
 
     fn send_message(&mut self, _cx: &mut Cx, text: String) {
@@ -390,13 +402,30 @@ impl App {
                     .sessions
                     .iter()
                     .find(|session| &session.id == sid)
-                    .map(|session| session.directory.clone())
+                    .map(|session| {
+                        log!(
+                            "Sending message to session: id={}, directory={}, project_id={}",
+                            session.id,
+                            session.directory,
+                            session.project_id
+                        );
+                        session.directory.clone()
+                    })
             })
             .or_else(|| {
                 self.state
                     .current_project
                     .as_ref()
-                    .map(|project| project.worktree.clone())
+                    .map(|project| {
+                        let dir = Self::normalize_project_directory(&project.worktree);
+                        log!(
+                            "No session - using current_project: id={}, worktree={}, normalized_dir={}",
+                            project.id,
+                            project.worktree,
+                            dir
+                        );
+                        dir
+                    })
             });
         let model_spec = self.state.selected_model_spec();
         async_runtime::spawn_message_sender(
@@ -422,8 +451,9 @@ impl App {
                 .map(|p| {
                     let normalized = Self::normalize_project_directory(&p.worktree);
                     log!(
-                        "Create session: project_id={:?} worktree={} directory={}",
+                        "Creating session for project: id={}, name={:?}, worktree={}, normalized_directory={}",
                         pid,
+                        p.name,
                         p.worktree,
                         normalized
                     );
@@ -502,7 +532,10 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_session_brancher(runtime, client, parent_session_id);
+        // Find the parent session to get its directory for the new branched session
+        let directory = self.get_session_directory(&parent_session_id);
+
+        async_runtime::spawn_session_brancher(runtime, client, parent_session_id, directory);
     }
 
     fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
@@ -514,7 +547,10 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id);
+        // Find the session to get its directory
+        let directory = self.get_session_directory(&session_id);
+
+        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id, directory);
     }
 
     fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {
@@ -526,7 +562,10 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_session_unreverter(runtime, client, session_id);
+        // Find the session to get its directory
+        let directory = self.get_session_directory(&session_id);
+
+        async_runtime::spawn_session_unreverter(runtime, client, session_id, directory);
     }
 
     fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {

@@ -7,6 +7,18 @@ use openpad_protocol::{
 };
 use std::sync::Arc;
 
+/// Helper to create a directory-specific client if a directory is provided
+fn get_directory_client(
+    base_client: Arc<OpenCodeClient>,
+    directory: Option<String>,
+) -> Arc<OpenCodeClient> {
+    if let Some(dir) = directory {
+        Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL).with_directory(dir))
+    } else {
+        base_client
+    }
+}
+
 /// Spawns a task to subscribe to SSE events
 pub fn spawn_sse_subscriber(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
     runtime.spawn(async move {
@@ -70,9 +82,13 @@ pub fn spawn_message_loader(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     session_id: String,
+    directory: Option<String>,
 ) {
     runtime.spawn(async move {
-        match client.list_messages(&session_id).await {
+        // Use session-specific directory if provided
+        let target_client = get_directory_client(client, directory);
+        
+        match target_client.list_messages(&session_id).await {
             Ok(messages) => {
                 Cx::post_action(AppAction::MessagesLoaded(messages));
             }
@@ -159,12 +175,8 @@ pub fn spawn_session_creator(
         match session_result {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
-                // Reload all sessions using the original client
-                // The OpenCode server returns all sessions across projects,
-                // which are then grouped by project_id in the UI
-                if let Ok(sessions) = client.list_sessions().await {
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
-                }
+                // Don't reload sessions here - let SSE handle it to avoid race conditions
+                // The SessionCreated SSE event will arrive and add the session to the list
             }
             Err(e) => {
                 log!("Failed to create session (new session request): {}", e);
@@ -256,10 +268,7 @@ pub fn spawn_session_deleter(
         match client.delete_session(&session_id).await {
             Ok(_) => {
                 Cx::post_action(AppAction::SessionDeleted(session_id.clone()));
-                // Reload sessions list
-                if let Ok(sessions) = client.list_sessions().await {
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
-                }
+                // Don't reload sessions here - let SSE handle it
             }
             Err(e) => {
                 Cx::post_action(AppAction::SendMessageFailed(format!(
@@ -287,10 +296,7 @@ pub fn spawn_session_updater(
         match client.update_session(&session_id, request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionUpdated(session.clone()));
-                // Reload sessions list to ensure consistency
-                if let Ok(sessions) = client.list_sessions().await {
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
-                }
+                // Don't reload sessions here - let SSE handle it
             }
             Err(e) => {
                 Cx::post_action(AppAction::SendMessageFailed(format!(
@@ -329,6 +335,7 @@ pub fn spawn_session_brancher(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     parent_session_id: String,
+    directory: Option<String>,
 ) {
     runtime.spawn(async move {
         let request = SessionCreateRequest {
@@ -337,12 +344,14 @@ pub fn spawn_session_brancher(
             permission: None,
         };
 
-        match client.create_session_with_options(request).await {
+        // Use session-specific directory if provided
+        let target_client = get_directory_client(client.clone(), directory);
+
+        match target_client.create_session_with_options(request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
-                if let Ok(sessions) = client.list_sessions().await {
-                    Cx::post_action(AppAction::SessionsLoaded(sessions));
-                }
+                // Don't reload sessions here - let SSE handle it to avoid race conditions
+                // The SessionCreated SSE event will arrive and add the session to the list
             }
             Err(e) => {
                 log!(
@@ -365,16 +374,20 @@ pub fn spawn_message_reverter(
     client: Arc<OpenCodeClient>,
     session_id: String,
     message_id: String,
+    directory: Option<String>,
 ) {
     use openpad_protocol::RevertRequest;
 
     runtime.spawn(async move {
+        // Use session-specific directory if provided
+        let target_client = get_directory_client(client, directory);
+
         let request = RevertRequest { message_id };
-        match client.revert_message(&session_id, request).await {
+        match target_client.revert_message(&session_id, request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionUpdated(session));
-                // Reload messages for the session
-                if let Ok(messages) = client.list_messages(&session_id).await {
+                // Reload messages for the session using the same directory-aware client
+                if let Ok(messages) = target_client.list_messages(&session_id).await {
                     Cx::post_action(AppAction::MessagesLoaded(messages));
                 }
             }
@@ -393,13 +406,17 @@ pub fn spawn_session_unreverter(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     session_id: String,
+    directory: Option<String>,
 ) {
     runtime.spawn(async move {
-        match client.unrevert_session(&session_id).await {
+        // Use session-specific directory if provided
+        let target_client = get_directory_client(client, directory);
+
+        match target_client.unrevert_session(&session_id).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionUpdated(session));
-                // Reload messages for the session
-                if let Ok(messages) = client.list_messages(&session_id).await {
+                // Reload messages for the session using the same directory-aware client
+                if let Ok(messages) = target_client.list_messages(&session_id).await {
                     Cx::post_action(AppAction::MessagesLoaded(messages));
                 }
             }
