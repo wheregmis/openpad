@@ -65,6 +65,9 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
+    use openpad_widgets::theme::*;
+    use openpad_widgets::app_bg::AppBg;
+    use openpad_widgets::simple_dialog::SimpleDialog;
     use makepad_code_editor::code_view::CodeView;
 
     // Import component DSL definitions

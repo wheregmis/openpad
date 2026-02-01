@@ -6,6 +6,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
+    use openpad_widgets::theme::*;
 
     pub PermissionDialog = {{PermissionDialog}} {
         width: Fill, height: Fit

@@ -21,14 +21,15 @@ pub use simple_dialog::{SimpleDialog, SimpleDialogAction, SimpleDialogRef};
 
 pub fn live_design(cx: &mut Cx) {
     makepad_widgets::live_design(cx);
+    crate::app_bg::live_design(cx);
+    crate::theme::live_design(cx);
+    crate::simple_dialog::live_design(cx);
     crate::upward_dropdown::live_design(cx);
     crate::openpad::live_design(cx);
 }
 
 pub mod openpad {
     use crate::SidePanel;
-    use crate::SimpleDialog;
-    use crate::UpDropDown;
     use makepad_widgets::*;
 
     live_design! {

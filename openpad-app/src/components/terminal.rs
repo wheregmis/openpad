@@ -13,6 +13,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
+    use openpad_widgets::theme::*;
 
     pub Terminal = {{Terminal}} {
         width: Fill, height: Fill
