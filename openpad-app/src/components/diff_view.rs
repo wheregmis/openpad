@@ -1,4 +1,5 @@
 use makepad_widgets::*;
+use crate::components::colored_diff_text::{ColoredDiffTextApi, ColoredDiffTextWidgetRefExt};
 
 live_design! {
     use link::theme::*;
@@ -6,6 +7,7 @@ live_design! {
     use link::widgets::*;
     use openpad_widgets::openpad::*;
     use openpad_widgets::theme::*;
+    use crate::components::colored_diff_text::ColoredDiffText;
 
     pub DiffView = {{DiffView}} {
         width: Fill, height: Fit
@@ -72,14 +74,8 @@ live_design! {
             <ScrollYView> {
                 width: Fill, height: Fit
 
-                diff_text = <Label> {
+                diff_text = <ColoredDiffText> {
                     width: Fill, height: Fit
-                    text: ""
-                    draw_text: {
-                        color: (THEME_COLOR_DIFF_CONTEXT_TEXT)
-                        text_style: <THEME_FONT_CODE> { font_size: 10 }
-                        wrap: Word
-                    }
                 }
             }
         }
@@ -170,7 +166,9 @@ impl DiffView {
         }
 
         self.diff_text_content = full_diff.clone();
-        self.view.label(&[id!(diff_text)]).set_text(cx, &full_diff);
+        self.view
+            .colored_diff_text(&[id!(diff_text)])
+            .set_diff_text(cx, &full_diff);
 
         self.expanded = false;
         self.view.view(&[id!(diff_content)]).set_visible(cx, false);
