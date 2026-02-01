@@ -10,7 +10,6 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
-    use crate::theme::*;
 
 pub ProjectsPanel = {{ProjectsPanel}} {
         width: Fill, height: Fill

@@ -1,15 +1,21 @@
 use makepad_widgets::*;
 
+pub mod app_bg;
 pub mod hamburger_button;
 pub mod header_bar;
 pub mod input_bar;
 pub mod input_field;
 pub mod send_button;
 pub mod side_panel;
+pub mod simple_dialog;
 pub mod status_dot;
+pub mod theme;
 
 // Re-export types from side_panel
 pub use side_panel::{SidePanel, SidePanelRef, SidePanelWidgetRefExt};
+
+// Re-export types from simple_dialog
+pub use simple_dialog::{SimpleDialog, SimpleDialogAction, SimpleDialogRef};
 
 pub fn live_design(cx: &mut Cx) {
     makepad_widgets::live_design(cx);
@@ -18,12 +24,16 @@ pub fn live_design(cx: &mut Cx) {
 
 pub mod openpad {
     use crate::SidePanel;
+    use crate::SimpleDialog;
     use makepad_widgets::*;
 
     live_design! {
         use link::theme::*;
         use link::shaders::*;
         use link::widgets::*;
+        use crate::theme::*;
+        use crate::simple_dialog::SimpleDialog;
+        use crate::app_bg::AppBg;
 
         // Widget DSL definitions are inline here for proper live_design registration
         pub HeaderBar = <View> {

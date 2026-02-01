@@ -5,7 +5,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use makepad_code_editor::code_view::CodeView;
-    use crate::theme::*;
+    use openpad_widgets::openpad::*;
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
 

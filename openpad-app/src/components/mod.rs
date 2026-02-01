@@ -2,12 +2,10 @@
 //!
 //! This module contains all the UI widget definitions and implementations.
 
-pub mod app_bg;
 pub mod assistant_bubble;
 pub mod message_list;
 pub mod permission_dialog;
 pub mod projects_panel;
-pub mod simple_dialog;
 pub mod terminal;
 pub mod user_bubble;
 
@@ -15,5 +13,4 @@ pub mod user_bubble;
 pub use message_list::{MessageList, MessageListRef};
 pub use permission_dialog::{PermissionDialog, PermissionDialogRef};
 pub use projects_panel::{PanelItemKind, ProjectsPanel, ProjectsPanelRef};
-pub use simple_dialog::{SimpleDialog, SimpleDialogRef};
 pub use terminal::{Terminal, TerminalAction, TerminalWidgetRefExt};
