@@ -1,3 +1,4 @@
+use openpad_protocol::{AssistantError, TokenUsage};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Formats a Unix timestamp (milliseconds since epoch) into a human-readable time string.
@@ -55,5 +56,59 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
         )
     } else {
         time_str
+    }
+}
+
+pub fn format_token_usage(tokens: &TokenUsage) -> String {
+    format!(
+        "Tokens: in {} / out {} / r {} / cache {}r {}w",
+        tokens.input, tokens.output, tokens.reasoning, tokens.cache.read, tokens.cache.write
+    )
+}
+
+pub fn format_cost(cost: f64) -> String {
+    format!("Cost: ${:.4}", cost)
+}
+
+pub fn format_assistant_error(error: &AssistantError) -> String {
+    match error {
+        AssistantError::ProviderAuthError { provider_id, message } => format!(
+            "Authentication error for {}: {}\nAction: check your API key or re-authenticate this provider.",
+            provider_id, message
+        ),
+        AssistantError::APIError {
+            message,
+            status_code,
+            is_retryable,
+            ..
+        } => {
+            let mut detail = format!("API error: {}", message);
+            if let Some(code) = status_code {
+                detail.push_str(&format!(" (HTTP {})", code));
+            }
+            let retryable = *is_retryable;
+            let guidance = match status_code {
+                Some(401) | Some(403) => {
+                    "Action: check your API key and account permissions."
+                }
+                Some(429) => "Action: rate limited; wait and retry, or reduce request rate.",
+                Some(code) if *code >= 500 => {
+                    "Action: provider error; try again shortly."
+                }
+                _ if retryable => "Action: transient error; retry the request.",
+                _ => "Action: review request details and try again.",
+            };
+            format!("{}\n{}", detail, guidance)
+        }
+        AssistantError::MessageOutputLengthError => {
+            "Message exceeded output length.\nAction: ask for a shorter answer or split the request."
+                .to_string()
+        }
+        AssistantError::MessageAbortedError { message } => {
+            format!("Message aborted: {}\nAction: resend if this was unintended.", message)
+        }
+        AssistantError::UnknownError { message } => {
+            format!("Unexpected error: {}\nAction: try again or check provider status.", message)
+        }
     }
 }

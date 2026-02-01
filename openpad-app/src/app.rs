@@ -375,6 +375,8 @@ impl LiveRegister for App {
     fn live_register(cx: &mut Cx) {
         crate::theme::live_design(cx);
         openpad_widgets::live_design(cx);
+        makepad_code_editor::code_editor::live_design(cx);
+        makepad_code_editor::code_view::live_design(cx);
         crate::components::app_bg::live_design(cx);
         crate::components::user_bubble::live_design(cx);
         crate::components::assistant_bubble::live_design(cx);
@@ -711,6 +713,7 @@ impl App {
             });
         let model_spec = self.state.selected_model_spec();
         let agent = self.state.selected_agent_name();
+        let permission = self.state.selected_agent_permission();
         let system = self.state.selected_skill_prompt();
 
         self.state.is_working = true;
@@ -745,6 +748,7 @@ impl App {
             system,
             directory,
             attachments,
+            permission,
         );
 
         // Clear attached files after sending
@@ -780,7 +784,8 @@ impl App {
                 })
         });
 
-        async_runtime::spawn_session_creator(runtime, client, project_directory);
+        let permission = self.state.selected_agent_permission();
+        async_runtime::spawn_session_creator(runtime, client, project_directory, permission);
     }
 
     fn respond_to_permission(

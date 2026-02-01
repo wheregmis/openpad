@@ -38,6 +38,8 @@ pub struct Agent {
     pub native: Option<bool>,
     #[serde(default)]
     pub hidden: Option<bool>,
+    #[serde(default)]
+    pub permission: Option<PermissionRuleset>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

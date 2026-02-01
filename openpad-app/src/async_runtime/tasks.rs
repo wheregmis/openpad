@@ -2,8 +2,8 @@ use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::actions::AppAction;
 use makepad_widgets::{log, Cx};
 use openpad_protocol::{
-    ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest, Project,
-    PromptRequest, Session, SessionCreateRequest,
+    ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest, PermissionRuleset,
+    Project, PromptRequest, Session, SessionCreateRequest,
 };
 use std::sync::Arc;
 
@@ -159,6 +159,7 @@ pub fn spawn_message_sender(
     system: Option<String>,
     directory: Option<String>,
     attachments: Vec<PartInput>,
+    permission: Option<PermissionRuleset>,
 ) {
     runtime.spawn(async move {
         let target_client = if let Some(dir) = directory.clone() {
@@ -174,7 +175,7 @@ pub fn spawn_message_sender(
             let request = SessionCreateRequest {
                 parent_id: None,
                 title: None,
-                permission: None,
+                permission,
             };
 
             match target_client.create_session_with_options(request).await {
@@ -214,13 +215,14 @@ pub fn spawn_session_creator(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     project_directory: Option<String>,
+    permission: Option<PermissionRuleset>,
 ) {
     runtime.spawn(async move {
         // Create the session request
         let request = SessionCreateRequest {
             parent_id: None,
             title: None,
-            permission: None,
+            permission,
         };
 
         // If a specific directory is provided, create a new client for this request

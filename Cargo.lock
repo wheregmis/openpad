@@ -824,6 +824,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "makepad-code-editor"
+version = "1.0.0"
+dependencies = [
+ "makepad-widgets",
+]
+
+[[package]]
 name = "makepad-derive-live"
 version = "1.0.0"
 dependencies = [
@@ -1265,6 +1272,7 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "hostname",
+ "makepad-code-editor",
  "makepad-widgets",
  "openpad-protocol",
  "openpad-widgets",

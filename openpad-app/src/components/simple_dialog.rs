@@ -30,13 +30,13 @@ live_design! {
             dialog_box = <RoundedView> {
                 width: 400, height: Fit
                 flow: Down,
-                padding: 16,
-                spacing: 12,
+                padding: { left: 14, right: 14, top: 12, bottom: 12 }
+                spacing: 10,
                 show_bg: true
                 draw_bg: {
                     color: (THEME_COLOR_BG_DIALOG)
                     uniform border_color: (THEME_COLOR_BORDER_DIALOG)
-                    uniform border_radius: 12.0
+                    uniform border_radius: 10.0
                     uniform border_size: 1.0
 
                     fn pixel(self) -> vec4 {
@@ -52,7 +52,7 @@ live_design! {
                     text: "Dialog"
                     draw_text: {
                         color: (THEME_COLOR_TEXT_PRIMARY)
-                        text_style: <THEME_FONT_BOLD> { font_size: 14 }
+                        text_style: <THEME_FONT_BOLD> { font_size: 12 }
                     }
                 }
 
@@ -79,8 +79,8 @@ live_design! {
                         }
                         draw_bg: {
                             color: (THEME_COLOR_BG_INPUT)
-                            border_radius: 6.0
-                            border_size: 1.0
+                            border_radius: 8.0
+                            border_size: 0.0
                         }
                     }
                 }
@@ -88,27 +88,29 @@ live_design! {
                 buttons_row = <View> {
                     width: Fill, height: Fit
                     flow: Right,
-                    spacing: 8,
+                    spacing: 10,
                     align: { x: 1.0 }
 
                     cancel_button = <Button> {
-                        width: 80, height: 32
+                        width: 90, height: 32
                         text: "Cancel"
                         draw_bg: {
-                            color: (THEME_COLOR_BG_BUTTON)
-                            color_hover: (THEME_COLOR_BG_BUTTON_HOVER)
-                            border_radius: 6.0
+                            color: (THEME_COLOR_SHADE_3)
+                            color_hover: (THEME_COLOR_SHADE_5)
+                            border_radius: 8.0
+                            border_size: 0.0
                         }
                         draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                     }
 
                     confirm_button = <Button> {
-                        width: 80, height: 32
+                        width: 90, height: 32
                         text: "OK"
                         draw_bg: {
                             color: (THEME_COLOR_ACCENT_BLUE)
-                            color_hover: (THEME_COLOR_ACCENT_BLUE_HOVER)
-                            border_radius: 6.0
+                            color_hover: (THEME_COLOR_ACCENT_BLUE_DARK)
+                            border_radius: 8.0
+                            border_size: 0.0
                         }
                         draw_text: { color: (THEME_COLOR_TEXT_BRIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                     }

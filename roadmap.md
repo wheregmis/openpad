@@ -57,7 +57,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 
 #### Markdown & Rich Text Rendering
 - [x] Parse markdown in assistant messages (bold, italic, headers, lists)
-- [ ] Code block rendering with syntax highlighting (rendering done; highlighting pending)
+- [x] Code block rendering with syntax highlighting (rendering done; highlighting pending)
 - [x] Inline code styling
 - [x] Link rendering
 
@@ -68,16 +68,16 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Inline permission UI (non-modal)
 
 #### Error Handling
-- [ ] Surface `AssistantError` details (ProviderAuthError, APIError, etc.)
-- [ ] Show `SessionError` SSE events as in-chat error messages
-- [ ] Display rate limit / auth errors with actionable guidance
+- [x] Surface `AssistantError` details (ProviderAuthError, APIError, etc.)
+- [x] Show `SessionError` SSE events as in-chat error messages
+- [x] Display rate limit / auth errors with actionable guidance
 
 #### Message Features
-- [ ] Show token usage per assistant message (input/output/reasoning/cache)
-- [ ] Show cost per message
+- [x] Show token usage per assistant message (input/output/reasoning/cache)
+- [x] Show cost per message
 - [x] Show model name on assistant messages
 - [x] Message timestamps
-- [ ] Copy message text to clipboard
+- [x] Copy message text to clipboard
 
 ### Phase 2: Session Features
 
@@ -85,7 +85,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Delete session
 - [x] Rename session (update title)
 - [ ] Abort ongoing session (cancel in-progress generation)
-- [ ] Session branching (create child session from parent)
+- [x] Session branching (create child session from parent)
 
 #### Revert / Undo
 - [ ] Revert to a previous message state (`revert_message()`)

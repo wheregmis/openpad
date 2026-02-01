@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 makepad-widgets = { path = "/Users/wheregmis/Documents/GitHub/makepad/widgets" }
+makepad-code-editor = { path = "/Users/wheregmis/Documents/GitHub/makepad/code_editor" }
 openpad-widgets = { path = "../openpad-widgets" }
 openpad-protocol = { path = "../openpad-protocol" }
 tokio = { workspace = true }

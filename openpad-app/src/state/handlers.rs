@@ -7,8 +7,8 @@ use crate::state::actions::AppAction;
 use crate::ui::state_updates;
 use makepad_widgets::*;
 use openpad_protocol::{
-    Agent, Event as OcEvent, MessageWithParts, ModelSpec, PermissionRequest, Project, Provider,
-    Session, Skill,
+    Agent, AssistantMessage, AssistantError, Event as OcEvent, Message, MessageTime, MessageWithParts,
+    ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider, Session, Skill,
 };
 use std::collections::HashMap;
 
@@ -107,6 +107,12 @@ impl AppState {
         self.selected_agent_idx
             .and_then(|idx| self.agents.get(idx))
             .map(|agent| agent.name.clone())
+    }
+
+    pub fn selected_agent_permission(&self) -> Option<PermissionRuleset> {
+        self.selected_agent_idx
+            .and_then(|idx| self.agents.get(idx))
+            .and_then(|agent| agent.permission.clone())
     }
 
     pub fn selected_skill(&self) -> Option<&Skill> {
@@ -437,8 +443,11 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             remove_pending_permission(state, request_id);
             show_next_pending_permission(state, ui, cx);
         }
-        OcEvent::SessionError { .. } => {
+        OcEvent::SessionError { session_id, error } => {
             update_work_indicator(state, ui, cx, false);
+            if state.current_session_id.as_deref() == Some(session_id.as_str()) {
+                push_session_error_message(state, ui, cx, session_id, error);
+            }
         }
         _ => {}
     }
@@ -658,4 +667,53 @@ fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut C
             request.patterns.clone(),
             context,
         );
+}
+
+fn push_session_error_message(
+    state: &mut AppState,
+    ui: &WidgetRef,
+    cx: &mut Cx,
+    session_id: &str,
+    error: &AssistantError,
+) {
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let message_id = format!("err_{}_{}", session_id, now);
+
+    let assistant = AssistantMessage {
+        id: message_id.clone(),
+        session_id: session_id.to_string(),
+        time: MessageTime {
+            created: now,
+            completed: Some(now),
+        },
+        error: Some(error.clone()),
+        parent_id: String::new(),
+        model_id: String::new(),
+        provider_id: String::new(),
+        mode: String::new(),
+        agent: String::new(),
+        path: None,
+        summary: None,
+        cost: 0.0,
+        tokens: None,
+        finish: None,
+    };
+
+    let part = Part::Text {
+        id: format!("part_{}", message_id),
+        session_id: session_id.to_string(),
+        message_id: message_id.clone(),
+        text: "Session error".to_string(),
+    };
+
+    state.messages_data.push(MessageWithParts {
+        info: Message::Assistant(assistant),
+        parts: vec![part],
+    });
+
+    ui.message_list(&[id!(message_list)])
+        .set_messages(cx, &state.messages_data);
 }
