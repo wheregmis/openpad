@@ -632,35 +632,6 @@ fn set_session_working(
     state.update_projects_panel(ui, cx);
 }
 
-fn format_permission_context(request: &PermissionRequest) -> Option<String> {
-    let mut lines = Vec::new();
-
-    lines.push(format!("Session: {}", request.session_id));
-
-    if let Some(tool) = &request.tool {
-        lines.push(format!("Tool message: {}", tool.message_id));
-        lines.push(format!("Tool call: {}", tool.call_id));
-    }
-
-    if !request.always.is_empty() {
-        lines.push(format!("Always: {}", request.always.join(", ")));
-    }
-
-    if !request.metadata.is_empty() {
-        let mut entries: Vec<_> = request.metadata.iter().collect();
-        entries.sort_by(|a, b| a.0.cmp(b.0));
-        for (key, value) in entries {
-            lines.push(format!("{}: {}", key, value));
-        }
-    }
-
-    if lines.is_empty() {
-        None
-    } else {
-        Some(lines.join("\n"))
-    }
-}
-
 fn enqueue_pending_permission(state: &mut AppState, request: &PermissionRequest) {
     if state
         .pending_permissions
