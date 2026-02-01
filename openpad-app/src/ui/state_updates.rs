@@ -1,5 +1,6 @@
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::constants::*;
+use crate::utils::path_utils::normalize_worktree;
 use makepad_widgets::*;
 use openpad_protocol::{Project, SessionSummary};
 use std::path::Path;
@@ -114,15 +115,6 @@ fn build_summary_markdown(summary: &SessionSummary) -> String {
         out.push_str("```\n\n");
     }
     out
-}
-
-fn normalize_worktree(worktree: &str) -> String {
-    if worktree == "." {
-        if let Ok(current_dir) = std::env::current_dir() {
-            return current_dir.to_string_lossy().to_string();
-        }
-    }
-    worktree.to_string()
 }
 
 fn project_display_name_and_path(project: &Project) -> (String, String) {

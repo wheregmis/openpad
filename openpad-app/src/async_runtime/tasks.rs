@@ -1,5 +1,6 @@
-use crate::constants::OPENCODE_SERVER_URL;
+use crate::constants::{HEALTH_CHECK_INTERVAL_SECS, OPENCODE_SERVER_URL, SSE_RETRY_DELAY_SECS};
 use crate::state::actions::AppAction;
+use crate::utils::path_utils::normalize_worktree_canonical;
 use makepad_widgets::{log, Cx};
 use openpad_protocol::{
     ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest, PermissionRuleset,
@@ -29,7 +30,7 @@ pub fn spawn_sse_subscriber(runtime: &tokio::runtime::Runtime, client: Arc<OpenC
             match client.list_sessions().await {
                 Ok(sessions) => break sessions,
                 Err(_) => {
-                    sleep(Duration::from_secs(2)).await;
+                    sleep(Duration::from_secs(SSE_RETRY_DELAY_SECS)).await;
                 }
             }
         };
@@ -60,7 +61,7 @@ pub fn spawn_health_checker(runtime: &tokio::runtime::Runtime, client: Arc<OpenC
                     version: "unknown".to_string(),
                 })),
             }
-            sleep(Duration::from_secs(5)).await;
+            sleep(Duration::from_secs(HEALTH_CHECK_INTERVAL_SECS)).await;
         }
     });
 }
@@ -77,19 +78,6 @@ pub fn spawn_project_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenC
     });
 }
 
-/// Normalize a worktree path to an absolute directory, matching how sessions are created.
-fn normalize_worktree(worktree: &str) -> String {
-    if worktree == "." {
-        if let Ok(current_dir) = std::env::current_dir() {
-            return current_dir.to_string_lossy().to_string();
-        }
-    }
-    match std::fs::canonicalize(worktree) {
-        Ok(path) => path.to_string_lossy().to_string(),
-        Err(_) => worktree.to_string(),
-    }
-}
-
 /// Spawns a task to load sessions for all projects by querying each project's directory
 pub fn spawn_all_sessions_loader(
     runtime: &tokio::runtime::Runtime,
@@ -100,7 +88,7 @@ pub fn spawn_all_sessions_loader(
     let normalized: Vec<String> = projects
         .iter()
         .filter(|p| p.worktree != "/" && !p.worktree.is_empty())
-        .map(|p| normalize_worktree(&p.worktree))
+        .map(|p| normalize_worktree_canonical(&p.worktree))
         .collect();
 
     runtime.spawn(async move {
