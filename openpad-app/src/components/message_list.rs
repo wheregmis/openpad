@@ -167,6 +167,8 @@ pub struct MessageList {
     view: View,
     #[rust]
     messages: Vec<DisplayMessage>,
+    #[rust]
+    is_working: bool,
 }
 
 impl MessageList {
@@ -241,46 +243,60 @@ impl Widget for MessageList {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
-                if self.messages.is_empty() {
+                let total_items = self.messages.len() + if self.is_working { 1 } else { 0 };
+                if total_items == 0 {
                     list.set_item_range(cx, 0, 0);
                     continue;
                 }
 
-                list.set_item_range(cx, 0, self.messages.len());
+                list.set_item_range(cx, 0, total_items);
 
                 while let Some(item_id) = list.next_visible_item(cx) {
                     if item_id >= self.messages.len() {
-                        continue;
-                    }
-
-                    let msg = &self.messages[item_id];
-                    let template = if msg.role == "user" {
-                        live_id!(UserMsg)
-                    } else {
-                        live_id!(AssistantMsg)
-                    };
-
-                    let item_widget = list.item(cx, item_id, template);
-                    item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
-
-                    // Set timestamp if available
-                    if let Some(timestamp) = msg.timestamp {
-                        let formatted = crate::ui::formatters::format_timestamp(timestamp);
-                        item_widget
-                            .label(&[id!(timestamp_label)])
-                            .set_text(cx, &formatted);
-                    }
-
-                    // Set model ID for assistant messages
-                    if msg.role == "assistant" {
-                        if let Some(ref model_id) = msg.model_id {
-                            item_widget
-                                .label(&[id!(model_label)])
-                                .set_text(cx, model_id);
+                        if !self.is_working {
+                            continue;
                         }
-                    }
+                        let item_widget = list.item(cx, item_id, live_id!(AssistantMsg));
+                        item_widget
+                            .widget(&[id!(msg_text)])
+                            .set_text(cx, "Thinking...");
+                        item_widget.label(&[id!(timestamp_label)]).set_text(cx, "");
+                        item_widget
+                            .label(&[id!(model_label)])
+                            .set_text(cx, "ASSISTANT");
+                        item_widget.view(&[id!(msg_actions)]).set_visible(cx, false);
+                        item_widget.draw_all(cx, scope);
+                    } else {
+                        let msg = &self.messages[item_id];
+                        let template = if msg.role == "user" {
+                            live_id!(UserMsg)
+                        } else {
+                            live_id!(AssistantMsg)
+                        };
 
-                    item_widget.draw_all(cx, scope);
+                        let item_widget = list.item(cx, item_id, template);
+                        item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
+
+                        // Set timestamp if available
+                        if let Some(timestamp) = msg.timestamp {
+                            let formatted = crate::ui::formatters::format_timestamp(timestamp);
+                            item_widget
+                                .label(&[id!(timestamp_label)])
+                                .set_text(cx, &formatted);
+                        }
+
+                        // Set model ID for assistant messages
+                        if msg.role == "assistant" {
+                            if let Some(ref model_id) = msg.model_id {
+                                item_widget
+                                    .label(&[id!(model_label)])
+                                    .set_text(cx, model_id);
+                            }
+                            item_widget.view(&[id!(msg_actions)]).set_visible(cx, true);
+                        }
+
+                        item_widget.draw_all(cx, scope);
+                    }
                 }
             }
         }
@@ -351,6 +367,16 @@ impl MessageListRef {
     pub fn clear(&self, cx: &mut Cx) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.messages.clear();
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn set_working(&self, cx: &mut Cx, working: bool) {
+        if let Some(mut inner) = self.borrow_mut() {
+            if inner.is_working == working {
+                return;
+            }
+            inner.is_working = working;
             inner.redraw(cx);
         }
     }

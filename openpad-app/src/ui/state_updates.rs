@@ -1,3 +1,4 @@
+use crate::components::message_list::MessageListWidgetRefExt;
 use crate::constants::*;
 use makepad_widgets::*;
 use openpad_protocol::Project;
@@ -31,7 +32,9 @@ pub fn set_status_error(ui: &WidgetRef, cx: &mut Cx, error: &str) {
 }
 
 pub fn update_work_indicator(ui: &WidgetRef, cx: &mut Cx, working: bool) {
-    let _ = (ui, cx, working);
+    ui.view(&[id!(work_indicator)]).set_visible(cx, working);
+    ui.message_list(&[id!(message_list)])
+        .set_working(cx, working);
 }
 
 /// Updates the session title label with appropriate styling

@@ -175,62 +175,84 @@ pub mod openpad {
             }
         }
 
-        pub InputBar = <RoundedView> {
+        pub InputBar = <View> {
             width: Fill, height: Fit
             flow: Down,
-            spacing: 6,
-            padding: { left: 18, right: 14, top: 12, bottom: 10 }
+            spacing: 8,
+            padding: { left: 16, right: 12, top: 12, bottom: 12 }
             show_bg: true
             draw_bg: {
-                color: #252526
-                border_color: #2f3238
-                border_radius: 14.0
-                border_size: 1.0
+                color: #1a1a1a
+                uniform border_color: #333333
+                uniform border_radius: 18.0
+                
+                fn pixel(self) -> vec4 {
+                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                    
+                    // Main background with subtle vertical gradient
+                    let color = mix(self.color, self.color * 1.1, self.pos.y);
+                    sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, self.border_radius);
+                    sdf.fill_keep(color);
+                    
+                    // Border with "light source" effect
+                    let border_color = mix(self.border_color * 1.2, self.border_color * 0.8, self.pos.y);
+                    sdf.stroke(border_color, 1.0);
+                    
+                    return sdf.result;
+                }
             }
         }
 
-        pub InputBarToolbar = <RoundedView> {
-            width: Fill, height: 34
+        pub InputBarToolbar = <View> {
+            width: Fill, height: 32
             flow: Right
-            spacing: 8
-            padding: { left: 8, right: 8, top: 4, bottom: 4 }
+            spacing: 12
+            padding: { left: 10, right: 8, top: 4, bottom: 4 }
             align: { y: 0.5 }
-            show_bg: true
-            draw_bg: {
-                color: #202225
-                border_color: #2c2f36
-                border_radius: 10.0
-                border_size: 1.0
-            }
+            show_bg: false
         }
 
         pub InputBarDropDown = <DropDown> {
             width: Fit, height: 28
-            padding: { left: 12, right: 24, top: 5, bottom: 5 }
+            padding: { left: 12, right: 26, top: 5, bottom: 5 }
             draw_text: {
-                text_style: <THEME_FONT_REGULAR> { font_size: 8.5 }
+                text_style: <THEME_FONT_REGULAR> { font_size: 9.0 }
                 fn get_color(self) -> vec4 {
-                    return #d2d8e3;
+                    return mix(#99a1b2, #d6dbe4, self.hover);
                 }
             }
             draw_bg: {
+                instance hover: 0.0
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.box(1., 1., self.rect_size.x - 2., self.rect_size.y - 2., 8.0);
-                    sdf.fill(#1f2126);
-                    sdf.stroke(#2e3139, 1.0);
+                    sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 8.0);
+                    
+                    let bg_color = mix(#222222, #2a2a2a, self.hover);
+                    sdf.fill_keep(bg_color);
+                    
+                    let stroke_color = mix(#333333, #444444, self.hover);
+                    sdf.stroke(stroke_color, 1.0);
+                    
                     // Draw dropdown arrow
-                    let arrow_x = self.rect_size.x - 16.0;
+                    let arrow_x = self.rect_size.x - 17.0;
                     let arrow_y = self.rect_size.y * 0.5 - 1.0;
                     sdf.move_to(arrow_x, arrow_y);
                     sdf.line_to(arrow_x + 4.5, arrow_y + 4.5);
                     sdf.line_to(arrow_x + 9.0, arrow_y);
-                    sdf.stroke(#8b92a4, 1.3);
+                    sdf.stroke(#8e95a6, 1.2);
+                    
                     return sdf.result;
                 }
             }
+            animator: {
+                hover = {
+                    default: off
+                    off = {from: {all: Forward {duration: 0.15}}, apply: {draw_bg: {hover: 0.0}}}
+                    on = {from: {all: Forward {duration: 0.15}}, apply: {draw_bg: {hover: 1.0}}}
+                }
+            }
             popup_menu: {
-                draw_bg: { color: #2d2d30 }
+                draw_bg: { color: #202020 }
             }
             labels: ["Default"]
             values: []
@@ -238,40 +260,63 @@ pub mod openpad {
 
         pub InputField = <TextInput> {
             width: Fill, height: Fit
-            padding: { left: 12, right: 12, top: 8, bottom: 8 }
+            padding: { left: 14, right: 14, top: 8, bottom: 8 }
             empty_text: "Ask anything..."
             draw_bg: {
-                color: #252526
-                color_hover: #2b2b2d
-                color_focus: #2d2d30
-                color_down: #252526
-                color_empty: #252526
-                color_disabled: #252526
-                border_radius: 8.0
-                border_size: 0.0
+                instance focus: 0.0
+                fn pixel(self) -> vec4 {
+                    // Transparent background, borderless feel until focused
+                    return #0000;
+                }
             }
-            draw_text: { color: #ddd, text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 } }
+            draw_text: { 
+                color: #d9dde6, 
+                text_style: <THEME_FONT_REGULAR> { font_size: 10.5, line_spacing: 1.4 } 
+                fn get_color(self) -> vec4 {
+                    return mix(#99a1b2, #d9dde6, self.focus);
+                }
+            }
             text: ""
         }
 
         pub SendButton = <Button> {
             width: 32, height: 32
-            margin: { left: 4 }
-            padding: { left: 7, right: 7, top: 7, bottom: 7 }
+            margin: { left: 6 }
+            padding: { left: 8, right: 8, top: 8, bottom: 8 }
             text: ""
-            icon_walk: { width: 16, height: Fit }
+            icon_walk: { width: 14, height: Fit }
             draw_icon: {
                 svg_file: dep("crate://self/resources/icons/send.svg")
-                color: #c2c9d4
+                color: #8e95a6
                 color_hover: #ffffff
-                color_down: #aab2bd
+                color_down: #b2b9c4
             }
             draw_bg: {
-                border_radius: 9.0
-                border_size: 0.0
-                color: #2a2b30
-                color_hover: #33353b
-                color_down: #24252a
+                instance hover: 0.0
+                instance down: 0.0
+                
+                fn pixel(self) -> vec4 {
+                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                    sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 10.0);
+                    
+                    let bg_color = mix(#222222, #2a2a2a, self.hover);
+                    let bg_color_final = mix(bg_color, #1a1a1a, self.down);
+                    sdf.fill_keep(bg_color_final);
+                    
+                    let stroke_color = mix(#333333, #444444, self.hover);
+                    sdf.stroke(stroke_color, 1.0);
+                    
+                    // Subtle glow effect on hover
+                    if self.hover > 0.0 {
+                        let glow_sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                        glow_sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 10.0);
+                        let glow_color = vec4(0.2, 0.4, 1.0, 0.1 * self.hover);
+                        glow_sdf.stroke(glow_color, 2.0);
+                        return mix(sdf.result, glow_sdf.result, glow_sdf.result.a);
+                    }
+                    
+                    return sdf.result;
+                }
             }
         }
     }

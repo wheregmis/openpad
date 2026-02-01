@@ -323,7 +323,6 @@ live_design! {
                                         <View> { width: Fill }
                                         send_button = <SendButton> {
                                             margin: { left: 0 }
-                                            width: 32, height: 32
                                         }
                                     }
                                 }
@@ -711,6 +710,9 @@ impl App {
         let model_spec = self.state.selected_model_spec();
         let agent = self.state.selected_agent_name();
         let system = self.state.selected_skill_prompt();
+
+        self.state.is_working = true;
+        crate::ui::state_updates::update_work_indicator(&self.ui, cx, true);
 
         // Convert attached files to PartInput
         let attachments: Vec<openpad_protocol::PartInput> = self
