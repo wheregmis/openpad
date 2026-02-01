@@ -1,3 +1,4 @@
+use crate::components::diff_view::DiffViewWidgetRefExt;
 use makepad_widgets::*;
 
 live_design! {
@@ -9,6 +10,7 @@ live_design! {
     use openpad_widgets::theme::*;
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
+    use crate::components::diff_view::DiffView;
 
     pub MessageList = {{MessageList}} {
         width: Fill, height: Fill
@@ -216,6 +218,8 @@ live_design! {
                         }
                     }
 
+                    diff_view = <DiffView> {}
+
                     stats_row = <View> {
                         width: Fit, height: Fit
                         flow: Right,
@@ -297,6 +301,7 @@ pub struct DisplayMessage {
     pub cost: Option<f64>,
     pub error_text: Option<String>,
     pub is_error: bool,
+    pub diffs: Vec<openpad_protocol::FileDiff>,
 }
 
 #[derive(Live, LiveHook, Widget)]
@@ -378,6 +383,7 @@ impl MessageList {
                 cost,
                 error_text,
                 is_error,
+                diffs: Vec::new(),
             });
         }
         display
@@ -520,6 +526,15 @@ impl Widget for MessageList {
                                 .button(&[id!(revert_button)])
                                 .set_visible(cx, show_revert);
                             item_widget.view(&[id!(msg_actions)]).set_visible(cx, true);
+
+                            // Set diff view data
+                            use crate::components::diff_view::DiffViewApi;
+                            let diff_view = item_widget.diff_view(&[id!(diff_view)]);
+                            if msg.diffs.is_empty() {
+                                diff_view.clear_diffs(cx);
+                            } else {
+                                diff_view.set_diffs(cx, &msg.diffs);
+                            }
                         }
 
                         item_widget.draw_all(cx, scope);
@@ -573,6 +588,7 @@ impl MessageListRef {
                 cost: None,
                 error_text: None,
                 is_error: false,
+                diffs: Vec::new(),
             });
             inner.redraw(cx);
         }
@@ -596,6 +612,7 @@ impl MessageListRef {
                 cost: None,
                 error_text: None,
                 is_error: false,
+                diffs: Vec::new(),
             });
             inner.redraw(cx);
         }
@@ -614,6 +631,16 @@ impl MessageListRef {
                 return;
             }
             inner.is_working = working;
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn set_session_diffs(&self, cx: &mut Cx, diffs: &[openpad_protocol::FileDiff]) {
+        if let Some(mut inner) = self.borrow_mut() {
+            // Apply diffs to the last assistant message
+            if let Some(last_assistant) = inner.messages.iter_mut().rev().find(|m| m.role == "assistant") {
+                last_assistant.diffs = diffs.to_vec();
+            }
             inner.redraw(cx);
         }
     }

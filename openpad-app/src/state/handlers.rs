@@ -380,6 +380,11 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 summary.diffs = diffs.clone();
             }
             state.update_session_meta_ui(ui, cx);
+
+            // Also update inline diffs in message list
+            ui.message_list(&[id!(message_list)])
+                .set_session_diffs(cx, &diffs);
+
             cx.redraw_all();
         }
         AppAction::MessagesLoaded(messages) => {
