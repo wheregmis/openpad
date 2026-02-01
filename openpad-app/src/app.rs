@@ -1,7 +1,6 @@
 use crate::async_runtime;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
-use crate::components::simple_dialog::SimpleDialogWidgetRefExt;
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
@@ -9,7 +8,9 @@ use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
-use openpad_widgets::{SidePanelWidgetRefExt, UpDropDownWidgetRefExt};
+use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
+use openpad_widgets::UpDropDownWidgetRefExt;
+use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction};
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
 
@@ -64,17 +65,17 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
-    use crate::theme::*;
+    use openpad_widgets::theme::*;
+    use openpad_widgets::app_bg::AppBg;
+    use openpad_widgets::simple_dialog::SimpleDialog;
     use makepad_code_editor::code_view::CodeView;
 
     // Import component DSL definitions
-    use crate::components::app_bg::AppBg;
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
     use crate::components::projects_panel::ProjectsPanel;
     use crate::components::permission_dialog::PermissionDialog;
     use crate::components::message_list::MessageList;
-    use crate::components::simple_dialog::SimpleDialog;
     use crate::components::terminal::Terminal;
 
     ChatPanel = <View> {
@@ -543,17 +544,14 @@ pub struct App {
 
 impl LiveRegister for App {
     fn live_register(cx: &mut Cx) {
-        crate::theme::live_design(cx);
         openpad_widgets::live_design(cx);
         makepad_code_editor::code_editor::live_design(cx);
         makepad_code_editor::code_view::live_design(cx);
-        crate::components::app_bg::live_design(cx);
         crate::components::user_bubble::live_design(cx);
         crate::components::assistant_bubble::live_design(cx);
         crate::components::projects_panel::live_design(cx);
         crate::components::message_list::live_design(cx);
         crate::components::permission_dialog::live_design(cx);
-        crate::components::simple_dialog::live_design(cx);
         crate::components::terminal::live_design(cx);
     }
 }
@@ -1397,6 +1395,19 @@ impl AppMain for App {
                             .hide(cx);
                     }
                     _ => {}
+                }
+            }
+
+            // Handle SimpleDialogAction from openpad-widgets
+            if let Some(dialog_action) = action.downcast_ref::<SimpleDialogAction>() {
+                match dialog_action {
+                    SimpleDialogAction::Confirmed { dialog_type, value } => {
+                        self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
+                    }
+                    SimpleDialogAction::Cancelled => {
+                        // Dialog was cancelled, no action needed
+                    }
+                    SimpleDialogAction::None => {}
                 }
             }
         }

@@ -10,7 +10,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
-    use crate::theme::*;
+    use openpad_widgets::theme::*;
 
 pub ProjectsPanel = {{ProjectsPanel}} {
         width: Fill, height: Fill
@@ -325,7 +325,6 @@ impl ProjectsPanel {
                         });
                     }
                 }
-
             }
             items.push(PanelItemKind::Spacer);
         }
@@ -340,11 +339,7 @@ impl ProjectsPanel {
             .collect();
 
         if !ungrouped.is_empty() {
-            let collapsed = self
-                .collapsed_projects
-                .get(&None)
-                .copied()
-                .unwrap_or(true);
+            let collapsed = self.collapsed_projects.get(&None).copied().unwrap_or(true);
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: None,
@@ -473,18 +468,16 @@ impl Widget for ProjectsPanel {
                                     None => true,
                                 };
                                 matches_project
-                                    && self
-                                        .working_by_session
-                                        .get(&s.id)
-                                        .copied()
-                                        .unwrap_or(false)
+                                    && self.working_by_session.get(&s.id).copied().unwrap_or(false)
                             });
                             item_widget
                                 .view(&[id!(project_working_dot)])
                                 .set_visible(cx, project_working);
                         }
                         PanelItemKind::SessionRow { session_id, title } => {
-                            item_widget.button(&[id!(session_button)]).set_text(cx, title);
+                            item_widget
+                                .button(&[id!(session_button)])
+                                .set_text(cx, title);
                             let selected = self
                                 .selected_session_id
                                 .as_ref()

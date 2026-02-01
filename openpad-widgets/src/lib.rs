@@ -1,32 +1,44 @@
 use makepad_widgets::*;
 
+pub mod app_bg;
 pub mod hamburger_button;
 pub mod header_bar;
 pub mod input_bar;
 pub mod input_field;
 pub mod send_button;
 pub mod side_panel;
+pub mod simple_dialog;
 pub mod status_dot;
+pub mod theme;
 pub mod upward_dropdown;
 
 // Re-export types from side_panel
 pub use side_panel::{SidePanel, SidePanelRef, SidePanelWidgetRefExt};
 pub use upward_dropdown::{UpDropDown, UpDropDownRef, UpDropDownWidgetRefExt};
 
+// Re-export types from simple_dialog
+pub use simple_dialog::{SimpleDialog, SimpleDialogAction, SimpleDialogRef};
+
 pub fn live_design(cx: &mut Cx) {
     makepad_widgets::live_design(cx);
+    crate::app_bg::live_design(cx);
+    crate::theme::live_design(cx);
+    crate::simple_dialog::live_design(cx);
     crate::upward_dropdown::live_design(cx);
     crate::openpad::live_design(cx);
 }
 
 pub mod openpad {
-    use crate::{SidePanel, UpDropDown};
+    use crate::SidePanel;
     use makepad_widgets::*;
 
     live_design! {
         use link::theme::*;
         use link::shaders::*;
         use link::widgets::*;
+        use crate::theme::*;
+        use crate::simple_dialog::SimpleDialog;
+        use crate::app_bg::AppBg;
 
         // Widget DSL definitions are inline here for proper live_design registration
         pub HeaderBar = <View> {
@@ -188,19 +200,19 @@ pub mod openpad {
                 color: #1a1a1a
                 uniform border_color: #333333
                 uniform border_radius: 18.0
-                
+
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    
+
                     // Main background with subtle vertical gradient
                     let color = mix(self.color, self.color * 1.1, self.pos.y);
                     sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, self.border_radius);
                     sdf.fill_keep(color);
-                    
+
                     // Border with "light source" effect
                     let border_color = mix(self.border_color * 1.2, self.border_color * 0.8, self.pos.y);
                     sdf.stroke(border_color, 1.0);
-                    
+
                     return sdf.result;
                 }
             }
@@ -260,13 +272,13 @@ pub mod openpad {
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                     sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 8.0);
-                    
+
                     let bg_color = mix(#222222, #2a2a2a, self.hover);
                     sdf.fill_keep(bg_color);
-                    
+
                     let stroke_color = mix(#333333, #444444, self.hover);
                     sdf.stroke(stroke_color, 1.0);
-                    
+
                     // Draw dropdown arrow
                     let arrow_x = self.rect_size.x - 17.0;
                     let arrow_y = self.rect_size.y * 0.5 - 1.0;
@@ -274,7 +286,7 @@ pub mod openpad {
                     sdf.line_to(arrow_x + 4.5, arrow_y + 4.5);
                     sdf.line_to(arrow_x + 9.0, arrow_y);
                     sdf.stroke(#8e95a6, 1.2);
-                    
+
                     return sdf.result;
                 }
             }
@@ -303,9 +315,9 @@ pub mod openpad {
                     return #0000;
                 }
             }
-            draw_text: { 
-                color: #d9dde6, 
-                text_style: <THEME_FONT_REGULAR> { font_size: 10.5, line_spacing: 1.4 } 
+            draw_text: {
+                color: #d9dde6,
+                text_style: <THEME_FONT_REGULAR> { font_size: 10.5, line_spacing: 1.4 }
                 fn get_color(self) -> vec4 {
                     return mix(#99a1b2, #d9dde6, self.focus);
                 }
@@ -328,18 +340,18 @@ pub mod openpad {
             draw_bg: {
                 instance hover: 0.0
                 instance down: 0.0
-                
+
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                     sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 10.0);
-                    
+
                     let bg_color = mix(#222222, #2a2a2a, self.hover);
                     let bg_color_final = mix(bg_color, #1a1a1a, self.down);
                     sdf.fill_keep(bg_color_final);
-                    
+
                     let stroke_color = mix(#333333, #444444, self.hover);
                     sdf.stroke(stroke_color, 1.0);
-                    
+
                     // Subtle glow effect on hover
                     if self.hover > 0.0 {
                         let glow_sdf = Sdf2d::viewport(self.pos * self.rect_size);
@@ -348,7 +360,7 @@ pub mod openpad {
                         glow_sdf.stroke(glow_color, 2.0);
                         return mix(sdf.result, glow_sdf.result, glow_sdf.result.a);
                     }
-                    
+
                     return sdf.result;
                 }
             }

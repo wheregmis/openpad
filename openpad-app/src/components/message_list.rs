@@ -5,7 +5,8 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use makepad_code_editor::code_view::CodeView;
-    use crate::theme::*;
+    use openpad_widgets::openpad::*;
+    use openpad_widgets::theme::*;
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
 
@@ -316,11 +317,16 @@ impl MessageList {
     ) -> Vec<DisplayMessage> {
         let mut display = Vec::new();
         for mwp in messages_with_parts {
-            let (role, timestamp, model_id, tokens, cost, error_text, is_error) = match &mwp.info
-            {
-                openpad_protocol::Message::User(msg) => {
-                    ("user", Some(msg.time.created), None, None, None, None, false)
-                }
+            let (role, timestamp, model_id, tokens, cost, error_text, is_error) = match &mwp.info {
+                openpad_protocol::Message::User(msg) => (
+                    "user",
+                    Some(msg.time.created),
+                    None,
+                    None,
+                    None,
+                    None,
+                    false,
+                ),
                 openpad_protocol::Message::Assistant(msg) => {
                     let model = if !msg.model_id.is_empty() {
                         Some(msg.model_id.clone())
@@ -486,8 +492,7 @@ impl Widget for MessageList {
 
                             let mut show_stats = false;
                             if let Some(tokens) = &msg.tokens {
-                                let formatted =
-                                    crate::ui::formatters::format_token_usage(tokens);
+                                let formatted = crate::ui::formatters::format_token_usage(tokens);
                                 item_widget
                                     .label(&[id!(tokens_label)])
                                     .set_text(cx, &formatted);

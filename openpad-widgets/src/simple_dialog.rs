@@ -127,6 +127,16 @@ pub enum DialogType {
     Input,
 }
 
+#[derive(Clone, Debug, DefaultNone)]
+pub enum SimpleDialogAction {
+    Confirmed {
+        dialog_type: String,
+        value: String,
+    },
+    Cancelled,
+    None,
+}
+
 #[derive(Live, LiveHook, Widget)]
 pub struct SimpleDialog {
     #[deref]
@@ -144,13 +154,16 @@ impl Widget for SimpleDialog {
         });
 
         if self.view.button(&[id!(cancel_button)]).clicked(&actions) {
+            cx.widget_action(
+                self.widget_uid(),
+                &scope.path,
+                SimpleDialogAction::Cancelled,
+            );
             self.view.set_visible(cx, false);
             self.view.redraw(cx);
         }
 
         if self.view.button(&[id!(confirm_button)]).clicked(&actions) {
-            use crate::state::actions::AppAction;
-
             // Get the input value if it's an input dialog
             let value = if matches!(self.dialog_type, DialogType::Input) {
                 self.view.text_input(&[id!(input_field)]).text()
@@ -159,10 +172,14 @@ impl Widget for SimpleDialog {
             };
 
             // Post action with callback_data (which identifies what to do) and the value
-            cx.action(AppAction::DialogConfirmed {
-                dialog_type: self.callback_data.clone(),
-                value,
-            });
+            cx.widget_action(
+                self.widget_uid(),
+                &scope.path,
+                SimpleDialogAction::Confirmed {
+                    dialog_type: self.callback_data.clone(),
+                    value,
+                },
+            );
 
             self.view.set_visible(cx, false);
             self.view.redraw(cx);
