@@ -14,7 +14,7 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
     let diff_ms = now - timestamp_ms;
     let diff_secs = diff_ms / 1000;
     let diff_mins = diff_secs / SECONDS_PER_MINUTE;
-    let diff_hours = diff_mins / SECONDS_PER_MINUTE;
+    let diff_hours = diff_secs / SECONDS_PER_HOUR;
 
     // Less than 1 minute: "just now"
     if diff_secs < SECONDS_PER_MINUTE {
