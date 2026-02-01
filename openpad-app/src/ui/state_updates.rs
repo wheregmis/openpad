@@ -1,7 +1,7 @@
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::constants::*;
 use makepad_widgets::*;
-use openpad_protocol::Project;
+use openpad_protocol::{Project, SessionSummary};
 use std::path::Path;
 
 /// Updates the status indicator UI (dot color and label text)
@@ -59,6 +59,61 @@ pub fn update_revert_indicator(ui: &WidgetRef, cx: &mut Cx, is_reverted: bool) {
     ui.view(&[id!(revert_indicator)])
         .set_visible(cx, is_reverted);
     ui.view(&[id!(unrevert_wrap)]).set_visible(cx, is_reverted);
+}
+
+pub fn update_share_ui(ui: &WidgetRef, cx: &mut Cx, share_url: Option<&str>) {
+    let has_url = share_url.is_some();
+    ui.label(&[id!(share_url_label)])
+        .set_text(cx, share_url.unwrap_or(""));
+    ui.button(&[id!(share_button)]).set_visible(cx, !has_url);
+    ui.button(&[id!(unshare_button)]).set_visible(cx, has_url);
+    ui.button(&[id!(copy_share_button)]).set_visible(cx, has_url);
+    ui.widget(&[id!(share_url_label)])
+        .set_visible(cx, has_url);
+}
+
+pub fn update_summary_ui(ui: &WidgetRef, cx: &mut Cx, summary: Option<&SessionSummary>) {
+    if let Some(summary) = summary {
+        let stats = format!(
+            "Files: {}  +{}  -{}",
+            summary.files, summary.additions, summary.deletions
+        );
+        let markdown = build_summary_markdown(summary);
+        ui.view(&[id!(session_summary)]).set_visible(cx, true);
+        ui.label(&[id!(summary_stats_label)])
+            .set_text(cx, &stats);
+        ui.widget(&[id!(summary_diff)])
+            .set_text(cx, &markdown);
+    } else {
+        ui.view(&[id!(session_summary)]).set_visible(cx, false);
+        ui.label(&[id!(summary_stats_label)]).set_text(cx, "");
+        ui.widget(&[id!(summary_diff)]).set_text(cx, "");
+    }
+}
+
+fn build_summary_markdown(summary: &SessionSummary) -> String {
+    if summary.diffs.is_empty() {
+        return "_No diff details available._".to_string();
+    }
+    let mut out = String::new();
+    for diff in &summary.diffs {
+        out.push_str(&format!("#### {}\n\n", diff.file));
+        out.push_str("**Before**\n");
+        out.push_str("```text\n");
+        out.push_str(&diff.before);
+        if !diff.before.ends_with('\n') {
+            out.push('\n');
+        }
+        out.push_str("```\n\n");
+        out.push_str("**After**\n");
+        out.push_str("```text\n");
+        out.push_str(&diff.after);
+        if !diff.after.ends_with('\n') {
+            out.push('\n');
+        }
+        out.push_str("```\n\n");
+    }
+    out
 }
 
 fn normalize_worktree(worktree: &str) -> String {

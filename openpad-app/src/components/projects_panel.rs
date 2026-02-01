@@ -409,6 +409,9 @@ impl Widget for ProjectsPanel {
                             item_widget
                                 .view(&[id!(working_dot)])
                                 .set_visible(cx, working);
+                            item_widget
+                                .button(&[id!(abort_button)])
+                                .set_visible(cx, working);
                         }
                         _ => {}
                     }

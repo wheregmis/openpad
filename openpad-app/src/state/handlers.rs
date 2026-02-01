@@ -188,6 +188,40 @@ impl AppState {
         state_updates::update_revert_indicator(ui, cx, is_reverted);
     }
 
+    pub fn current_revert_message_id(&self) -> Option<String> {
+        self.current_session_id.as_ref().and_then(|sid| {
+            self.sessions
+                .iter()
+                .find(|session| &session.id == sid)
+                .and_then(|session| {
+                    session
+                        .revert
+                        .as_ref()
+                        .and_then(|revert| Some(revert.message_id.clone()))
+                })
+        })
+    }
+
+    pub fn update_session_meta_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
+        let session = self
+            .current_session_id
+            .as_ref()
+            .and_then(|sid| self.sessions.iter().find(|s| &s.id == sid));
+        let share_url = session.and_then(|s| s.share.as_ref().map(|share| share.url.as_str()));
+        let summary = session.and_then(|s| s.summary.as_ref());
+        state_updates::update_share_ui(ui, cx, share_url);
+        state_updates::update_summary_ui(ui, cx, summary);
+    }
+
+    pub fn current_share_url(&self) -> Option<String> {
+        self.current_session_id.as_ref().and_then(|sid| {
+            self.sessions
+                .iter()
+                .find(|session| &session.id == sid)
+                .and_then(|session| session.share.as_ref().map(|share| share.url.clone()))
+        })
+    }
+
     fn project_for_current_session(&self) -> Option<&Project> {
         let session_project_id = self.current_session_id.as_ref().and_then(|session_id| {
             self.sessions
@@ -223,7 +257,7 @@ impl AppState {
     pub fn clear_messages(&mut self, ui: &WidgetRef, cx: &mut Cx) {
         self.messages_data.clear();
         ui.message_list(&[id!(message_list)])
-            .set_messages(cx, &self.messages_data);
+            .set_messages(cx, &self.messages_data, None);
     }
 }
 
@@ -272,6 +306,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.sessions = sessions.clone();
             state.update_projects_panel(ui, cx);
             state.update_project_context_ui(ui, cx);
+            state.update_session_meta_ui(ui, cx);
         }
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
@@ -291,6 +326,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
             state.update_project_context_ui(ui, cx);
+            state.update_session_meta_ui(ui, cx);
             cx.redraw_all();
         }
         AppAction::SessionDeleted(session_id) => {
@@ -302,6 +338,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 state.clear_messages(ui, cx);
                 state.update_session_title_ui(ui, cx);
                 state_updates::update_work_indicator(ui, cx, false);
+                state.update_session_meta_ui(ui, cx);
             } else if state.selected_session_id.as_ref() == Some(session_id) {
                 state.selected_session_id = None;
             }
@@ -319,12 +356,13 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
             state.update_project_context_ui(ui, cx);
+            state.update_session_meta_ui(ui, cx);
             cx.redraw_all();
         }
         AppAction::MessagesLoaded(messages) => {
             state.messages_data = messages.clone();
             ui.message_list(&[id!(message_list)])
-                .set_messages(cx, &state.messages_data);
+                .set_messages(cx, &state.messages_data, state.current_revert_message_id());
         }
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
@@ -396,6 +434,7 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
             state.update_project_context_ui(ui, cx);
+            state.update_session_meta_ui(ui, cx);
         }
         OcEvent::SessionUpdated(session) => {
             if let Some(existing) = state.sessions.iter_mut().find(|s| s.id == session.id) {
@@ -404,6 +443,7 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
             state.update_project_context_ui(ui, cx);
+            state.update_session_meta_ui(ui, cx);
         }
         OcEvent::SessionDeleted(session) => {
             // If the deleted session is currently selected, clear it
@@ -420,6 +460,7 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             state.update_projects_panel(ui, cx);
             state.update_session_title_ui(ui, cx);
             state.update_project_context_ui(ui, cx);
+            state.update_session_meta_ui(ui, cx);
         }
         OcEvent::MessageUpdated(message) => {
             handle_message_updated(state, ui, cx, message);
@@ -509,7 +550,7 @@ fn handle_message_updated(
     }
 
     ui.message_list(&[id!(message_list)])
-        .set_messages(cx, &state.messages_data);
+        .set_messages(cx, &state.messages_data, state.current_revert_message_id());
 }
 
 /// Handles part update events
@@ -551,7 +592,7 @@ fn handle_part_updated(
             }
 
             ui.message_list(&[id!(message_list)])
-                .set_messages(cx, &state.messages_data);
+                .set_messages(cx, &state.messages_data, state.current_revert_message_id());
         }
 
         if should_update_work {
@@ -715,5 +756,5 @@ fn push_session_error_message(
     });
 
     ui.message_list(&[id!(message_list)])
-        .set_messages(cx, &state.messages_data);
+        .set_messages(cx, &state.messages_data, state.current_revert_message_id());
 }

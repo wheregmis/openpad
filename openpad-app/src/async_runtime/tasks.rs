@@ -471,6 +471,71 @@ pub fn spawn_session_brancher(
     });
 }
 
+/// Spawns a task to share a session
+pub fn spawn_session_sharer(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+) {
+    runtime.spawn(async move {
+        match client.share_session(&session_id).await {
+            Ok(session) => {
+                Cx::post_action(AppAction::SessionUpdated(session));
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to share session: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
+/// Spawns a task to unshare a session
+pub fn spawn_session_unsharer(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+) {
+    runtime.spawn(async move {
+        match client.unshare_session(&session_id).await {
+            Ok(session) => {
+                Cx::post_action(AppAction::SessionUpdated(session));
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to unshare session: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
+/// Spawns a task to summarize a session
+pub fn spawn_session_summarizer(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+    force: bool,
+) {
+    runtime.spawn(async move {
+        let request = openpad_protocol::SessionSummarizeRequest {
+            force: Some(force),
+        };
+        match client.summarize_session(&session_id, request).await {
+            Ok(_) => {}
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to summarize session: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
 /// Spawns a task to revert session to a specific message
 pub fn spawn_message_reverter(
     runtime: &tokio::runtime::Runtime,

@@ -62,6 +62,7 @@ live_design! {
     use link::widgets::*;
     use openpad_widgets::openpad::*;
     use crate::theme::*;
+    use makepad_code_editor::code_view::CodeView;
 
     // Import component DSL definitions
     use crate::components::app_bg::AppBg;
@@ -198,6 +199,69 @@ live_design! {
 
                             <View> { width: Fill }
 
+                            share_wrap = <View> {
+                                width: Fit, height: Fit
+                                flow: Right,
+                                spacing: 6,
+                                align: { y: 0.5 }
+
+                                share_button = <Button> {
+                                    width: Fit, height: 20
+                                    text: "Share"
+                                    draw_bg: {
+                                        color: (THEME_COLOR_TRANSPARENT)
+                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                        border_radius: 4.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                }
+
+                                unshare_button = <Button> {
+                                    width: Fit, height: 20
+                                    visible: false
+                                    text: "Unshare"
+                                    draw_bg: {
+                                        color: (THEME_COLOR_TRANSPARENT)
+                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                        border_radius: 4.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                }
+
+                                copy_share_button = <Button> {
+                                    width: Fit, height: 20
+                                    visible: false
+                                    text: "Copy link"
+                                    draw_bg: {
+                                        color: (THEME_COLOR_TRANSPARENT)
+                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                        border_radius: 4.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                }
+
+                                share_url_label = <Label> {
+                                    width: Fit, height: Fit
+                                    text: ""
+                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                }
+                            }
+
+                            summarize_button = <Button> {
+                                width: Fit, height: 20
+                                text: "Summarize"
+                                draw_bg: {
+                                    color: (THEME_COLOR_TRANSPARENT)
+                                    color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                    border_radius: 4.0
+                                    border_size: 0.0
+                                }
+                                draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                            }
+
                             revert_indicator = <View> {
                                 visible: false
                                 revert_indicator_label = <Label> {
@@ -215,6 +279,92 @@ live_design! {
                             }
                         }
                         <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_SHADE_2) } }
+
+                        session_summary = <RoundedView> {
+                            visible: false
+                            width: Fill, height: Fit
+                            padding: { left: 16, right: 16, top: 12, bottom: 12 }
+                            flow: Down
+                            spacing: 8
+                            show_bg: true
+                            draw_bg: {
+                                color: (THEME_COLOR_BG_DIALOG)
+                                border_color: (THEME_COLOR_BORDER_DIALOG)
+                                border_radius: 8.0
+                                border_size: 1.0
+
+                                fn pixel(self) -> vec4 {
+                                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                                    sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
+                                    sdf.fill_keep(self.color);
+                                    sdf.stroke(self.border_color, self.border_size);
+                                    return sdf.result;
+                                }
+                            }
+
+                            summary_header = <View> {
+                                width: Fill, height: Fit
+                                flow: Right
+                                align: { y: 0.5 }
+
+                                summary_title = <Label> {
+                                    text: "Session Summary"
+                                    draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                                }
+                                <View> { width: Fill }
+                            }
+
+                            summary_stats_label = <Label> {
+                                width: Fill, height: Fit
+                                text: ""
+                                draw_text: { color: (THEME_COLOR_TEXT_DIM), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                            }
+
+                            summary_diff = <Markdown> {
+                                width: Fill, height: Fit
+                                font_size: 9
+                                font_color: (THEME_COLOR_TEXT_NORMAL)
+                                paragraph_spacing: 6
+                                pre_code_spacing: 6
+                                use_code_block_widget: true
+
+                                code_block = <View> {
+                                    width: Fill, height: Fit
+                                    flow: Down
+                                    padding: { left: 8, right: 8, top: 6, bottom: 6 }
+                                    margin: { top: 4, bottom: 4 }
+                                    draw_bg: {
+                                        color: (THEME_COLOR_BG_INPUT)
+                                        border_radius: 6.0
+                                    }
+
+                                    code_view = <CodeView> {
+                                        editor: {
+                                            width: Fill
+                                            height: Fit
+                                            draw_bg: { color: (THEME_COLOR_BG_INPUT) }
+                                        }
+                                    }
+                                }
+
+                                draw_normal: {
+                                    text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.4 }
+                                    color: (THEME_COLOR_TEXT_NORMAL)
+                                }
+                                draw_italic: {
+                                    text_style: <THEME_FONT_ITALIC> { font_size: 9 }
+                                    color: (THEME_COLOR_TEXT_NORMAL)
+                                }
+                                draw_bold: {
+                                    text_style: <THEME_FONT_BOLD> { font_size: 9 }
+                                    color: (THEME_COLOR_TEXT_BOLD)
+                                }
+                                draw_fixed: {
+                                    text_style: <THEME_FONT_CODE> { font_size: 8 }
+                                    color: (THEME_COLOR_TEXT_CODE)
+                                }
+                            }
+                        }
 
                         // Chat area - Unified
                         <View> {
@@ -848,6 +998,42 @@ impl App {
         async_runtime::spawn_session_aborter(runtime, client, session_id);
     }
 
+    fn share_session(&mut self, _cx: &mut Cx, session_id: String) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        async_runtime::spawn_session_sharer(runtime, client, session_id);
+    }
+
+    fn unshare_session(&mut self, _cx: &mut Cx, session_id: String) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        async_runtime::spawn_session_unsharer(runtime, client, session_id);
+    }
+
+    fn summarize_session(&mut self, _cx: &mut Cx, session_id: String) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        async_runtime::spawn_session_summarizer(runtime, client, session_id, false);
+    }
+
     fn branch_session(&mut self, _cx: &mut Cx, parent_session_id: String) {
         let Some(client) = self.client.clone() else {
             self.state.error_message = Some("Not connected".to_string());
@@ -975,11 +1161,12 @@ impl AppMain for App {
                         self.state.messages_data.clear();
                         self.ui
                             .message_list(&[id!(message_list)])
-                            .set_messages(cx, &self.state.messages_data);
+                            .set_messages(cx, &self.state.messages_data, None);
                         crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
                         self.state.update_projects_panel(&self.ui, cx);
                         self.state.update_session_title_ui(&self.ui, cx);
                         self.state.update_project_context_ui(&self.ui, cx);
+                        self.state.update_session_meta_ui(&self.ui, cx);
                         self.load_messages(session_id.clone());
                         self.load_pending_permissions();
                     }
@@ -1106,6 +1293,30 @@ impl AppMain for App {
         if self.ui.button(&[id!(unrevert_button)]).clicked(&actions) {
             if let Some(session_id) = &self.state.current_session_id {
                 self.unrevert_session(cx, session_id.clone());
+            }
+        }
+
+        if self.ui.button(&[id!(share_button)]).clicked(&actions) {
+            if let Some(session_id) = &self.state.current_session_id {
+                self.share_session(cx, session_id.clone());
+            }
+        }
+
+        if self.ui.button(&[id!(unshare_button)]).clicked(&actions) {
+            if let Some(session_id) = &self.state.current_session_id {
+                self.unshare_session(cx, session_id.clone());
+            }
+        }
+
+        if self.ui.button(&[id!(copy_share_button)]).clicked(&actions) {
+            if let Some(url) = self.state.current_share_url() {
+                cx.copy_to_clipboard(&url);
+            }
+        }
+
+        if self.ui.button(&[id!(summarize_button)]).clicked(&actions) {
+            if let Some(session_id) = &self.state.current_session_id {
+                self.summarize_session(cx, session_id.clone());
             }
         }
 

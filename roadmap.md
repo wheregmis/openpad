@@ -84,23 +84,23 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 #### Session Operations
 - [x] Delete session
 - [x] Rename session (update title)
-- [ ] Abort ongoing session (cancel in-progress generation)
+- [x] Abort ongoing session (cancel in-progress generation)
 - [x] Session branching (create child session from parent)
 
 #### Revert / Undo
-- [ ] Revert to a previous message state (`revert_message()`)
-- [ ] Unrevert (`unrevert_session()`)
-- [ ] Visual indication of revert points
+- [x] Revert to a previous message state (`revert_message()`)
+- [x] Unrevert (`unrevert_session()`)
+- [x] Visual indication of revert points
 
 #### Session Sharing
-- [ ] Share session publicly (`share_session()`)
-- [ ] Display share URL
-- [ ] Unshare session
+- [x] Share session publicly (`share_session()`)
+- [x] Display share URL
+- [x] Unshare session
 
 #### Session Summary
-- [ ] Trigger session summarization (`summarize_session()`)
-- [ ] Display file change summary (additions/deletions/files)
-- [ ] Diff visualization for session changes
+- [x] Trigger session summarization (`summarize_session()`)
+- [x] Display file change summary (additions/deletions/files)
+- [x] Diff visualization for session changes
 
 ### Phase 3: Model & Provider Management
 

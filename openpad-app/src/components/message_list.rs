@@ -42,6 +42,16 @@ live_design! {
                             text: "..."
                         }
 
+                        revert_label = <Label> {
+                            visible: false
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: (THEME_COLOR_ACCENT_AMBER),
+                                text_style: <THEME_FONT_BOLD> { font_size: 8 },
+                            }
+                            text: "REVERT"
+                        }
+
                         <Label> {
                             width: Fit, height: Fit
                             draw_text: {
@@ -120,6 +130,16 @@ live_design! {
                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 },
                             }
                             text: "..."
+                        }
+
+                        revert_label = <Label> {
+                            visible: false
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: (THEME_COLOR_ACCENT_AMBER),
+                                text_style: <THEME_FONT_BOLD> { font_size: 8 },
+                            }
+                            text: "REVERT"
                         }
                     }
 
@@ -288,6 +308,8 @@ pub struct MessageList {
     messages: Vec<DisplayMessage>,
     #[rust]
     is_working: bool,
+    #[rust]
+    revert_message_id: Option<String>,
 }
 
 impl MessageList {
@@ -406,6 +428,9 @@ impl Widget for MessageList {
                             .set_text(cx, "Thinking...");
                         item_widget.label(&[id!(timestamp_label)]).set_text(cx, "");
                         item_widget
+                            .label(&[id!(revert_label)])
+                            .set_visible(cx, false);
+                        item_widget
                             .label(&[id!(model_label)])
                             .set_text(cx, "ASSISTANT");
                         item_widget.label(&[id!(error_label)]).set_text(cx, "");
@@ -422,6 +447,15 @@ impl Widget for MessageList {
 
                         let item_widget = list.item(cx, item_id, template);
                         item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
+
+                        let is_revert_point = msg
+                            .message_id
+                            .as_ref()
+                            .and_then(|id| self.revert_message_id.as_ref().map(|rev| rev == id))
+                            .unwrap_or(false);
+                        item_widget
+                            .label(&[id!(revert_label)])
+                            .set_visible(cx, is_revert_point);
 
                         // Set timestamp if available
                         if let Some(timestamp) = msg.timestamp {
@@ -499,10 +533,12 @@ impl MessageListRef {
         &self,
         cx: &mut Cx,
         messages_with_parts: &[openpad_protocol::MessageWithParts],
+        revert_message_id: Option<String>,
     ) {
         if let Some(mut inner) = self.borrow_mut() {
             let was_empty = inner.messages.is_empty();
             inner.messages = MessageList::rebuild_from_parts(messages_with_parts);
+            inner.revert_message_id = revert_message_id;
             // Reset scroll position when loading a new set of messages
             // to avoid stale first_id from a previous longer list
             if was_empty || messages_with_parts.is_empty() {
