@@ -459,7 +459,9 @@ impl Widget for MessageList {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
-                let total_items = self.messages.len() + self.pending_permissions.len() + if self.is_working { 1 } else { 0 };
+                let total_items = self.messages.len()
+                    + self.pending_permissions.len()
+                    + if self.is_working { 1 } else { 0 };
                 if total_items == 0 {
                     list.set_item_range(cx, 0, 0);
                     continue;
@@ -469,7 +471,9 @@ impl Widget for MessageList {
 
                 while let Some(item_id) = list.next_visible_item(cx) {
                     // After messages, render pending permissions
-                    if item_id >= self.messages.len() && item_id < self.messages.len() + self.pending_permissions.len() {
+                    if item_id >= self.messages.len()
+                        && item_id < self.messages.len() + self.pending_permissions.len()
+                    {
                         let perm_idx = item_id - self.messages.len();
                         let perm = &self.pending_permissions[perm_idx];
                         let item_widget = list.item(cx, item_id, live_id!(PermissionMsg));
@@ -489,7 +493,8 @@ impl Widget for MessageList {
                         if !self.is_working {
                             continue;
                         }
-                        let elapsed = self.working_since
+                        let elapsed = self
+                            .working_since
                             .map(|t| t.elapsed().as_secs())
                             .unwrap_or(0);
                         let mins = elapsed / 60;
@@ -713,7 +718,9 @@ impl MessageListRef {
 
     pub fn remove_permission(&self, cx: &mut Cx, request_id: &str) {
         if let Some(mut inner) = self.borrow_mut() {
-            inner.pending_permissions.retain(|p| p.request_id != request_id);
+            inner
+                .pending_permissions
+                .retain(|p| p.request_id != request_id);
             inner.redraw(cx);
         }
     }
@@ -721,7 +728,12 @@ impl MessageListRef {
     pub fn set_session_diffs(&self, cx: &mut Cx, diffs: &[openpad_protocol::FileDiff]) {
         if let Some(mut inner) = self.borrow_mut() {
             // Apply diffs to the last assistant message
-            if let Some(last_assistant) = inner.messages.iter_mut().rev().find(|m| m.role == "assistant") {
+            if let Some(last_assistant) = inner
+                .messages
+                .iter_mut()
+                .rev()
+                .find(|m| m.role == "assistant")
+            {
                 last_assistant.diffs = diffs.to_vec();
             }
             inner.redraw(cx);

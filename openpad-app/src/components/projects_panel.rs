@@ -93,7 +93,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                 width: Fill, height: Fit
                 padding: { top: 1, bottom: 1, left: 16 }
                 flow: Right,
-                spacing: 4,
+                spacing: 2,
                 align: { y: 0.5 }
 
                 session_button = <Button> {
@@ -135,98 +135,78 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                         }
                     }
                 }
+                menu_button = <Button> {
+                    width: 28, height: 28
+                    text: "⋯"
+                    align: { x: 0.5, y: 0.5 }
+                    draw_bg: {
+                        color: (THEME_COLOR_TRANSPARENT)
+                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                        border_radius: 6.0
+                        border_size: 0.0
+                    }
+                    draw_text: {
+                        color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                        color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                        text_style: <THEME_FONT_BOLD> { font_size: 12 }
+                    }
+                }
 
-                // Action buttons container
-                action_buttons = <View> {
+                menu_panel = <View> {
+                    visible: false
                     width: Fit, height: Fit
                     flow: Right,
-                    spacing: 4,
-                    margin: { right: 4 },
+                    spacing: 2,
+                    margin: { right: 4 }
                     align: { y: 0.5 }
 
-                    abort_button = <Button> {
-                        width: 28, height: 28
+                    menu_rename = <Button> {
+                        width: Fit, height: 22
+                        text: "Rename"
+                        draw_bg: {
+                            color: (THEME_COLOR_TRANSPARENT)
+                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                            border_radius: 4.0
+                            border_size: 0.0
+                        }
+                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                    }
+
+                    menu_branch = <Button> {
+                        width: Fit, height: 22
+                        text: "Branch"
+                        draw_bg: {
+                            color: (THEME_COLOR_TRANSPARENT)
+                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                            border_radius: 4.0
+                            border_size: 0.0
+                        }
+                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                    }
+
+                    menu_abort = <Button> {
+                        width: Fit, height: 22
+                        text: "Abort"
                         visible: false
-                        text: ""
-                        icon_walk: { width: 12, height: 12 }
-                        label_walk: { width: 0, height: 0 }
-                        align: { x: 0.5, y: 0.5 }
-                        draw_icon: {
-                            svg_file: dep("crate://self/resources/icons/stop.svg")
-                            color: (THEME_COLOR_BORDER_LIGHT)
-                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                            color_down: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                        }
                         draw_bg: {
                             color: (THEME_COLOR_TRANSPARENT)
                             color_hover: (THEME_COLOR_ACCENT_RED)
-                            border_radius: 6.0
+                            border_radius: 4.0
                             border_size: 0.0
                         }
-                        draw_text: { color: (THEME_COLOR_TRANSPARENT) }
+                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                     }
 
-                    rename_button = <Button> {
-                        width: 28, height: 28
-                        text: ""
-                        icon_walk: { width: 12, height: 12 }
-                        label_walk: { width: 0, height: 0 }
-                        align: { x: 0.5, y: 0.5 }
-                        draw_icon: {
-                            svg_file: dep("crate://self/resources/icons/pencil.svg")
-                            color: (THEME_COLOR_BORDER_LIGHT)
-                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                            color_down: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                        }
-                        draw_bg: {
-                            color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_ACCENT_BLUE)
-                            border_radius: 6.0
-                            border_size: 0.0
-                        }
-                        draw_text: { color: (THEME_COLOR_TRANSPARENT) }
-                    }
-
-                    branch_button = <Button> {
-                        width: 28, height: 28
-                        text: ""
-                        icon_walk: { width: 12, height: 12 }
-                        label_walk: { width: 0, height: 0 }
-                        align: { x: 0.5, y: 0.5 }
-                        draw_icon: {
-                            svg_file: dep("crate://self/resources/icons/branch.svg")
-                            color: (THEME_COLOR_BORDER_LIGHT)
-                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                            color_down: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                        }
-                        draw_bg: {
-                            color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_ACCENT_PURPLE)
-                            border_radius: 6.0
-                            border_size: 0.0
-                        }
-                        draw_text: { color: (THEME_COLOR_TRANSPARENT) }
-                    }
-
-                    delete_button = <Button> {
-                        width: 28, height: 28
-                        text: ""
-                        icon_walk: { width: 12, height: 12 }
-                        label_walk: { width: 0, height: 0 }
-                        align: { x: 0.5, y: 0.5 }
-                        draw_icon: {
-                            svg_file: dep("crate://self/resources/icons/trash.svg")
-                            color: (THEME_COLOR_BORDER_LIGHT)
-                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                            color_down: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                        }
+                    menu_delete = <Button> {
+                        width: Fit, height: 22
+                        text: "Delete"
                         draw_bg: {
                             color: (THEME_COLOR_TRANSPARENT)
                             color_hover: (THEME_COLOR_ACCENT_RED)
-                            border_radius: 6.0
+                            border_radius: 4.0
                             border_size: 0.0
                         }
-                        draw_text: { color: (THEME_COLOR_TRANSPARENT) }
+                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                     }
                 }
 
@@ -269,6 +249,8 @@ pub struct ProjectsPanel {
     dirty: bool,
     #[rust]
     collapsed_projects: HashMap<Option<String>, bool>,
+    #[rust]
+    open_menu_session_id: Option<String>,
 }
 
 impl ProjectsPanel {
@@ -400,7 +382,8 @@ impl Widget for ProjectsPanel {
             if item_id >= self.items.len() {
                 continue;
             }
-            match &self.items[item_id] {
+            let panel_item = self.items[item_id].clone();
+            match panel_item {
                 PanelItemKind::ProjectHeader { project_id, .. } => {
                     if widget
                         .button(&[id!(new_session_header_button)])
@@ -410,7 +393,7 @@ impl Widget for ProjectsPanel {
                     } else if widget.as_view().finger_up(&actions).is_some() {
                         let collapsed = self
                             .collapsed_projects
-                            .get(project_id)
+                            .get(&project_id)
                             .copied()
                             .unwrap_or(true);
                         self.collapsed_projects
@@ -424,17 +407,35 @@ impl Widget for ProjectsPanel {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
 
-                    if widget.button(&[id!(delete_button)]).clicked(&actions) {
+                    if widget.button(&[id!(menu_button)]).clicked(&actions) {
+                        let next = if self.open_menu_session_id.as_deref() == Some(&session_id) {
+                            None
+                        } else {
+                            Some(session_id.clone())
+                        };
+                        self.open_menu_session_id = next;
+                        self.redraw(cx);
+                    }
+
+                    if widget.button(&[id!(menu_delete)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::DeleteSession(session_id.clone()));
+                        self.open_menu_session_id = None;
+                        self.redraw(cx);
                     }
-                    if widget.button(&[id!(rename_button)]).clicked(&actions) {
+                    if widget.button(&[id!(menu_rename)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::RenameSession(session_id.clone()));
+                        self.open_menu_session_id = None;
+                        self.redraw(cx);
                     }
-                    if widget.button(&[id!(branch_button)]).clicked(&actions) {
+                    if widget.button(&[id!(menu_branch)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::BranchSession(session_id.clone()));
+                        self.open_menu_session_id = None;
+                        self.redraw(cx);
                     }
-                    if widget.button(&[id!(abort_button)]).clicked(&actions) {
+                    if widget.button(&[id!(menu_abort)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::AbortSession(session_id.clone()));
+                        self.open_menu_session_id = None;
+                        self.redraw(cx);
                     }
                 }
                 _ => {}
@@ -529,8 +530,12 @@ impl Widget for ProjectsPanel {
                             item_widget
                                 .view(&[id!(working_dot)])
                                 .set_visible(cx, working);
+                            let menu_open = self.open_menu_session_id.as_deref() == Some(session_id);
                             item_widget
-                                .button(&[id!(abort_button)])
+                                .view(&[id!(menu_panel)])
+                                .set_visible(cx, menu_open);
+                            item_widget
+                                .button(&[id!(menu_abort)])
                                 .set_visible(cx, working);
 
                             let summary_text = self

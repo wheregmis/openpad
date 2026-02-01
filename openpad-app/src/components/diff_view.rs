@@ -133,9 +133,7 @@ impl DiffView {
         }
 
         self.diff_text_content = full_diff.clone();
-        self.view
-            .label(&[id!(diff_text)])
-            .set_text(cx, &full_diff);
+        self.view.label(&[id!(diff_text)]).set_text(cx, &full_diff);
 
         self.expanded = false;
         self.view.view(&[id!(diff_content)]).set_visible(cx, false);
@@ -312,7 +310,11 @@ fn simple_diff<'a>(old: &[&'a str], new: &[&'a str]) -> Vec<DiffOp<'a>> {
     let mut ops = Vec::new();
 
     // Find common prefix
-    let prefix_len = old.iter().zip(new.iter()).take_while(|(a, b)| a == b).count();
+    let prefix_len = old
+        .iter()
+        .zip(new.iter())
+        .take_while(|(a, b)| a == b)
+        .count();
 
     // Find common suffix (not overlapping with prefix)
     let old_remaining = &old[prefix_len..];

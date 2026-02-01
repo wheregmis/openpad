@@ -1394,7 +1394,10 @@ impl AppMain for App {
             // Handle PermissionCardAction from inline permission cards
             if let Some(action) = action.downcast_ref::<PermissionCardAction>() {
                 match action {
-                    PermissionCardAction::Approved { session_id, request_id } => {
+                    PermissionCardAction::Approved {
+                        session_id,
+                        request_id,
+                    } => {
                         if let Some(client) = &self.client {
                             let client = client.clone();
                             let session_id = session_id.clone();
@@ -1408,10 +1411,18 @@ impl AppMain for App {
                                     openpad_protocol::PermissionReply::Once,
                                 );
                             }
-                            state::handle_permission_responded(&mut self.state, &self.ui, cx, &request_id);
+                            state::handle_permission_responded(
+                                &mut self.state,
+                                &self.ui,
+                                cx,
+                                &request_id,
+                            );
                         }
                     }
-                    PermissionCardAction::AlwaysApproved { session_id, request_id } => {
+                    PermissionCardAction::AlwaysApproved {
+                        session_id,
+                        request_id,
+                    } => {
                         if let Some(client) = &self.client {
                             let client = client.clone();
                             let session_id = session_id.clone();
@@ -1425,10 +1436,18 @@ impl AppMain for App {
                                     openpad_protocol::PermissionReply::Always,
                                 );
                             }
-                            state::handle_permission_responded(&mut self.state, &self.ui, cx, &request_id);
+                            state::handle_permission_responded(
+                                &mut self.state,
+                                &self.ui,
+                                cx,
+                                &request_id,
+                            );
                         }
                     }
-                    PermissionCardAction::Rejected { session_id, request_id } => {
+                    PermissionCardAction::Rejected {
+                        session_id,
+                        request_id,
+                    } => {
                         if let Some(client) = &self.client {
                             let client = client.clone();
                             let session_id = session_id.clone();
@@ -1442,7 +1461,12 @@ impl AppMain for App {
                                     openpad_protocol::PermissionReply::Reject,
                                 );
                             }
-                            state::handle_permission_responded(&mut self.state, &self.ui, cx, &request_id);
+                            state::handle_permission_responded(
+                                &mut self.state,
+                                &self.ui,
+                                cx,
+                                &request_id,
+                            );
                         }
                     }
                     _ => {}
