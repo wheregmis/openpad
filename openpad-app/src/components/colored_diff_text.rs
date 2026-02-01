@@ -1,5 +1,14 @@
 use makepad_widgets::*;
 
+// Diff line colors
+const DIFF_COLOR_ADD: Vec4 = vec4(0.301, 0.792, 0.301, 1.0); // #4dca4d - bright green
+const DIFF_COLOR_DEL: Vec4 = vec4(0.878, 0.376, 0.376, 1.0); // #e06060 - soft red
+const DIFF_COLOR_CONTEXT: Vec4 = vec4(0.733, 0.757, 0.788, 1.0); // #bbc1c9 - lighter gray
+const DIFF_COLOR_HEADER: Vec4 = vec4(0.533, 0.690, 0.859, 1.0); // #88b0db - soft blue
+
+// Line spacing for diff text (slightly tighter than normal text for compactness)
+const DIFF_LINE_SPACING: f64 = 1.2;
+
 live_design! {
     use link::theme::*;
     use link::shaders::*;
@@ -62,19 +71,13 @@ impl Widget for ColoredDiffText {
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         cx.begin_turtle(walk, Layout::default());
         
-        // Define colors matching the theme
-        let text_color_add = vec4(0.301, 0.792, 0.301, 1.0); // #4dca4d - bright green
-        let text_color_del = vec4(0.878, 0.376, 0.376, 1.0); // #e06060 - soft red
-        let text_color_context = vec4(0.733, 0.757, 0.788, 1.0); // #bbc1c9 - lighter gray for better readability
-        let text_color_header = vec4(0.533, 0.690, 0.859, 1.0); // #88b0db - soft blue for headers
-        
-        // Render each line with its appropriate color
+        // Render each line with its appropriate color (using constants defined above)
         for line in &self.lines {
             let text_color = match line.line_type {
-                DiffLineType::Addition => text_color_add,
-                DiffLineType::Deletion => text_color_del,
-                DiffLineType::Context => text_color_context,
-                DiffLineType::Header => text_color_header,
+                DiffLineType::Addition => DIFF_COLOR_ADD,
+                DiffLineType::Deletion => DIFF_COLOR_DEL,
+                DiffLineType::Context => DIFF_COLOR_CONTEXT,
+                DiffLineType::Header => DIFF_COLOR_HEADER,
             };
             
             self.draw_text.color = text_color;
