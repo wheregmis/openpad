@@ -4,6 +4,7 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
+    use crate::theme::*;
 
     pub SimpleDialog = {{SimpleDialog}} {
         width: Fill, height: Fill
@@ -33,8 +34,8 @@ live_design! {
                 spacing: 12,
                 show_bg: true
                 draw_bg: {
-                    color: #1f2329
-                    uniform border_color: #2b3138
+                    color: (THEME_COLOR_BG_DIALOG)
+                    uniform border_color: (THEME_COLOR_BORDER_DIALOG)
                     uniform border_radius: 12.0
                     uniform border_size: 1.0
 
@@ -50,7 +51,7 @@ live_design! {
                 title_label = <Label> {
                     text: "Dialog"
                     draw_text: {
-                        color: #e6e9ee
+                        color: (THEME_COLOR_TEXT_PRIMARY)
                         text_style: <THEME_FONT_BOLD> { font_size: 14 }
                     }
                 }
@@ -59,7 +60,7 @@ live_design! {
                     width: Fill, height: Fit
                     text: ""
                     draw_text: {
-                        color: #aab3bd
+                        color: (THEME_COLOR_TEXT_DIM)
                         text_style: <THEME_FONT_REGULAR> { font_size: 11 }
                         wrap: Word
                     }
@@ -73,11 +74,11 @@ live_design! {
                         width: Fill, height: 32
                         padding: 8,
                         draw_text: {
-                            color: #e6e9ee
+                            color: (THEME_COLOR_TEXT_PRIMARY)
                             text_style: <THEME_FONT_REGULAR> { font_size: 11 }
                         }
                         draw_bg: {
-                            color: #15181d
+                            color: (THEME_COLOR_BG_INPUT)
                             border_radius: 6.0
                             border_size: 1.0
                         }
@@ -94,22 +95,23 @@ live_design! {
                         width: 80, height: 32
                         text: "Cancel"
                         draw_bg: {
-                            color: #2b2f35
-                            color_hover: #353a40
+                            color: (THEME_COLOR_BG_BUTTON)
+                            color_hover: (THEME_COLOR_BG_BUTTON_HOVER)
                             border_radius: 6.0
                         }
-                        draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                        draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                     }
 
                     confirm_button = <Button> {
                         width: 80, height: 32
                         text: "OK"
                         draw_bg: {
-                            color: #3b82f6
-                            color_hover: #1d4fed
+                            color: (THEME_COLOR_ACCENT_BLUE)
+                            color_hover: (THEME_COLOR_ACCENT_BLUE_HOVER)
                             border_radius: 6.0
                         }
-                        draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                        draw_text: { color: (THEME_COLOR_TEXT_BRIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                    }
                     }
                 }
             }

@@ -6,6 +6,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
+    use crate::theme::*;
 
     pub PermissionDialog = {{PermissionDialog}} {
         width: Fill, height: Fit
@@ -16,8 +17,8 @@ live_design! {
         show_bg: true
 
         draw_bg: {
-            color: #1f2329
-            uniform border_color: #2b3138
+            color: (THEME_COLOR_BG_DIALOG)
+            uniform border_color: (THEME_COLOR_BORDER_DIALOG)
             uniform border_radius: 10.0
             uniform border_size: 1.0
 
@@ -39,7 +40,7 @@ live_design! {
             title = <Label> {
                 text: "Permission required"
                 draw_text: {
-                    color: #e6e9ee
+                    color: (THEME_COLOR_TEXT_PRIMARY)
                     text_style: <THEME_FONT_BOLD> { font_size: 12 }
                 }
             }
@@ -50,7 +51,7 @@ live_design! {
                 width: Fit, height: Fit
                 padding: { left: 8, right: 8, top: 4, bottom: 4 }
                 draw_bg: {
-                    color: #27303a
+                    color: (THEME_COLOR_SHADE_1)
                     border_radius: 10.0
                 }
 
@@ -58,7 +59,7 @@ live_design! {
                     width: Fit, height: Fit
                     text: ""
                     draw_text: {
-                        color: #cbd3dc
+                        color: (THEME_COLOR_SHADE_10)
                         text_style: <THEME_FONT_REGULAR> { font_size: 10 }
                     }
                 }
@@ -69,7 +70,7 @@ live_design! {
             width: Fill, height: Fit
             text: ""
             draw_text: {
-                color: #aab3bd
+                color: (THEME_COLOR_TEXT_DIM)
                 text_style: <THEME_FONT_REGULAR> { font_size: 11 }
                 wrap: Word
             }
@@ -79,7 +80,7 @@ live_design! {
             width: Fill, height: 200
             padding: 10,
             draw_bg: {
-                color: #15181d
+                color: (THEME_COLOR_BG_INPUT)
                 border_radius: 8.0
             }
 
@@ -95,7 +96,7 @@ live_design! {
                         width: Fill, height: Fit
                         text: ""
                         draw_text: {
-                            color: #6b7b8c
+                            color: (THEME_COLOR_STATUS_DOT)
                             text_style: <THEME_FONT_CODE> { font_size: 10 }
                             wrap: Word
                         }
@@ -105,7 +106,7 @@ live_design! {
                         width: Fill, height: Fit
                         text: ""
                         draw_text: {
-                            color: #8fa0b3
+                            color: (THEME_COLOR_SHADE_7)
                             text_style: <THEME_FONT_REGULAR> { font_size: 10 }
                             wrap: Word
                         }
@@ -124,36 +125,36 @@ live_design! {
                 width: 90, height: 32
                 text: "Reject"
                 draw_bg: {
-                    color: #2a2f36
-                    color_hover: #313843
+                    color: (THEME_COLOR_SHADE_3)
+                    color_hover: (THEME_COLOR_SHADE_5)
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
             }
 
             always_button = <Button> {
                 width: 120, height: 32
                 text: "Always allow"
                 draw_bg: {
-                    color: #334155
-                    color_hover: #475569
+                    color: (THEME_COLOR_SHADE_4)
+                    color_hover: (THEME_COLOR_SHADE_6)
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: #e6e9ee, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
             }
 
             accept_button = <Button> {
                 width: 110, height: 32
                 text: "Allow once"
                 draw_bg: {
-                    color: #3b82f6
-                    color_hover: #1d4ed8
+                    color: (THEME_COLOR_ACCENT_BLUE)
+                    color_hover: (THEME_COLOR_ACCENT_BLUE_DARK)
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: #ffffff, text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                draw_text: { color: (THEME_COLOR_TEXT_BRIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
             }
         }
     }

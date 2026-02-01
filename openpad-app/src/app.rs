@@ -61,6 +61,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
+    use crate::theme::*;
 
     // Import component DSL definitions
     use crate::components::app_bg::AppBg;
@@ -75,7 +76,7 @@ live_design! {
     App = {{App}} {
         ui: <Window> {
             window: { inner_size: vec2(1200, 800) }
-            pass: { clear_color: #1a1a1a }
+            pass: { clear_color: (THEME_COLOR_BG_DARKER) }
 
             body = <View> {
                 width: Fill, height: Fill
@@ -101,8 +102,8 @@ live_design! {
                             width: 260
                             padding: { left: 80, right: 10 }
                             draw_bg: {
-                                color: #1e1e1e
-                                border_color: #333
+                                color: (THEME_COLOR_BG_APP)
+                                border_color: (THEME_COLOR_BORDER_MEDIUM)
                                 border_radius: 0.0
                                 border_size: 1.0
                             }
@@ -123,8 +124,8 @@ live_design! {
                             height: 36
                             padding: { left: 16, right: 10 }
                             draw_bg: {
-                                color: #1e1e1e
-                                border_color: #333
+                                color: (THEME_COLOR_BG_APP)
+                                border_color: (THEME_COLOR_BORDER_MEDIUM)
                                 border_radius: 0.0
                             }
 
@@ -133,7 +134,7 @@ live_design! {
                                 width: 0.0, height: Fill
                                 open_size: 80.0
                                 close_size: 0.0
-                                draw_bg: { color: #0000, border_size: 0.0 } // Transparent!
+                                draw_bg: { color: (THEME_COLOR_TRANSPARENT), border_size: 0.0 } // Transparent!
                             }
 
                             hamburger_button = <HamburgerButton> {
@@ -142,7 +143,7 @@ live_design! {
                             <View> { width: 4 }
                             app_title = <Label> {
                                 text: "Openpad"
-                                draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                             }
                             <View> { width: Fill }
                             status_row = <View> {
@@ -153,7 +154,7 @@ live_design! {
                                 status_dot = <StatusDot> {}
                                 status_label = <Label> {
                                     text: "Connected"
-                                    draw_text: { color: #555, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARK), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
                         }
@@ -166,7 +167,7 @@ live_design! {
                             spacing: 8,
                             align: { y: 0.5 }
                             show_bg: true
-                            draw_bg: { color: #1e1e1e }
+                            draw_bg: { color: (THEME_COLOR_BG_APP) }
 
                             project_row = <View> {
                                 width: Fit, height: Fit
@@ -175,18 +176,18 @@ live_design! {
                                     width: Fit, height: Fit
                                     project_badge_label = <Label> {
                                         text: "No project"
-                                        draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                                     }
                                 }
                             }
 
-                            <Label> { text: "/", draw_text: { color: #444, text_style: <THEME_FONT_REGULAR> { font_size: 10 } } }
+                            <Label> { text: "/", draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 10 } } }
 
                             session_row = <View> {
                                 width: Fit, height: Fit
                                 session_title = <Label> {
                                     text: "New Session"
-                                    draw_text: { color: #aaa, text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHTER), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
                                 }
                             }
 

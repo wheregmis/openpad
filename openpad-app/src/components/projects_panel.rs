@@ -10,6 +10,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
+    use crate::theme::*;
 
 pub ProjectsPanel = {{ProjectsPanel}} {
         width: Fill, height: Fill
@@ -25,7 +26,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                 flow: Right, align: {y: 0.5}
                 padding: { top: 12, bottom: 4, left: 16 }
                 project_name = <Label> {
-                    draw_text: { color: #888, text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                    draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
                 }
             }
 
@@ -36,12 +37,12 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                     width: Fit, height: 24
                     text: "+ New session"
                     draw_bg: {
-                        color: #0000
-                        color_hover: #333
+                        color: (THEME_COLOR_TRANSPARENT)
+                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
                         border_radius: 4.0
                         border_size: 0.0
                     }
-                    draw_text: { color: #666, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                 }
             }
 
@@ -57,12 +58,12 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                     margin: { right: 8 }
                     text: "Session"
                     draw_bg: {
-                        color: #0000
-                        color_hover: #2d2d2d
+                        color: (THEME_COLOR_TRANSPARENT)
+                        color_hover: (THEME_COLOR_HOVER_LIGHT)
                         border_radius: 4.0
                         border_size: 0.0
                     }
-                    draw_text: { color: #ccc, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                    draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                 }
 
                 working_dot = <View> {
@@ -70,7 +71,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                     width: 6, height: 6
                     show_bg: true
                     draw_bg: {
-                        color: #f59e0b
+                        color: (THEME_COLOR_ACCENT_AMBER)
                         fn pixel(self) -> vec4 {
                             let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                             let c = self.rect_size * 0.5;
@@ -99,17 +100,17 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                         align: { x: 0.5, y: 0.5 }
                         draw_icon: {
                             svg_file: dep("crate://self/resources/icons/stop.svg")
-                            color: #444
-                            color_hover: #666
-                            color_down: #666
+                            color: (THEME_COLOR_BORDER_LIGHT)
+                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                            color_down: (THEME_COLOR_TEXT_MUTED_LIGHT)
                         }
                         draw_bg: {
-                            color: #0000
-                            color_hover: #ef4444
+                            color: (THEME_COLOR_TRANSPARENT)
+                            color_hover: (THEME_COLOR_ACCENT_RED)
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: { color: #0000 }
+                        draw_text: { color: (THEME_COLOR_TRANSPARENT) }
                     }
 
                     rename_button = <Button> {
@@ -120,17 +121,17 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                         align: { x: 0.5, y: 0.5 }
                         draw_icon: {
                             svg_file: dep("crate://self/resources/icons/pencil.svg")
-                            color: #444
-                            color_hover: #666
-                            color_down: #666
+                            color: (THEME_COLOR_BORDER_LIGHT)
+                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                            color_down: (THEME_COLOR_TEXT_MUTED_LIGHT)
                         }
                         draw_bg: {
-                            color: #0000
-                            color_hover: #3b82f6
+                            color: (THEME_COLOR_TRANSPARENT)
+                            color_hover: (THEME_COLOR_ACCENT_BLUE)
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: { color: #0000 }
+                        draw_text: { color: (THEME_COLOR_TRANSPARENT) }
                     }
 
                     branch_button = <Button> {
@@ -141,17 +142,17 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                         align: { x: 0.5, y: 0.5 }
                         draw_icon: {
                             svg_file: dep("crate://self/resources/icons/branch.svg")
-                            color: #444
-                            color_hover: #666
-                            color_down: #666
+                            color: (THEME_COLOR_BORDER_LIGHT)
+                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                            color_down: (THEME_COLOR_TEXT_MUTED_LIGHT)
                         }
                         draw_bg: {
-                            color: #0000
-                            color_hover: #8b5cf6
+                            color: (THEME_COLOR_TRANSPARENT)
+                            color_hover: (THEME_COLOR_ACCENT_PURPLE)
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: { color: #0000 }
+                        draw_text: { color: (THEME_COLOR_TRANSPARENT) }
                     }
 
                     delete_button = <Button> {
@@ -162,17 +163,17 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                         align: { x: 0.5, y: 0.5 }
                         draw_icon: {
                             svg_file: dep("crate://self/resources/icons/trash.svg")
-                            color: #444
-                            color_hover: #666
-                            color_down: #666
+                            color: (THEME_COLOR_BORDER_LIGHT)
+                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                            color_down: (THEME_COLOR_TEXT_MUTED_LIGHT)
                         }
                         draw_bg: {
-                            color: #0000
-                            color_hover: #ef4444
+                            color: (THEME_COLOR_TRANSPARENT)
+                            color_hover: (THEME_COLOR_ACCENT_RED)
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: { color: #0000 }
+                        draw_text: { color: (THEME_COLOR_TRANSPARENT) }
                     }
                 }
 
