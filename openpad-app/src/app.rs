@@ -8,8 +8,9 @@ use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
-use openpad_widgets::{SimpleDialogAction, SidePanelWidgetRefExt};
-use openpad_widgets::{SidePanelWidgetRefExt, UpDropDownWidgetRefExt};
+use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
+use openpad_widgets::UpDropDownWidgetRefExt;
+use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction};
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
 
