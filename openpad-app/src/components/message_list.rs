@@ -4,6 +4,7 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
+    use crate::theme::*;
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
 
@@ -34,7 +35,7 @@ live_design! {
                         timestamp_label = <Label> {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: #444,
+                                color: (THEME_COLOR_TEXT_MUTED_DARKER),
                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 },
                             }
                             text: "..."
@@ -43,7 +44,7 @@ live_design! {
                         <Label> {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: #555,
+                                color: (THEME_COLOR_TEXT_MUTED_DARK),
                                 text_style: <THEME_FONT_BOLD> { font_size: 8 },
                             }
                             text: "YOU"
@@ -54,7 +55,7 @@ live_design! {
                     msg_text = <Label> {
                         width: Fill, height: Fit
                         draw_text: {
-                            color: #ddd,
+                            color: (THEME_COLOR_TEXT_LIGHT),
                             text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 },
                             word: Wrap,
                         }
@@ -82,7 +83,7 @@ live_design! {
                         model_label = <Label> {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: #555,
+                                color: (THEME_COLOR_TEXT_MUTED_DARK),
                                 text_style: <THEME_FONT_BOLD> { font_size: 8 },
                             }
                             text: "ASSISTANT"
@@ -91,7 +92,7 @@ live_design! {
                         timestamp_label = <Label> {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: #444,
+                                color: (THEME_COLOR_TEXT_MUTED_DARKER),
                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 },
                             }
                             text: "..."
@@ -101,26 +102,26 @@ live_design! {
                     msg_text = <Markdown> {
                         width: Fill, height: Fit
                         font_size: 10
-                        font_color: #ccc
+                        font_color: (THEME_COLOR_TEXT_NORMAL)
                         paragraph_spacing: 8
                         pre_code_spacing: 6
                         use_code_block_widget: false
 
                         draw_normal: {
                             text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 }
-                            color: #ccc
+                            color: (THEME_COLOR_TEXT_NORMAL)
                         }
                         draw_italic: {
                             text_style: <THEME_FONT_ITALIC> { font_size: 10 }
-                            color: #ccc
+                            color: (THEME_COLOR_TEXT_NORMAL)
                         }
                         draw_bold: {
                             text_style: <THEME_FONT_BOLD> { font_size: 10 }
-                            color: #eee
+                            color: (THEME_COLOR_TEXT_BOLD)
                         }
                         draw_fixed: {
                             text_style: <THEME_FONT_CODE> { font_size: 9 }
-                            color: #9cdcfe
+                            color: (THEME_COLOR_TEXT_CODE)
                         }
                     }
 
@@ -134,14 +135,14 @@ live_design! {
                             width: Fit, height: 20
                             text: "Revert"
                             draw_bg: {
-                                color: #0000
-                                color_hover: #333
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
                             draw_text: {
-                                color: #666
-                                color_hover: #aaa
+                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 }
                             }
                         }

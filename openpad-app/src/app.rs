@@ -61,6 +61,7 @@ live_design! {
     use link::shaders::*;
     use link::widgets::*;
     use openpad_widgets::openpad::*;
+    use crate::theme::*;
 
     // Import component DSL definitions
     use crate::components::app_bg::AppBg;
@@ -75,7 +76,7 @@ live_design! {
     App = {{App}} {
         ui: <Window> {
             window: { inner_size: vec2(1200, 800) }
-            pass: { clear_color: #1a1a1a }
+            pass: { clear_color: (THEME_COLOR_BG_DARKER) }
 
             body = <View> {
                 width: Fill, height: Fill
@@ -101,8 +102,8 @@ live_design! {
                             width: 260
                             padding: { left: 80, right: 10 }
                             draw_bg: {
-                                color: #1e1e1e
-                                border_color: #333
+                                color: (THEME_COLOR_BG_APP)
+                                border_color: (THEME_COLOR_BORDER_MEDIUM)
                                 border_radius: 0.0
                                 border_size: 1.0
                             }
@@ -123,8 +124,8 @@ live_design! {
                             height: 36
                             padding: { left: 16, right: 10 }
                             draw_bg: {
-                                color: #1e1e1e
-                                border_color: #333
+                                color: (THEME_COLOR_BG_APP)
+                                border_color: (THEME_COLOR_BORDER_MEDIUM)
                                 border_radius: 0.0
                             }
 
@@ -133,7 +134,7 @@ live_design! {
                                 width: 0.0, height: Fill
                                 open_size: 80.0
                                 close_size: 0.0
-                                draw_bg: { color: #0000, border_size: 0.0 } // Transparent!
+                                draw_bg: { color: (THEME_COLOR_TRANSPARENT), border_size: 0.0 } // Transparent!
                             }
 
                             hamburger_button = <HamburgerButton> {
@@ -142,7 +143,7 @@ live_design! {
                             <View> { width: 4 }
                             app_title = <Label> {
                                 text: "Openpad"
-                                draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                             }
                             <View> { width: Fill }
                             status_row = <View> {
@@ -153,7 +154,7 @@ live_design! {
                                 status_dot = <StatusDot> {}
                                 status_label = <Label> {
                                     text: "Connected"
-                                    draw_text: { color: #555, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARK), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
                         }
@@ -166,7 +167,7 @@ live_design! {
                             spacing: 8,
                             align: { y: 0.5 }
                             show_bg: true
-                            draw_bg: { color: #1e1e1e }
+                            draw_bg: { color: (THEME_COLOR_BG_APP) }
 
                             project_row = <View> {
                                 width: Fit, height: Fit
@@ -175,18 +176,18 @@ live_design! {
                                     width: Fit, height: Fit
                                     project_badge_label = <Label> {
                                         text: "No project"
-                                        draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                                     }
                                 }
                             }
 
-                            <Label> { text: "/", draw_text: { color: #444, text_style: <THEME_FONT_REGULAR> { font_size: 10 } } }
+                            <Label> { text: "/", draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 10 } } }
 
                             session_row = <View> {
                                 width: Fit, height: Fit
                                 session_title = <Label> {
                                     text: "New Session"
-                                    draw_text: { color: #aaa, text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHTER), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
                                 }
                             }
 
@@ -201,7 +202,7 @@ live_design! {
                                 visible: false
                                 revert_indicator_label = <Label> {
                                     text: "⟲ Reverted"
-                                    draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
                             unrevert_wrap = <View> {
@@ -209,11 +210,11 @@ live_design! {
                                 unrevert_button = <Button> {
                                     width: Fit, height: 20
                                     text: "Unrevert"
-                                    draw_text: { color: #3b82f6, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    draw_text: { color: (THEME_COLOR_ACCENT_BLUE), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
                         }
-                        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: #2a2a2a } }
+                        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_SHADE_2) } }
 
                         // Chat area - Unified
                         <View> {
@@ -221,7 +222,7 @@ live_design! {
                             flow: Down
                             spacing: 0
                             show_bg: true
-                            draw_bg: { color: #1e1e1e }
+                            draw_bg: { color: (THEME_COLOR_BG_APP) }
 
                             <View> {
                                 width: Fill, height: Fill
@@ -243,26 +244,26 @@ live_design! {
                                     padding: { left: 18, right: 18, top: 8, bottom: 8 }
                                     show_bg: true
                                     draw_bg: {
-                                        color: #2a2a2a
+                                        color: (THEME_COLOR_SHADE_2)
                                         border_radius: 8.0
                                     }
 
                                     attachments_label = <Label> {
                                         text: "Attached:"
-                                        draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                     }
                                     attachments_list = <Label> {
                                         text: ""
-                                        draw_text: { color: #aaa, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHTER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                     }
                                     <View> { width: Fill }
                                     clear_attachments_button = <Button> {
                                         width: Fit, height: 20
                                         text: "Clear"
-                                        draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                        draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                         draw_bg: {
-                                            color: #0000
-                                            color_hover: #333
+                                            color: (THEME_COLOR_TRANSPARENT)
+                                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
                                         }
                                     }
                                 }
@@ -274,7 +275,7 @@ live_design! {
                                     padding: { left: 18, right: 18, top: 8, bottom: 8 }
                                     show_bg: true
                                     draw_bg: {
-                                        color: #2a2a2a
+                                        color: (THEME_COLOR_SHADE_2)
                                         border_radius: 8.0
                                     }
 
@@ -285,23 +286,23 @@ live_design! {
 
                                         skill_name_label = <Label> {
                                             text: "Skill"
-                                            draw_text: { color: #9ca3af, text_style: <THEME_FONT_BOLD> { font_size: 9 } }
+                                            draw_text: { color: (THEME_COLOR_SHADE_8), text_style: <THEME_FONT_BOLD> { font_size: 9 } }
                                         }
                                         <View> { width: Fill }
                                         clear_skill_button = <Button> {
                                             width: Fit, height: 20
                                             text: "Clear"
-                                            draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                            draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                             draw_bg: {
-                                                color: #0000
-                                                color_hover: #333
+                                                color: (THEME_COLOR_TRANSPARENT)
+                                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
                                             }
                                         }
                                     }
 
                                     skill_desc_label = <Label> {
                                         text: ""
-                                        draw_text: { color: #a3a3a3, text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }
+                                        draw_text: { color: (THEME_COLOR_SHADE_9), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }
                                     }
                                 }
 
@@ -334,10 +335,10 @@ live_design! {
                             width: Fill, height: 250
                             flow: Down
                             show_bg: true
-                            draw_bg: { color: #1e1e1e }
+                            draw_bg: { color: (THEME_COLOR_BG_APP) }
 
                             // Separator line
-                            <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: #333 } }
+                            <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } }
 
                             terminal_panel = <Terminal> {
                                 width: Fill
@@ -372,6 +373,7 @@ pub struct App {
 
 impl LiveRegister for App {
     fn live_register(cx: &mut Cx) {
+        crate::theme::live_design(cx);
         openpad_widgets::live_design(cx);
         crate::components::app_bg::live_design(cx);
         crate::components::user_bubble::live_design(cx);

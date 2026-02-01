@@ -12,6 +12,7 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
+    use crate::theme::*;
 
     pub Terminal = {{Terminal}} {
         width: Fill, height: Fill
@@ -21,7 +22,7 @@ live_design! {
             spacing: 0
             show_bg: true
             draw_bg: {
-                color: #1a1a1a
+                color: (THEME_COLOR_BG_DARKER)
             }
 
             output_list = <PortalList> {
@@ -33,7 +34,7 @@ live_design! {
                     line_label = <Label> {
                         width: Fill, height: Fit
                         draw_text: {
-                            color: #cccccc
+                            color: (THEME_COLOR_SHADE_11)
                             text_style: <THEME_FONT_CODE> { font_size: 10 }
                         }
                     }
@@ -50,7 +51,7 @@ live_design! {
                         width: Fit, height: Fit
                         text: " % "
                         draw_text: {
-                            color: #cccccc
+                            color: (THEME_COLOR_SHADE_11)
                             text_style: <THEME_FONT_CODE> { font_size: 10 }
                         }
                     }
@@ -60,14 +61,14 @@ live_design! {
                         padding: { left: 0, right: 10, top: 4, bottom: 4 }
                         empty_text: ""
                         draw_bg: {
-                            color: #0000
-                            color_focus: #0000
-                            color_empty: #0000
+                            color: (THEME_COLOR_TRANSPARENT)
+                            color_focus: (THEME_COLOR_TRANSPARENT)
+                            color_empty: (THEME_COLOR_TRANSPARENT)
                             border_radius: 0.0
                             border_size: 0.0
                         }
                         draw_text: {
-                            color: #ffffff
+                            color: (THEME_COLOR_TEXT_BRIGHT)
                             text_style: <THEME_FONT_CODE> { font_size: 10 }
                         }
                     }
