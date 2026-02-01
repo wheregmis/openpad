@@ -109,14 +109,39 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                     draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                 }
 
-                summary_label = <Label> {
+                summary_stats = <View> {
                     width: Fit, height: Fit
                     margin: { right: 6 }
-                    draw_text: {
-                        color: (THEME_COLOR_TEXT_MUTED_DARK)
-                        text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                    flow: Right
+                    spacing: 6
+                    align: { y: 0.5 }
+
+                    summary_files_label = <Label> {
+                        width: Fit, height: Fit
+                        draw_text: {
+                            color: (THEME_COLOR_TEXT_MUTED_DARK)
+                            text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                        }
+                        text: ""
                     }
-                    text: ""
+
+                    summary_add_label = <Label> {
+                        width: Fit, height: Fit
+                        draw_text: {
+                            color: (THEME_COLOR_DIFF_ADD_TEXT)
+                            text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                        }
+                        text: ""
+                    }
+
+                    summary_del_label = <Label> {
+                        width: Fit, height: Fit
+                        draw_text: {
+                            color: (THEME_COLOR_DIFF_DEL_TEXT)
+                            text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                        }
+                        text: ""
+                    }
                 }
 
                 working_dot = <View> {
@@ -353,7 +378,7 @@ impl ProjectsPanel {
         self.dirty = false;
     }
 
-    fn session_diff_label(summary: &SessionSummary) -> Option<String> {
+    fn session_diff_stats(summary: &SessionSummary) -> Option<(String, String, String)> {
         let (files, additions, deletions) = if !summary.diffs.is_empty() {
             let additions: i64 = summary.diffs.iter().map(|d| d.additions).sum();
             let deletions: i64 = summary.diffs.iter().map(|d| d.deletions).sum();
@@ -367,7 +392,11 @@ impl ProjectsPanel {
         }
 
         let file_label = if files == 1 { "file" } else { "files" };
-        Some(format!("{} {} · +{} -{}", files, file_label, additions, deletions))
+        Some((
+            format!("{} {}", files, file_label),
+            format!("+{}", additions),
+            format!("-{}", deletions),
+        ))
     }
 }
 
@@ -543,14 +572,24 @@ impl Widget for ProjectsPanel {
                                 .iter()
                                 .find(|s| &s.id == session_id)
                                 .and_then(|s| s.summary.as_ref())
-                                .and_then(Self::session_diff_label);
-                            let summary_label = item_widget.label(&[id!(summary_label)]);
-                            if let Some(text) = summary_text {
-                                summary_label.set_text(cx, &text);
-                                summary_label.set_visible(cx, true);
+                                .and_then(Self::session_diff_stats);
+                            let summary_files = item_widget.label(&[id!(summary_files_label)]);
+                            let summary_add = item_widget.label(&[id!(summary_add_label)]);
+                            let summary_del = item_widget.label(&[id!(summary_del_label)]);
+                            if let Some((files, adds, dels)) = summary_text {
+                                summary_files.set_text(cx, &files);
+                                summary_add.set_text(cx, &adds);
+                                summary_del.set_text(cx, &dels);
+                                item_widget
+                                    .view(&[id!(summary_stats)])
+                                    .set_visible(cx, true);
                             } else {
-                                summary_label.set_text(cx, "");
-                                summary_label.set_visible(cx, false);
+                                summary_files.set_text(cx, "");
+                                summary_add.set_text(cx, "");
+                                summary_del.set_text(cx, "");
+                                item_widget
+                                    .view(&[id!(summary_stats)])
+                                    .set_visible(cx, false);
                             }
                         }
                         _ => {}

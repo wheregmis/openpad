@@ -22,12 +22,37 @@ live_design! {
                 border_radius: 8.0
             }
 
-            summary_label = <Label> {
+            summary_row = <View> {
                 width: Fill, height: Fit
-                text: ""
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_DIM)
-                    text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                flow: Right
+                spacing: 8
+                align: { y: 0.5 }
+
+                summary_files_label = <Label> {
+                    width: Fit, height: Fit
+                    text: ""
+                    draw_text: {
+                        color: (THEME_COLOR_TEXT_DIM)
+                        text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                    }
+                }
+
+                summary_add_label = <Label> {
+                    width: Fit, height: Fit
+                    text: ""
+                    draw_text: {
+                        color: (THEME_COLOR_DIFF_ADD_TEXT)
+                        text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                    }
+                }
+
+                summary_del_label = <Label> {
+                    width: Fit, height: Fit
+                    text: ""
+                    draw_text: {
+                        color: (THEME_COLOR_DIFF_DEL_TEXT)
+                        text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                    }
                 }
             }
         }
@@ -115,9 +140,20 @@ impl DiffView {
         );
 
         self.summary_text = summary.clone();
+        let files_label = format!(
+            "{} file{} changed",
+            file_count,
+            if file_count == 1 { "" } else { "s" }
+        );
         self.view
-            .label(&[id!(summary_label)])
-            .set_text(cx, &summary);
+            .label(&[id!(summary_files_label)])
+            .set_text(cx, &files_label);
+        self.view
+            .label(&[id!(summary_add_label)])
+            .set_text(cx, &format!("+{}", total_additions));
+        self.view
+            .label(&[id!(summary_del_label)])
+            .set_text(cx, &format!("-{}", total_deletions));
 
         let mut full_diff = String::new();
         for diff in diffs {
@@ -154,6 +190,9 @@ impl DiffView {
         self.expanded = false;
         self.diff_text_content.clear();
         self.summary_text.clear();
+        self.view.label(&[id!(summary_files_label)]).set_text(cx, "");
+        self.view.label(&[id!(summary_add_label)]).set_text(cx, "");
+        self.view.label(&[id!(summary_del_label)]).set_text(cx, "");
         self.view.set_visible(cx, false);
         self.redraw(cx);
     }
