@@ -287,6 +287,22 @@ live_design! {
                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 }
                             }
                         }
+
+                        diff_button = <Button> {
+                            width: Fit, height: 20
+                            text: "Diff"
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                border_radius: 4.0
+                                border_size: 0.0
+                            }
+                            draw_text: {
+                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
+                        }
                     }
                 }
             }
@@ -306,6 +322,7 @@ pub struct DisplayMessage {
     pub error_text: Option<String>,
     pub is_error: bool,
     pub diffs: Vec<openpad_protocol::FileDiff>,
+    pub show_diffs: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -333,6 +350,18 @@ pub struct MessageList {
 }
 
 impl MessageList {
+    fn diff_summary(diffs: &[openpad_protocol::FileDiff], expanded: bool) -> String {
+        let file_count = diffs.len();
+        let additions: i64 = diffs.iter().map(|d| d.additions).sum();
+        let deletions: i64 = diffs.iter().map(|d| d.deletions).sum();
+        let file_label = if file_count == 1 { "file" } else { "files" };
+        let chevron = if expanded { "▾" } else { "▸" };
+        format!(
+            "{} {} · +{} -{} {}",
+            file_count, file_label, additions, deletions, chevron
+        )
+    }
+
     fn rebuild_from_parts(
         messages_with_parts: &[openpad_protocol::MessageWithParts],
     ) -> Vec<DisplayMessage> {
@@ -417,6 +446,7 @@ impl MessageList {
                 error_text,
                 is_error,
                 diffs,
+                show_diffs: false,
             });
         }
         display
@@ -451,6 +481,13 @@ impl Widget for MessageList {
             if widget.button(&[id!(revert_button)]).clicked(&actions) {
                 if let Some(message_id) = &self.messages[item_id].message_id {
                     cx.action(MessageListAction::RevertToMessage(message_id.clone()));
+                }
+            }
+
+            if widget.button(&[id!(diff_button)]).clicked(&actions) {
+                if let Some(message) = self.messages.get_mut(item_id) {
+                    message.show_diffs = !message.show_diffs;
+                    self.redraw(cx);
                 }
             }
         }
@@ -597,6 +634,16 @@ impl Widget for MessageList {
                             item_widget
                                 .button(&[id!(revert_button)])
                                 .set_visible(cx, show_revert);
+                            let show_diff_button = !msg.diffs.is_empty();
+                            let diff_button = item_widget.button(&[id!(diff_button)]);
+                            if show_diff_button {
+                                let label = Self::diff_summary(&msg.diffs, msg.show_diffs);
+                                diff_button.set_text(cx, &label);
+                                diff_button.set_visible(cx, true);
+                            } else {
+                                diff_button.set_text(cx, "");
+                                diff_button.set_visible(cx, false);
+                            }
                             item_widget.view(&[id!(msg_actions)]).set_visible(cx, true);
 
                             // Set diff view data
@@ -607,6 +654,9 @@ impl Widget for MessageList {
                             } else {
                                 diff_view.set_diffs(cx, &msg.diffs);
                             }
+                            item_widget
+                                .widget(&[id!(diff_view)])
+                                .set_visible(cx, msg.show_diffs);
                         }
 
                         item_widget.draw_all(cx, scope);
@@ -661,6 +711,7 @@ impl MessageListRef {
                 error_text: None,
                 is_error: false,
                 diffs: Vec::new(),
+                show_diffs: false,
             });
             inner.redraw(cx);
         }
@@ -685,6 +736,7 @@ impl MessageListRef {
                 error_text: None,
                 is_error: false,
                 diffs: Vec::new(),
+                show_diffs: false,
             });
             inner.redraw(cx);
         }
@@ -735,6 +787,9 @@ impl MessageListRef {
                 .find(|m| m.role == "assistant")
             {
                 last_assistant.diffs = diffs.to_vec();
+                if last_assistant.diffs.is_empty() {
+                    last_assistant.show_diffs = false;
+                }
             }
             inner.redraw(cx);
         }

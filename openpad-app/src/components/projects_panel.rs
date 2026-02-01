@@ -2,7 +2,7 @@ use crate::async_runtime;
 use crate::constants::{COLOR_SESSION_NORMAL, COLOR_SESSION_SELECTED};
 use crate::state::actions::ProjectsPanelAction;
 use makepad_widgets::*;
-use openpad_protocol::{Project, Session};
+use openpad_protocol::{Project, Session, SessionSummary};
 use std::collections::HashMap;
 
 live_design! {
@@ -353,7 +353,7 @@ impl ProjectsPanel {
         self.dirty = false;
     }
 
-    fn session_diff_label(summary: &openpad_protocol::SessionSummary) -> Option<String> {
+    fn session_diff_label(summary: &SessionSummary) -> Option<String> {
         let (files, additions, deletions) = if !summary.diffs.is_empty() {
             let additions: i64 = summary.diffs.iter().map(|d| d.additions).sum();
             let deletions: i64 = summary.diffs.iter().map(|d| d.deletions).sum();
