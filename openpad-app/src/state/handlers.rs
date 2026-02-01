@@ -6,6 +6,7 @@ use crate::constants::*;
 use crate::state::actions::AppAction;
 use crate::ui::state_updates;
 use makepad_widgets::*;
+use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_protocol::{
     Agent, AssistantMessage, AssistantError, Event as OcEvent, Message, MessageTime, MessageWithParts,
     ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider, Session, Skill,
@@ -403,8 +404,8 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 .iter()
                 .map(|entry| entry.label.clone())
                 .collect();
-            ui.drop_down(&[id!(model_dropdown)]).set_labels(cx, labels);
-            ui.drop_down(&[id!(model_dropdown)])
+            ui.up_drop_down(&[id!(model_dropdown)]).set_labels(cx, labels);
+            ui.up_drop_down(&[id!(model_dropdown)])
                 .set_selected_item(cx, 0);
             cx.redraw_all();
         }
@@ -413,8 +414,8 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.agents = agents.clone();
             let mut labels: Vec<String> = vec!["Default".to_string()];
             labels.extend(state.agents.iter().map(|a| a.name.clone()));
-            ui.drop_down(&[id!(agent_dropdown)]).set_labels(cx, labels);
-            ui.drop_down(&[id!(agent_dropdown)])
+            ui.up_drop_down(&[id!(agent_dropdown)]).set_labels(cx, labels);
+            ui.up_drop_down(&[id!(agent_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_agent_idx = None;
             cx.redraw_all();
@@ -424,8 +425,8 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.skills = skills.clone();
             let mut labels: Vec<String> = vec!["Skill".to_string()];
             labels.extend(state.skills.iter().map(|s| s.name.clone()));
-            ui.drop_down(&[id!(skill_dropdown)]).set_labels(cx, labels);
-            ui.drop_down(&[id!(skill_dropdown)])
+            ui.up_drop_down(&[id!(skill_dropdown)]).set_labels(cx, labels);
+            ui.up_drop_down(&[id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_skill_idx = None;
             cx.redraw_all();

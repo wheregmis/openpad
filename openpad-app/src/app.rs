@@ -9,6 +9,7 @@ use base64::Engine;
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::{SimpleDialogAction, SidePanelWidgetRefExt};
+use openpad_widgets::{SidePanelWidgetRefExt, UpDropDownWidgetRefExt};
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
 
@@ -1140,12 +1141,7 @@ impl App {
         async_runtime::spawn_session_summarizer(runtime, client, session_id, false);
     }
 
-    fn load_session_diff(
-        &mut self,
-        _cx: &mut Cx,
-        session_id: String,
-        message_id: Option<String>,
-    ) {
+    fn load_session_diff(&mut self, _cx: &mut Cx, session_id: String, message_id: Option<String>) {
         let Some(client) = self.client.clone() else {
             self.state.error_message = Some("Not connected".to_string());
             return;
@@ -1272,7 +1268,10 @@ impl AppMain for App {
                 self.handle_actions(cx, actions);
             }
             Event::KeyDown(ke) => {
-                if (ke.modifiers.logo || ke.modifiers.control) && !ke.modifiers.shift && !ke.modifiers.alt {
+                if (ke.modifiers.logo || ke.modifiers.control)
+                    && !ke.modifiers.shift
+                    && !ke.modifiers.alt
+                {
                     match ke.key_code {
                         KeyCode::KeyD => {
                             self.toggle_sidebar(cx);
@@ -1306,9 +1305,11 @@ impl AppMain for App {
                             .permission_dialog(&[id!(permission_dialog)])
                             .hide(cx);
                         self.state.messages_data.clear();
-                        self.ui
-                            .message_list(&[id!(message_list)])
-                            .set_messages(cx, &self.state.messages_data, None);
+                        self.ui.message_list(&[id!(message_list)]).set_messages(
+                            cx,
+                            &self.state.messages_data,
+                            None,
+                        );
                         crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
                         self.state.update_projects_panel(&self.ui, cx);
                         self.state.update_session_title_ui(&self.ui, cx);
@@ -1477,15 +1478,15 @@ impl AppMain for App {
         if self.ui.button(&[id!(summarize_button)]).clicked(&actions) {
             let session_id = self.state.current_session_id.clone();
             if let Some(session_id) = session_id {
-                let message_id = self
-                    .state
-                    .messages_data
-                    .iter()
-                    .rev()
-                    .find_map(|mwp| match &mwp.info {
-                        openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
-                        _ => None,
-                    });
+                let message_id =
+                    self.state
+                        .messages_data
+                        .iter()
+                        .rev()
+                        .find_map(|mwp| match &mwp.info {
+                            openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
+                            _ => None,
+                        });
                 self.summarize_session(cx, session_id.clone());
                 self.load_session_diff(cx, session_id, message_id);
             }
@@ -1517,27 +1518,39 @@ impl AppMain for App {
         if self.ui.button(&[id!(clear_skill_button)]).clicked(&actions) {
             self.state.selected_skill_idx = None;
             self.ui
-                .drop_down(&[id!(skill_dropdown)])
+                .up_drop_down(&[id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
             self.update_skill_ui(cx);
         }
 
         // Handle dropdown selections
-        if let Some(idx) = self.ui.drop_down(&[id!(model_dropdown)]).changed(&actions) {
+        if let Some(idx) = self
+            .ui
+            .up_drop_down(&[id!(model_dropdown)])
+            .changed(&actions)
+        {
             if let Some(entry) = self.state.model_entries.get(idx) {
                 if entry.selectable {
                     self.state.selected_model_entry = idx;
                 } else if self.state.model_entries.len() > self.state.selected_model_entry {
                     self.ui
-                        .drop_down(&[id!(model_dropdown)])
+                        .up_drop_down(&[id!(model_dropdown)])
                         .set_selected_item(cx, self.state.selected_model_entry);
                 }
             }
         }
-        if let Some(idx) = self.ui.drop_down(&[id!(agent_dropdown)]).changed(&actions) {
+        if let Some(idx) = self
+            .ui
+            .up_drop_down(&[id!(agent_dropdown)])
+            .changed(&actions)
+        {
             self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
         }
-        if let Some(idx) = self.ui.drop_down(&[id!(skill_dropdown)]).changed(&actions) {
+        if let Some(idx) = self
+            .ui
+            .up_drop_down(&[id!(skill_dropdown)])
+            .changed(&actions)
+        {
             self.state.selected_skill_idx = if idx > 0 { Some(idx - 1) } else { None };
             self.update_skill_ui(cx);
         }
