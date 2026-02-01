@@ -551,6 +551,7 @@ impl LiveRegister for App {
         crate::components::assistant_bubble::live_design(cx);
         crate::components::projects_panel::live_design(cx);
         crate::components::permission_card::live_design(cx);
+        crate::components::colored_diff_text::live_design(cx);
         crate::components::message_list::live_design(cx);
         crate::components::permission_dialog::live_design(cx);
         crate::components::diff_view::live_design(cx);

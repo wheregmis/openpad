@@ -17,7 +17,7 @@ live_design! {
     // - Red for deletions (-)
     // - Gray for context lines
     // - Blue for headers
-    ColoredDiffText = {{ColoredDiffText}} {
+    pub ColoredDiffText = {{ColoredDiffText}} {
         width: Fill, height: Fit
         
         draw_text: {
@@ -130,13 +130,3 @@ impl ColoredDiffTextApi for ColoredDiffTextRef {
     }
 }
 
-/// Extension trait for accessing ColoredDiffText from WidgetRef
-pub trait ColoredDiffTextWidgetRefExt {
-    fn colored_diff_text(&self, path: &[LiveId]) -> ColoredDiffTextRef;
-}
-
-impl ColoredDiffTextWidgetRefExt for WidgetRef {
-    fn colored_diff_text(&self, path: &[LiveId]) -> ColoredDiffTextRef {
-        self.widget(path)
-    }
-}

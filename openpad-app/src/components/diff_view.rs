@@ -1,5 +1,5 @@
 use makepad_widgets::*;
-use crate::components::colored_diff_text::{ColoredDiffTextApi, ColoredDiffTextWidgetRefExt};
+use crate::components::colored_diff_text::{ColoredDiffTextApi, ColoredDiffTextWidgetExt};
 
 live_design! {
     use link::theme::*;
