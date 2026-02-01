@@ -654,9 +654,7 @@ impl Widget for MessageList {
                             } else {
                                 diff_view.set_diffs(cx, &msg.diffs);
                             }
-                            item_widget
-                                .widget(&[id!(diff_view)])
-                                .set_visible(cx, msg.show_diffs);
+                            diff_view.set_expanded(cx, msg.show_diffs);
                         }
 
                         item_widget.draw_all(cx, scope);

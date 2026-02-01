@@ -141,6 +141,15 @@ impl DiffView {
         self.redraw(cx);
     }
 
+    pub fn set_expanded(&mut self, cx: &mut Cx, expanded: bool) {
+        self.expanded = expanded;
+        self.view.view(&[id!(diff_content)]).set_visible(cx, expanded);
+        if expanded {
+            self.view.set_visible(cx, true);
+        }
+        self.redraw(cx);
+    }
+
     pub fn clear_diffs(&mut self, cx: &mut Cx) {
         self.expanded = false;
         self.diff_text_content.clear();
@@ -153,6 +162,7 @@ impl DiffView {
 pub trait DiffViewApi {
     fn set_diffs(&self, cx: &mut Cx, diffs: &[openpad_protocol::FileDiff]);
     fn clear_diffs(&self, cx: &mut Cx);
+    fn set_expanded(&self, cx: &mut Cx, expanded: bool);
 }
 
 impl DiffViewApi for DiffViewRef {
@@ -165,6 +175,12 @@ impl DiffViewApi for DiffViewRef {
     fn clear_diffs(&self, cx: &mut Cx) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.clear_diffs(cx);
+        }
+    }
+
+    fn set_expanded(&self, cx: &mut Cx, expanded: bool) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.set_expanded(cx, expanded);
         }
     }
 }
