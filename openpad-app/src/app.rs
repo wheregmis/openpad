@@ -1,6 +1,6 @@
 use crate::async_runtime;
 use crate::components::message_list::MessageListWidgetRefExt;
-use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
+use crate::components::permission_card::PermissionCardAction;
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
@@ -185,8 +185,6 @@ live_design! {
                 width: Fill, height: Fill
                 message_list = <MessageList> { width: Fill, height: Fill }
             }
-
-            permission_dialog = <PermissionDialog> { width: Fill }
 
             input_row = <View> {
                 width: Fill, height: Fit
@@ -858,9 +856,6 @@ impl App {
                             request_id.clone(),
                             reply.clone(),
                         );
-                        self.ui
-                            .permission_dialog(&[id!(permission_dialog)])
-                            .hide(cx);
                     }
                     AppAction::RevertToMessage {
                         session_id,
@@ -1309,9 +1304,6 @@ impl AppMain for App {
                         self.state.selected_session_id = Some(session_id.clone());
                         self.state.current_session_id = Some(session_id.clone());
                         self.state.is_working = false;
-                        self.ui
-                            .permission_dialog(&[id!(permission_dialog)])
-                            .hide(cx);
                         self.state.messages_data.clear();
                         self.ui.message_list(&[id!(message_list)]).set_messages(
                             cx,
@@ -1394,9 +1386,64 @@ impl AppMain for App {
                             request_id.clone(),
                             reply.clone(),
                         );
-                        self.ui
-                            .permission_dialog(&[id!(permission_dialog)])
-                            .hide(cx);
+                    }
+                    _ => {}
+                }
+            }
+
+            // Handle PermissionCardAction from inline permission cards
+            if let Some(action) = action.downcast_ref::<PermissionCardAction>() {
+                match action {
+                    PermissionCardAction::Approved { session_id, request_id } => {
+                        if let Some(client) = &self.client {
+                            let client = client.clone();
+                            let session_id = session_id.clone();
+                            let request_id = request_id.clone();
+                            if let Some(runtime) = self._runtime.as_ref() {
+                                async_runtime::spawn_permission_reply(
+                                    runtime,
+                                    client,
+                                    session_id,
+                                    request_id.clone(),
+                                    openpad_protocol::PermissionReply::Once,
+                                );
+                            }
+                            state::handle_permission_responded(&mut self.state, &self.ui, cx, &request_id);
+                        }
+                    }
+                    PermissionCardAction::AlwaysApproved { session_id, request_id } => {
+                        if let Some(client) = &self.client {
+                            let client = client.clone();
+                            let session_id = session_id.clone();
+                            let request_id = request_id.clone();
+                            if let Some(runtime) = self._runtime.as_ref() {
+                                async_runtime::spawn_permission_reply(
+                                    runtime,
+                                    client,
+                                    session_id,
+                                    request_id.clone(),
+                                    openpad_protocol::PermissionReply::Always,
+                                );
+                            }
+                            state::handle_permission_responded(&mut self.state, &self.ui, cx, &request_id);
+                        }
+                    }
+                    PermissionCardAction::Rejected { session_id, request_id } => {
+                        if let Some(client) = &self.client {
+                            let client = client.clone();
+                            let session_id = session_id.clone();
+                            let request_id = request_id.clone();
+                            if let Some(runtime) = self._runtime.as_ref() {
+                                async_runtime::spawn_permission_reply(
+                                    runtime,
+                                    client,
+                                    session_id,
+                                    request_id.clone(),
+                                    openpad_protocol::PermissionReply::Reject,
+                                );
+                            }
+                            state::handle_permission_responded(&mut self.state, &self.ui, cx, &request_id);
+                        }
                     }
                     _ => {}
                 }

@@ -1,4 +1,5 @@
 use crate::components::diff_view::DiffViewWidgetRefExt;
+use crate::components::permission_card::PermissionCardWidgetRefExt;
 use makepad_widgets::*;
 
 live_design! {
@@ -98,6 +99,8 @@ live_design! {
                     }
                 }
             }
+
+            PermissionMsg = <PermissionCard> {}
 
             AssistantMsg = <View> {
                 width: Fill, height: Fit
@@ -304,6 +307,14 @@ pub struct DisplayMessage {
     pub diffs: Vec<openpad_protocol::FileDiff>,
 }
 
+#[derive(Clone, Debug)]
+pub struct PendingPermissionDisplay {
+    pub session_id: String,
+    pub request_id: String,
+    pub permission: String,
+    pub patterns: Vec<String>,
+}
+
 #[derive(Live, LiveHook, Widget)]
 pub struct MessageList {
     #[deref]
@@ -314,6 +325,10 @@ pub struct MessageList {
     is_working: bool,
     #[rust]
     revert_message_id: Option<String>,
+    #[rust]
+    pending_permissions: Vec<PendingPermissionDisplay>,
+    #[rust]
+    working_since: Option<std::time::Instant>,
 }
 
 impl MessageList {
@@ -394,6 +409,13 @@ impl Widget for MessageList {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         use crate::state::actions::MessageListAction;
 
+        if self.is_working {
+            if let Event::NextFrame(_) = event {
+                self.redraw(cx);
+            }
+            cx.new_next_frame();
+        }
+
         let actions = cx.capture_actions(|cx| {
             self.view.handle_event(cx, event, scope);
         });
@@ -419,7 +441,7 @@ impl Widget for MessageList {
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
-                let total_items = self.messages.len() + if self.is_working { 1 } else { 0 };
+                let total_items = self.messages.len() + self.pending_permissions.len() + if self.is_working { 1 } else { 0 };
                 if total_items == 0 {
                     list.set_item_range(cx, 0, 0);
                     continue;
@@ -428,14 +450,41 @@ impl Widget for MessageList {
                 list.set_item_range(cx, 0, total_items);
 
                 while let Some(item_id) = list.next_visible_item(cx) {
-                    if item_id >= self.messages.len() {
+                    // After messages, render pending permissions
+                    if item_id >= self.messages.len() && item_id < self.messages.len() + self.pending_permissions.len() {
+                        let perm_idx = item_id - self.messages.len();
+                        let perm = &self.pending_permissions[perm_idx];
+                        let item_widget = list.item(cx, item_id, live_id!(PermissionMsg));
+                        use crate::components::permission_card::PermissionCardApi;
+                        item_widget.permission_card(&[]).set_permission(
+                            cx,
+                            perm.session_id.clone(),
+                            perm.request_id.clone(),
+                            &perm.permission,
+                            &perm.patterns,
+                        );
+                        item_widget.draw_all(cx, scope);
+                        continue;
+                    }
+
+                    if item_id >= self.messages.len() + self.pending_permissions.len() {
                         if !self.is_working {
                             continue;
                         }
+                        let elapsed = self.working_since
+                            .map(|t| t.elapsed().as_secs())
+                            .unwrap_or(0);
+                        let mins = elapsed / 60;
+                        let secs = elapsed % 60;
+                        let status_text = if elapsed > 0 {
+                            format!("Agent working... {}:{:02}", mins, secs)
+                        } else {
+                            "Agent working...".to_string()
+                        };
                         let item_widget = list.item(cx, item_id, live_id!(AssistantMsg));
                         item_widget
                             .widget(&[id!(msg_text)])
-                            .set_text(cx, "Thinking...");
+                            .set_text(cx, &status_text);
                         item_widget.label(&[id!(timestamp_label)]).set_text(cx, "");
                         item_widget
                             .label(&[id!(revert_label)])
@@ -627,10 +676,26 @@ impl MessageListRef {
 
     pub fn set_working(&self, cx: &mut Cx, working: bool) {
         if let Some(mut inner) = self.borrow_mut() {
-            if inner.is_working == working {
-                return;
-            }
             inner.is_working = working;
+            if working && inner.working_since.is_none() {
+                inner.working_since = Some(std::time::Instant::now());
+            } else if !working {
+                inner.working_since = None;
+            }
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn set_pending_permissions(&self, cx: &mut Cx, permissions: &[PendingPermissionDisplay]) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.pending_permissions = permissions.to_vec();
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn remove_permission(&self, cx: &mut Cx, request_id: &str) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.pending_permissions.retain(|p| p.request_id != request_id);
             inner.redraw(cx);
         }
     }
