@@ -202,7 +202,7 @@ live_design! {
                                 visible: false
                                 revert_indicator_label = <Label> {
                                     text: "⟲ Reverted"
-                                    draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
                             unrevert_wrap = <View> {
@@ -210,11 +210,11 @@ live_design! {
                                 unrevert_button = <Button> {
                                     width: Fit, height: 20
                                     text: "Unrevert"
-                                    draw_text: { color: #3b82f6, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    draw_text: { color: (THEME_COLOR_ACCENT_BLUE), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
                         }
-                        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: #2a2a2a } }
+                        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_SHADE_2) } }
 
                         // Chat area - Unified
                         <View> {
@@ -222,7 +222,7 @@ live_design! {
                             flow: Down
                             spacing: 0
                             show_bg: true
-                            draw_bg: { color: #1e1e1e }
+                            draw_bg: { color: (THEME_COLOR_BG_APP) }
 
                             <View> {
                                 width: Fill, height: Fill
@@ -244,26 +244,26 @@ live_design! {
                                     padding: { left: 18, right: 18, top: 8, bottom: 8 }
                                     show_bg: true
                                     draw_bg: {
-                                        color: #2a2a2a
+                                        color: (THEME_COLOR_SHADE_2)
                                         border_radius: 8.0
                                     }
 
                                     attachments_label = <Label> {
                                         text: "Attached:"
-                                        draw_text: { color: #888, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                     }
                                     attachments_list = <Label> {
                                         text: ""
-                                        draw_text: { color: #aaa, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHTER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                     }
                                     <View> { width: Fill }
                                     clear_attachments_button = <Button> {
                                         width: Fit, height: 20
                                         text: "Clear"
-                                        draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                        draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                         draw_bg: {
-                                            color: #0000
-                                            color_hover: #333
+                                            color: (THEME_COLOR_TRANSPARENT)
+                                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
                                         }
                                     }
                                 }
@@ -275,7 +275,7 @@ live_design! {
                                     padding: { left: 18, right: 18, top: 8, bottom: 8 }
                                     show_bg: true
                                     draw_bg: {
-                                        color: #2a2a2a
+                                        color: (THEME_COLOR_SHADE_2)
                                         border_radius: 8.0
                                     }
 
@@ -286,23 +286,23 @@ live_design! {
 
                                         skill_name_label = <Label> {
                                             text: "Skill"
-                                            draw_text: { color: #9ca3af, text_style: <THEME_FONT_BOLD> { font_size: 9 } }
+                                            draw_text: { color: (THEME_COLOR_SHADE_8), text_style: <THEME_FONT_BOLD> { font_size: 9 } }
                                         }
                                         <View> { width: Fill }
                                         clear_skill_button = <Button> {
                                             width: Fit, height: 20
                                             text: "Clear"
-                                            draw_text: { color: #f59e0b, text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                            draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                             draw_bg: {
-                                                color: #0000
-                                                color_hover: #333
+                                                color: (THEME_COLOR_TRANSPARENT)
+                                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
                                             }
                                         }
                                     }
 
                                     skill_desc_label = <Label> {
                                         text: ""
-                                        draw_text: { color: #a3a3a3, text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }
+                                        draw_text: { color: (THEME_COLOR_SHADE_9), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }
                                     }
                                 }
 
@@ -335,10 +335,10 @@ live_design! {
                             width: Fill, height: 250
                             flow: Down
                             show_bg: true
-                            draw_bg: { color: #1e1e1e }
+                            draw_bg: { color: (THEME_COLOR_BG_APP) }
 
                             // Separator line
-                            <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: #333 } }
+                            <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } }
 
                             terminal_panel = <Terminal> {
                                 width: Fill
