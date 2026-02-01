@@ -13,6 +13,7 @@ live_design! {
         visible: false
 
         summary_header = <RoundedView> {
+            visible: false
             width: Fill, height: Fit
             padding: { left: 12, right: 12, top: 8, bottom: 8 }
             cursor: Hand
