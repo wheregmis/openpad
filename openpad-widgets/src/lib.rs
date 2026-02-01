@@ -7,17 +7,20 @@ pub mod input_field;
 pub mod send_button;
 pub mod side_panel;
 pub mod status_dot;
+pub mod upward_dropdown;
 
 // Re-export types from side_panel
 pub use side_panel::{SidePanel, SidePanelRef, SidePanelWidgetRefExt};
+pub use upward_dropdown::{UpDropDown, UpDropDownRef, UpDropDownWidgetRefExt};
 
 pub fn live_design(cx: &mut Cx) {
     makepad_widgets::live_design(cx);
+    crate::upward_dropdown::live_design(cx);
     crate::openpad::live_design(cx);
 }
 
 pub mod openpad {
-    use crate::SidePanel;
+    use crate::{SidePanel, UpDropDown};
     use makepad_widgets::*;
 
     live_design! {
@@ -212,9 +215,37 @@ pub mod openpad {
             show_bg: false
         }
 
-        pub InputBarDropDown = <DropDown> {
+        pub InputBarDropDown = <UpDropDown> {
             width: Fit, height: 28
             padding: { left: 12, right: 26, top: 5, bottom: 5 }
+            popup_menu_position: AboveInput
+            animator: {
+                disabled = {
+                    default: off
+                    off = { apply: { draw_bg: { disabled: 0.0 } } }
+                    on = { apply: { draw_bg: { disabled: 1.0 } } }
+                }
+                hover = {
+                    default: off
+                    off = {
+                        from: {all: Forward {duration: 0.15}}
+                        apply: {
+                            draw_bg: {hover: 0.0}
+                        }
+                    }
+                    on = {
+                        from: {all: Forward {duration: 0.15}}
+                        apply: {
+                            draw_bg: {hover: 1.0}
+                        }
+                    }
+                }
+                focus = {
+                    default: off
+                    off = { apply: { draw_bg: { focus: 0.0 } } }
+                    on = { apply: { draw_bg: { focus: 1.0 } } }
+                }
+            }
             draw_text: {
                 text_style: <THEME_FONT_REGULAR> { font_size: 9.0 }
                 fn get_color(self) -> vec4 {
@@ -223,6 +254,9 @@ pub mod openpad {
             }
             draw_bg: {
                 instance hover: 0.0
+                instance focus: 0.0
+                instance active: 0.0
+                instance disabled: 0.0
                 fn pixel(self) -> vec4 {
                     let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                     sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 8.0);
