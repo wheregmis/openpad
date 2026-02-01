@@ -373,6 +373,7 @@ pub struct App {
 
 impl LiveRegister for App {
     fn live_register(cx: &mut Cx) {
+        crate::theme::live_design(cx);
         openpad_widgets::live_design(cx);
         crate::components::app_bg::live_design(cx);
         crate::components::user_bubble::live_design(cx);

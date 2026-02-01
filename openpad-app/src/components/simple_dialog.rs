@@ -112,7 +112,6 @@ live_design! {
                         }
                         draw_text: { color: (THEME_COLOR_TEXT_BRIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                     }
-                    }
                 }
             }
         }
