@@ -277,7 +277,6 @@ pub fn spawn_permission_reply(
             .respond_to_permission(&session_id, &request_id, response)
             .await
         {
-            log!("Failed to send permission reply: {}", e);
             post_error_action("Permission response failed", e);
         }
     });
