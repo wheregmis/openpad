@@ -213,15 +213,11 @@ impl AppState {
     }
 
     pub fn current_revert_message_id(&self) -> Option<String> {
-        self.current_session_id.as_ref().and_then(|sid| {
-            self.find_session(sid)
-                .and_then(|session| {
-                    session
-                        .revert
-                        .as_ref()
-                        .map(|revert| revert.message_id.clone())
-                })
-        })
+        self.current_session_id
+            .as_ref()
+            .and_then(|sid| self.find_session(sid))
+            .and_then(|session| session.revert.as_ref())
+            .map(|revert| revert.message_id.clone())
     }
 
     pub fn update_session_meta_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
