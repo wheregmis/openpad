@@ -6,6 +6,11 @@ live_design! {
     use link::widgets::*;
     use openpad_widgets::theme::*;
 
+    // ColoredDiffText widget: Renders diff text with per-line coloring
+    // - Green for additions (+)
+    // - Red for deletions (-)
+    // - Gray for context lines
+    // - Blue for headers
     ColoredDiffText = {{ColoredDiffText}} {
         width: Fill, height: Fit
         
@@ -27,22 +32,25 @@ pub struct ColoredDiffText {
     #[live]
     draw_text: DrawText,
     
+    /// Parsed diff lines with their associated types
     #[rust]
     lines: Vec<DiffLine>,
 }
 
+/// A single line in the diff with its type
 #[derive(Clone)]
 struct DiffLine {
     text: String,
     line_type: DiffLineType,
 }
 
+/// Type of diff line based on its prefix character
 #[derive(Clone, Copy, PartialEq)]
 enum DiffLineType {
-    Addition,
-    Deletion,
-    Context,
-    Header,
+    Addition,  // Lines starting with '+'
+    Deletion,  // Lines starting with '-'
+    Context,   // Normal lines (space prefix or no special prefix)
+    Header,    // Separator lines (──) or ellipsis (...)
 }
 
 impl Widget for ColoredDiffText {
@@ -50,6 +58,7 @@ impl Widget for ColoredDiffText {
         self.view.handle_event(cx, event, scope);
     }
 
+    /// Draws the diff text with each line colored according to its type
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         cx.begin_turtle(walk, Layout::default());
         
@@ -59,6 +68,7 @@ impl Widget for ColoredDiffText {
         let text_color_context = vec4(0.733, 0.757, 0.788, 1.0); // #bbc1c9 - lighter gray for better readability
         let text_color_header = vec4(0.533, 0.690, 0.859, 1.0); // #88b0db - soft blue for headers
         
+        // Render each line with its appropriate color
         for line in &self.lines {
             let text_color = match line.line_type {
                 DiffLineType::Addition => text_color_add,
@@ -78,10 +88,12 @@ impl Widget for ColoredDiffText {
 }
 
 impl ColoredDiffText {
+    /// Parse the diff text and categorize each line by type
     pub fn set_diff_text(&mut self, cx: &mut Cx, text: &str) {
         self.lines.clear();
         
         for line in text.lines() {
+            // Determine line type based on prefix
             let line_type = if line.starts_with('+') {
                 DiffLineType::Addition
             } else if line.starts_with('-') {
@@ -98,11 +110,14 @@ impl ColoredDiffText {
             });
         }
         
+        // Trigger redraw to display the new content
         self.view.redraw(cx);
     }
 }
 
+/// API trait for controlling ColoredDiffText widget
 pub trait ColoredDiffTextApi {
+    /// Set the diff text content and trigger a redraw
     fn set_diff_text(&self, cx: &mut Cx, text: &str);
 }
 
@@ -114,7 +129,7 @@ impl ColoredDiffTextApi for ColoredDiffTextRef {
     }
 }
 
-// Extension trait for accessing ColoredDiffText from View
+/// Extension trait for accessing ColoredDiffText from WidgetRef
 pub trait ColoredDiffTextWidgetRefExt {
     fn colored_diff_text(&self, path: &[LiveId]) -> ColoredDiffTextRef;
 }
