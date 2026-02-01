@@ -87,6 +87,24 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// Helper method to find a session by ID
+    pub fn find_session(&self, session_id: &str) -> Option<&Session> {
+        self.sessions.iter().find(|s| s.id == session_id)
+    }
+
+    /// Helper method to find a mutable session by ID
+    pub fn find_session_mut(&mut self, session_id: &str) -> Option<&mut Session> {
+        self.sessions.iter_mut().find(|s| s.id == session_id)
+    }
+
+    /// Refresh all session-related UI components
+    pub fn refresh_session_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
+        self.update_projects_panel(ui, cx);
+        self.update_session_title_ui(ui, cx);
+        self.update_project_context_ui(ui, cx);
+        self.update_session_meta_ui(ui, cx);
+    }
+
     /// Get the currently selected ModelSpec, if any
     pub fn selected_model_spec(&self) -> Option<ModelSpec> {
         self.model_entries
@@ -158,7 +176,7 @@ impl AppState {
     /// Determines the session title to display
     pub fn get_session_title(&self) -> (String, bool) {
         if let Some(sid) = &self.current_session_id {
-            let title = if let Some(session) = self.sessions.iter().find(|s| &s.id == sid) {
+            let title = if let Some(session) = self.find_session(sid) {
                 tasks::get_session_title(session)
             } else {
                 SESSION_TITLE_NEW.to_string()
@@ -172,7 +190,7 @@ impl AppState {
     /// Check if the current session is reverted
     pub fn is_current_session_reverted(&self) -> bool {
         if let Some(sid) = &self.current_session_id {
-            if let Some(session) = self.sessions.iter().find(|s| &s.id == sid) {
+            if let Some(session) = self.find_session(sid) {
                 return session.revert.is_some();
             }
         }
@@ -191,14 +209,12 @@ impl AppState {
 
     pub fn current_revert_message_id(&self) -> Option<String> {
         self.current_session_id.as_ref().and_then(|sid| {
-            self.sessions
-                .iter()
-                .find(|session| &session.id == sid)
+            self.find_session(sid)
                 .and_then(|session| {
                     session
                         .revert
                         .as_ref()
-                        .and_then(|revert| Some(revert.message_id.clone()))
+                        .map(|revert| revert.message_id.clone())
                 })
         })
     }
@@ -207,7 +223,7 @@ impl AppState {
         let session = self
             .current_session_id
             .as_ref()
-            .and_then(|sid| self.sessions.iter().find(|s| &s.id == sid));
+            .and_then(|sid| self.find_session(sid));
         let share_url = session.and_then(|s| s.share.as_ref().map(|share| share.url.as_str()));
         let summary = session.and_then(|s| s.summary.as_ref());
         state_updates::update_share_ui(ui, cx, share_url);
@@ -216,18 +232,14 @@ impl AppState {
 
     pub fn current_share_url(&self) -> Option<String> {
         self.current_session_id.as_ref().and_then(|sid| {
-            self.sessions
-                .iter()
-                .find(|session| &session.id == sid)
+            self.find_session(sid)
                 .and_then(|session| session.share.as_ref().map(|share| share.url.clone()))
         })
     }
 
     fn project_for_current_session(&self) -> Option<&Project> {
         let session_project_id = self.current_session_id.as_ref().and_then(|session_id| {
-            self.sessions
-                .iter()
-                .find(|session| &session.id == session_id)
+            self.find_session(session_id)
                 .map(|session| &session.project_id)
         });
         session_project_id.and_then(|project_id| {
@@ -259,6 +271,22 @@ impl AppState {
         self.messages_data.clear();
         ui.message_list(&[id!(message_list)])
             .set_messages(cx, &self.messages_data, None);
+    }
+
+    /// Handles session deletion, clearing relevant state and updating UI
+    pub fn handle_session_deletion(&mut self, ui: &WidgetRef, cx: &mut Cx, session_id: &str) {
+        // If the deleted session is currently selected, clear it
+        if self.current_session_id.as_deref() == Some(session_id) {
+            self.current_session_id = None;
+            self.selected_session_id = None;
+            self.is_working = false;
+            self.clear_messages(ui, cx);
+            state_updates::update_work_indicator(ui, cx, false);
+        } else if self.selected_session_id.as_deref() == Some(session_id) {
+            self.selected_session_id = None;
+        }
+        // Remove from sessions list
+        self.sessions.retain(|s| s.id != session_id);
     }
 }
 
@@ -305,9 +333,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::SessionsLoaded(sessions) => {
             state.sessions = sessions.clone();
-            state.update_projects_panel(ui, cx);
-            state.update_project_context_ui(ui, cx);
-            state.update_session_meta_ui(ui, cx);
+            state.refresh_session_ui(ui, cx);
         }
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
@@ -324,44 +350,24 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 state.current_project = Some(project.clone());
             }
 
-            state.update_projects_panel(ui, cx);
-            state.update_session_title_ui(ui, cx);
-            state.update_project_context_ui(ui, cx);
-            state.update_session_meta_ui(ui, cx);
+            state.refresh_session_ui(ui, cx);
             cx.redraw_all();
         }
         AppAction::SessionDeleted(session_id) => {
-            // If the deleted session is currently selected, clear it
-            if state.current_session_id.as_ref() == Some(session_id) {
-                state.current_session_id = None;
-                state.selected_session_id = None;
-                state.is_working = false;
-                state.clear_messages(ui, cx);
-                state.update_session_title_ui(ui, cx);
-                state_updates::update_work_indicator(ui, cx, false);
-                state.update_session_meta_ui(ui, cx);
-            } else if state.selected_session_id.as_ref() == Some(session_id) {
-                state.selected_session_id = None;
-            }
-            // Remove from sessions list
-            state.sessions.retain(|s| &s.id != session_id);
-            state.update_projects_panel(ui, cx);
-            state.update_project_context_ui(ui, cx);
+            state.handle_session_deletion(ui, cx, session_id);
+            state.refresh_session_ui(ui, cx);
             cx.redraw_all();
         }
         AppAction::SessionUpdated(session) => {
             // Update the session in the list
-            if let Some(existing) = state.sessions.iter_mut().find(|s| s.id == session.id) {
+            if let Some(existing) = state.find_session_mut(&session.id) {
                 *existing = session.clone();
             }
-            state.update_projects_panel(ui, cx);
-            state.update_session_title_ui(ui, cx);
-            state.update_project_context_ui(ui, cx);
-            state.update_session_meta_ui(ui, cx);
+            state.refresh_session_ui(ui, cx);
             cx.redraw_all();
         }
         AppAction::SessionDiffLoaded { session_id, diffs } => {
-            if let Some(existing) = state.sessions.iter_mut().find(|s| &s.id == session_id) {
+            if let Some(existing) = state.find_session_mut(session_id) {
                 let summary = existing.summary.get_or_insert_with(|| {
                     openpad_protocol::SessionSummary {
                         additions: 0,
@@ -447,36 +453,17 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             if !state.sessions.iter().any(|s| s.id == session.id) {
                 state.sessions.push(session.clone());
             }
-            state.update_projects_panel(ui, cx);
-            state.update_session_title_ui(ui, cx);
-            state.update_project_context_ui(ui, cx);
-            state.update_session_meta_ui(ui, cx);
+            state.refresh_session_ui(ui, cx);
         }
         OcEvent::SessionUpdated(session) => {
-            if let Some(existing) = state.sessions.iter_mut().find(|s| s.id == session.id) {
+            if let Some(existing) = state.find_session_mut(&session.id) {
                 *existing = session.clone();
             }
-            state.update_projects_panel(ui, cx);
-            state.update_session_title_ui(ui, cx);
-            state.update_project_context_ui(ui, cx);
-            state.update_session_meta_ui(ui, cx);
+            state.refresh_session_ui(ui, cx);
         }
         OcEvent::SessionDeleted(session) => {
-            // If the deleted session is currently selected, clear it
-            if state.current_session_id.as_ref() == Some(&session.id) {
-                state.current_session_id = None;
-                state.selected_session_id = None;
-                update_work_indicator(state, ui, cx, false);
-                state.clear_messages(ui, cx);
-            } else if state.selected_session_id.as_ref() == Some(&session.id) {
-                state.selected_session_id = None;
-            }
-            // Remove from sessions list
-            state.sessions.retain(|s| s.id != session.id);
-            state.update_projects_panel(ui, cx);
-            state.update_session_title_ui(ui, cx);
-            state.update_project_context_ui(ui, cx);
-            state.update_session_meta_ui(ui, cx);
+            state.handle_session_deletion(ui, cx, &session.id);
+            state.refresh_session_ui(ui, cx);
         }
         OcEvent::MessageUpdated(message) => {
             handle_message_updated(state, ui, cx, message);
