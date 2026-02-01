@@ -74,22 +74,10 @@ pub fn update_share_ui(ui: &WidgetRef, cx: &mut Cx, share_url: Option<&str>) {
 }
 
 pub fn update_summary_ui(ui: &WidgetRef, cx: &mut Cx, summary: Option<&SessionSummary>) {
-    if let Some(summary) = summary {
-        let stats = format!(
-            "Files: {}  +{}  -{}",
-            summary.files, summary.additions, summary.deletions
-        );
-        let markdown = build_summary_markdown(summary);
-        ui.view(&[id!(session_summary)]).set_visible(cx, true);
-        ui.label(&[id!(summary_stats_label)])
-            .set_text(cx, &stats);
-        ui.widget(&[id!(summary_diff)])
-            .set_text(cx, &markdown);
-    } else {
-        ui.view(&[id!(session_summary)]).set_visible(cx, false);
-        ui.label(&[id!(summary_stats_label)]).set_text(cx, "");
-        ui.widget(&[id!(summary_diff)]).set_text(cx, "");
-    }
+    let _ = summary;
+    ui.view(&[id!(session_summary)]).set_visible(cx, false);
+    ui.label(&[id!(summary_stats_label)]).set_text(cx, "");
+    ui.widget(&[id!(summary_diff)]).set_text(cx, "");
 }
 
 fn build_summary_markdown(summary: &SessionSummary) -> String {

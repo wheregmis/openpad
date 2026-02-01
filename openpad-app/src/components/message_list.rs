@@ -1,3 +1,5 @@
+use crate::components::diff_view::DiffViewWidgetRefExt;
+use crate::components::permission_card::PermissionCardWidgetRefExt;
 use makepad_widgets::*;
 
 live_design! {
@@ -9,6 +11,8 @@ live_design! {
     use openpad_widgets::theme::*;
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
+    use crate::components::diff_view::DiffView;
+    use crate::components::permission_card::PermissionCard;
 
     pub MessageList = {{MessageList}} {
         width: Fill, height: Fill
@@ -96,6 +100,8 @@ live_design! {
                     }
                 }
             }
+
+            PermissionMsg = <PermissionCard> {}
 
             AssistantMsg = <View> {
                 width: Fill, height: Fit
@@ -216,6 +222,8 @@ live_design! {
                         }
                     }
 
+                    diff_view = <DiffView> {}
+
                     stats_row = <View> {
                         width: Fit, height: Fit
                         flow: Right,
@@ -279,6 +287,22 @@ live_design! {
                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 }
                             }
                         }
+
+                        diff_button = <Button> {
+                            width: Fit, height: 20
+                            text: "Diff"
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                border_radius: 4.0
+                                border_size: 0.0
+                            }
+                            draw_text: {
+                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
+                        }
                     }
                 }
             }
@@ -297,6 +321,16 @@ pub struct DisplayMessage {
     pub cost: Option<f64>,
     pub error_text: Option<String>,
     pub is_error: bool,
+    pub diffs: Vec<openpad_protocol::FileDiff>,
+    pub show_diffs: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct PendingPermissionDisplay {
+    pub session_id: String,
+    pub request_id: String,
+    pub permission: String,
+    pub patterns: Vec<String>,
 }
 
 #[derive(Live, LiveHook, Widget)]
@@ -309,13 +343,30 @@ pub struct MessageList {
     is_working: bool,
     #[rust]
     revert_message_id: Option<String>,
+    #[rust]
+    pending_permissions: Vec<PendingPermissionDisplay>,
+    #[rust]
+    working_since: Option<std::time::Instant>,
 }
 
 impl MessageList {
+    fn diff_summary(diffs: &[openpad_protocol::FileDiff], expanded: bool) -> String {
+        let file_count = diffs.len();
+        let additions: i64 = diffs.iter().map(|d| d.additions).sum();
+        let deletions: i64 = diffs.iter().map(|d| d.deletions).sum();
+        let file_label = if file_count == 1 { "file" } else { "files" };
+        let chevron = if expanded { "▾" } else { "▸" };
+        format!(
+            "{} {} · +{} -{} {}",
+            file_count, file_label, additions, deletions, chevron
+        )
+    }
+
     fn rebuild_from_parts(
         messages_with_parts: &[openpad_protocol::MessageWithParts],
     ) -> Vec<DisplayMessage> {
         let mut display = Vec::new();
+        let mut pending_diffs: Option<Vec<openpad_protocol::FileDiff>> = None;
         for mwp in messages_with_parts {
             let (role, timestamp, model_id, tokens, cost, error_text, is_error) = match &mwp.info {
                 openpad_protocol::Message::User(msg) => (
@@ -368,6 +419,22 @@ impl MessageList {
                 continue;
             }
 
+            let mut diffs = Vec::new();
+            match &mwp.info {
+                openpad_protocol::Message::User(msg) => {
+                    if let Some(summary) = &msg.summary {
+                        if !summary.diffs.is_empty() {
+                            pending_diffs = Some(summary.diffs.clone());
+                        }
+                    }
+                }
+                openpad_protocol::Message::Assistant(_) => {
+                    if let Some(pending) = pending_diffs.take() {
+                        diffs = pending;
+                    }
+                }
+            }
+
             display.push(DisplayMessage {
                 role: role.to_string(),
                 text,
@@ -378,6 +445,8 @@ impl MessageList {
                 cost,
                 error_text,
                 is_error,
+                diffs,
+                show_diffs: false,
             });
         }
         display
@@ -387,6 +456,13 @@ impl MessageList {
 impl Widget for MessageList {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         use crate::state::actions::MessageListAction;
+
+        if self.is_working {
+            if let Event::NextFrame(_) = event {
+                self.redraw(cx);
+            }
+            cx.new_next_frame();
+        }
 
         let actions = cx.capture_actions(|cx| {
             self.view.handle_event(cx, event, scope);
@@ -407,13 +483,22 @@ impl Widget for MessageList {
                     cx.action(MessageListAction::RevertToMessage(message_id.clone()));
                 }
             }
+
+            if widget.button(&[id!(diff_button)]).clicked(&actions) {
+                if let Some(message) = self.messages.get_mut(item_id) {
+                    message.show_diffs = !message.show_diffs;
+                    self.redraw(cx);
+                }
+            }
         }
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
-                let total_items = self.messages.len() + if self.is_working { 1 } else { 0 };
+                let total_items = self.messages.len()
+                    + self.pending_permissions.len()
+                    + if self.is_working { 1 } else { 0 };
                 if total_items == 0 {
                     list.set_item_range(cx, 0, 0);
                     continue;
@@ -422,14 +507,44 @@ impl Widget for MessageList {
                 list.set_item_range(cx, 0, total_items);
 
                 while let Some(item_id) = list.next_visible_item(cx) {
-                    if item_id >= self.messages.len() {
+                    // After messages, render pending permissions
+                    if item_id >= self.messages.len()
+                        && item_id < self.messages.len() + self.pending_permissions.len()
+                    {
+                        let perm_idx = item_id - self.messages.len();
+                        let perm = &self.pending_permissions[perm_idx];
+                        let item_widget = list.item(cx, item_id, live_id!(PermissionMsg));
+                        use crate::components::permission_card::PermissionCardApi;
+                        item_widget.permission_card(&[]).set_permission(
+                            cx,
+                            perm.session_id.clone(),
+                            perm.request_id.clone(),
+                            &perm.permission,
+                            &perm.patterns,
+                        );
+                        item_widget.draw_all(cx, scope);
+                        continue;
+                    }
+
+                    if item_id >= self.messages.len() + self.pending_permissions.len() {
                         if !self.is_working {
                             continue;
                         }
+                        let elapsed = self
+                            .working_since
+                            .map(|t| t.elapsed().as_secs())
+                            .unwrap_or(0);
+                        let mins = elapsed / 60;
+                        let secs = elapsed % 60;
+                        let status_text = if elapsed > 0 {
+                            format!("Agent working... {}:{:02}", mins, secs)
+                        } else {
+                            "Agent working...".to_string()
+                        };
                         let item_widget = list.item(cx, item_id, live_id!(AssistantMsg));
                         item_widget
                             .widget(&[id!(msg_text)])
-                            .set_text(cx, "Thinking...");
+                            .set_text(cx, &status_text);
                         item_widget.label(&[id!(timestamp_label)]).set_text(cx, "");
                         item_widget
                             .label(&[id!(revert_label)])
@@ -519,7 +634,27 @@ impl Widget for MessageList {
                             item_widget
                                 .button(&[id!(revert_button)])
                                 .set_visible(cx, show_revert);
+                            let show_diff_button = !msg.diffs.is_empty();
+                            let diff_button = item_widget.button(&[id!(diff_button)]);
+                            if show_diff_button {
+                                let label = Self::diff_summary(&msg.diffs, msg.show_diffs);
+                                diff_button.set_text(cx, &label);
+                                diff_button.set_visible(cx, true);
+                            } else {
+                                diff_button.set_text(cx, "");
+                                diff_button.set_visible(cx, false);
+                            }
                             item_widget.view(&[id!(msg_actions)]).set_visible(cx, true);
+
+                            // Set diff view data
+                            use crate::components::diff_view::DiffViewApi;
+                            let diff_view = item_widget.diff_view(&[id!(diff_view)]);
+                            if msg.diffs.is_empty() {
+                                diff_view.clear_diffs(cx);
+                            } else {
+                                diff_view.set_diffs(cx, &msg.diffs);
+                            }
+                            diff_view.set_expanded(cx, msg.show_diffs);
                         }
 
                         item_widget.draw_all(cx, scope);
@@ -573,6 +708,8 @@ impl MessageListRef {
                 cost: None,
                 error_text: None,
                 is_error: false,
+                diffs: Vec::new(),
+                show_diffs: false,
             });
             inner.redraw(cx);
         }
@@ -596,6 +733,8 @@ impl MessageListRef {
                 cost: None,
                 error_text: None,
                 is_error: false,
+                diffs: Vec::new(),
+                show_diffs: false,
             });
             inner.redraw(cx);
         }
@@ -610,10 +749,46 @@ impl MessageListRef {
 
     pub fn set_working(&self, cx: &mut Cx, working: bool) {
         if let Some(mut inner) = self.borrow_mut() {
-            if inner.is_working == working {
-                return;
-            }
             inner.is_working = working;
+            if working && inner.working_since.is_none() {
+                inner.working_since = Some(std::time::Instant::now());
+            } else if !working {
+                inner.working_since = None;
+            }
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn set_pending_permissions(&self, cx: &mut Cx, permissions: &[PendingPermissionDisplay]) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.pending_permissions = permissions.to_vec();
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn remove_permission(&self, cx: &mut Cx, request_id: &str) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner
+                .pending_permissions
+                .retain(|p| p.request_id != request_id);
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn set_session_diffs(&self, cx: &mut Cx, diffs: &[openpad_protocol::FileDiff]) {
+        if let Some(mut inner) = self.borrow_mut() {
+            // Apply diffs to the last assistant message
+            if let Some(last_assistant) = inner
+                .messages
+                .iter_mut()
+                .rev()
+                .find(|m| m.role == "assistant")
+            {
+                last_assistant.diffs = diffs.to_vec();
+                if last_assistant.diffs.is_empty() {
+                    last_assistant.show_diffs = false;
+                }
+            }
             inner.redraw(cx);
         }
     }

@@ -80,7 +80,15 @@ live_design! {
     
     // Red accent (danger/delete)
     pub THEME_COLOR_ACCENT_RED = #ef4444
-    
+
+    // Diff colors
+    pub THEME_COLOR_DIFF_ADD_BG = #1a2e1a
+    pub THEME_COLOR_DIFF_ADD_TEXT = #4dca4d
+    pub THEME_COLOR_DIFF_DEL_BG = #2e1a1a
+    pub THEME_COLOR_DIFF_DEL_TEXT = #e06060
+    pub THEME_COLOR_DIFF_CONTEXT_TEXT = #888888
+    pub THEME_COLOR_DIFF_HEADER_BG = #1a1f2e
+
     // ========================================
     // STATUS COLORS
     // ========================================

@@ -1,6 +1,6 @@
 use crate::async_runtime::tasks;
 use crate::components::message_list::MessageListWidgetRefExt;
-use crate::components::permission_dialog::PermissionDialogWidgetRefExt;
+use crate::components::message_list::PendingPermissionDisplay;
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
 use crate::constants::*;
 use crate::state::actions::AppAction;
@@ -380,6 +380,11 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 summary.diffs = diffs.clone();
             }
             state.update_session_meta_ui(ui, cx);
+
+            // Also update inline diffs in message list
+            ui.message_list(&[id!(message_list)])
+                .set_session_diffs(cx, &diffs);
+
             cx.redraw_all();
         }
         AppAction::MessagesLoaded(messages) => {
@@ -477,14 +482,6 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             show_next_pending_permission(state, ui, cx);
         }
         OcEvent::PermissionReplied { request_id, .. } => {
-            // If the current dialog is for this request, hide it
-            // (another client or auto-reply may have responded)
-            let dialog_request_id = ui
-                .permission_dialog(&[id!(permission_dialog)])
-                .get_request_id();
-            if dialog_request_id.as_deref() == Some(request_id.as_str()) {
-                ui.permission_dialog(&[id!(permission_dialog)]).hide(cx);
-            }
             remove_pending_permission(state, request_id);
             show_next_pending_permission(state, ui, cx);
         }
@@ -635,35 +632,6 @@ fn set_session_working(
     state.update_projects_panel(ui, cx);
 }
 
-fn format_permission_context(request: &PermissionRequest) -> Option<String> {
-    let mut lines = Vec::new();
-
-    lines.push(format!("Session: {}", request.session_id));
-
-    if let Some(tool) = &request.tool {
-        lines.push(format!("Tool message: {}", tool.message_id));
-        lines.push(format!("Tool call: {}", tool.call_id));
-    }
-
-    if !request.always.is_empty() {
-        lines.push(format!("Always: {}", request.always.join(", ")));
-    }
-
-    if !request.metadata.is_empty() {
-        let mut entries: Vec<_> = request.metadata.iter().collect();
-        entries.sort_by(|a, b| a.0.cmp(b.0));
-        for (key, value) in entries {
-            lines.push(format!("{}: {}", key, value));
-        }
-    }
-
-    if lines.is_empty() {
-        None
-    } else {
-        Some(lines.join("\n"))
-    }
-}
-
 fn enqueue_pending_permission(state: &mut AppState, request: &PermissionRequest) {
     if state
         .pending_permissions
@@ -682,36 +650,27 @@ fn remove_pending_permission(state: &mut AppState, request_id: &str) {
 }
 
 fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx) {
-    if ui
-        .permission_dialog(&[id!(permission_dialog)])
-        .get_request_id()
-        .is_some()
-    {
-        return;
-    }
-
     let Some(current_session_id) = &state.current_session_id else {
+        // Clear permissions if no session
+        ui.message_list(&[id!(message_list)])
+            .set_pending_permissions(cx, &[]);
         return;
     };
 
-    let Some(request) = state
+    let displays: Vec<PendingPermissionDisplay> = state
         .pending_permissions
         .iter()
-        .find(|permission| &permission.session_id == current_session_id)
-    else {
-        return;
-    };
+        .filter(|p| &p.session_id == current_session_id)
+        .map(|p| PendingPermissionDisplay {
+            session_id: p.session_id.clone(),
+            request_id: p.id.clone(),
+            permission: p.permission.clone(),
+            patterns: p.patterns.clone(),
+        })
+        .collect();
 
-    let context = format_permission_context(request);
-    ui.permission_dialog(&[id!(permission_dialog)])
-        .show_permission_request(
-            cx,
-            request.session_id.clone(),
-            request.id.clone(),
-            request.permission.clone(),
-            request.patterns.clone(),
-            context,
-        );
+    ui.message_list(&[id!(message_list)])
+        .set_pending_permissions(cx, &displays);
 }
 
 fn push_session_error_message(
