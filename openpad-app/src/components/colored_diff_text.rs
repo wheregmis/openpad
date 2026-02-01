@@ -53,20 +53,21 @@ impl Widget for ColoredDiffText {
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         cx.begin_turtle(walk, Layout::default());
         
-        let theme_color_add = vec4(0.301, 0.792, 0.301, 1.0); // #4dca4d
-        let theme_color_del = vec4(0.878, 0.376, 0.376, 1.0); // #e06060
-        let theme_color_context = vec4(0.533, 0.533, 0.533, 1.0); // #888888
-        let theme_color_header = vec4(0.667, 0.702, 0.733, 1.0); // #aab3bd
+        // Define colors matching the theme
+        let text_color_add = vec4(0.301, 0.792, 0.301, 1.0); // #4dca4d - bright green
+        let text_color_del = vec4(0.878, 0.376, 0.376, 1.0); // #e06060 - soft red
+        let text_color_context = vec4(0.733, 0.757, 0.788, 1.0); // #bbc1c9 - lighter gray for better readability
+        let text_color_header = vec4(0.533, 0.690, 0.859, 1.0); // #88b0db - soft blue for headers
         
         for line in &self.lines {
-            let color = match line.line_type {
-                DiffLineType::Addition => theme_color_add,
-                DiffLineType::Deletion => theme_color_del,
-                DiffLineType::Context => theme_color_context,
-                DiffLineType::Header => theme_color_header,
+            let text_color = match line.line_type {
+                DiffLineType::Addition => text_color_add,
+                DiffLineType::Deletion => text_color_del,
+                DiffLineType::Context => text_color_context,
+                DiffLineType::Header => text_color_header,
             };
             
-            self.draw_text.color = color;
+            self.draw_text.color = text_color;
             let line_text = format!("{}\n", line.text);
             self.draw_text.draw_walk(cx, Walk::fit(), Align::default(), &line_text);
         }
