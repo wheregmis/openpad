@@ -52,24 +52,40 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                 }
 
                 project_name = <Label> {
+                    width: Fill
                     margin: { left: 4 }
                     draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
                 }
-            }
 
-            NewSessionRow = <View> {
-                width: Fill, height: Fit
-                padding: { top: 4, bottom: 8, left: 16 }
-                new_session_button = <Button> {
-                    width: Fit, height: 24
-                    text: "+ New session"
+                project_working_dot = <View> {
+                    visible: false
+                    width: 6, height: 6
+                    margin: { right: 4 }
+                    show_bg: true
+                    draw_bg: {
+                        color: (THEME_COLOR_ACCENT_AMBER)
+                        fn pixel(self) -> vec4 {
+                            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                            let c = self.rect_size * 0.5;
+                            let r = min(c.x, c.y) - 0.5;
+                            sdf.circle(c.x, c.y, r);
+                            sdf.fill(self.color);
+                            return sdf.result;
+                        }
+                    }
+                }
+
+                new_session_header_button = <Button> {
+                    width: Fit, height: 20
+                    margin: { right: 4 }
+                    text: "+"
                     draw_bg: {
                         color: (THEME_COLOR_TRANSPARENT)
                         color_hover: (THEME_COLOR_HOVER_MEDIUM)
                         border_radius: 4.0
                         border_size: 0.0
                     }
-                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
                 }
             }
 
@@ -86,7 +102,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                     text: "Session"
                     draw_bg: {
                         color: (THEME_COLOR_TRANSPARENT)
-                        color_hover: (THEME_COLOR_HOVER_LIGHT)
+                        color_hover: (THEME_COLOR_HOVER_SUBTLE)
                         border_radius: 4.0
                         border_size: 0.0
                     }
@@ -218,9 +234,6 @@ pub enum PanelItemKind {
         project_id: Option<String>,
         name: String,
     },
-    NewSession {
-        project_id: Option<String>,
-    },
     SessionRow {
         session_id: String,
         title: String,
@@ -295,7 +308,7 @@ impl ProjectsPanel {
                 .collapsed_projects
                 .get(&project_id)
                 .copied()
-                .unwrap_or(false);
+                .unwrap_or(true);
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: project_id.clone(),
@@ -313,9 +326,6 @@ impl ProjectsPanel {
                     }
                 }
 
-                items.push(PanelItemKind::NewSession {
-                    project_id: project_id.clone(),
-                });
             }
             items.push(PanelItemKind::Spacer);
         }
@@ -334,7 +344,7 @@ impl ProjectsPanel {
                 .collapsed_projects
                 .get(&None)
                 .copied()
-                .unwrap_or(false);
+                .unwrap_or(true);
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: None,
@@ -349,7 +359,6 @@ impl ProjectsPanel {
                         title,
                     });
                 }
-                items.push(PanelItemKind::NewSession { project_id: None });
             }
         }
 
@@ -371,21 +380,21 @@ impl Widget for ProjectsPanel {
             }
             match &self.items[item_id] {
                 PanelItemKind::ProjectHeader { project_id, .. } => {
-                    if widget.as_view().finger_up(&actions).is_some() {
+                    if widget
+                        .button(&[id!(new_session_header_button)])
+                        .clicked(&actions)
+                    {
+                        cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
+                    } else if widget.as_view().finger_up(&actions).is_some() {
                         let collapsed = self
                             .collapsed_projects
                             .get(project_id)
                             .copied()
-                            .unwrap_or(false);
+                            .unwrap_or(true);
                         self.collapsed_projects
                             .insert(project_id.clone(), !collapsed);
                         self.dirty = true;
                         self.redraw(cx);
-                    }
-                }
-                PanelItemKind::NewSession { project_id } => {
-                    if widget.button(&[id!(new_session_button)]).clicked(&actions) {
-                        cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
                     }
                 }
                 PanelItemKind::SessionRow { session_id, .. } => {
@@ -431,7 +440,6 @@ impl Widget for ProjectsPanel {
                     let panel_item = self.items[item_id].clone();
                     let template = match panel_item {
                         PanelItemKind::ProjectHeader { .. } => live_id!(ProjectHeader),
-                        PanelItemKind::NewSession { .. } => live_id!(NewSessionRow),
                         PanelItemKind::SessionRow { .. } => live_id!(SessionRow),
                         PanelItemKind::Spacer => live_id!(Spacer),
                     };
@@ -446,8 +454,7 @@ impl Widget for ProjectsPanel {
                                 .collapsed_projects
                                 .get(project_id)
                                 .copied()
-                                .unwrap_or(false);
-                            // Chevron: 0.0 = pointing down (expanded), -PI/2 = pointing right (collapsed)
+                                .unwrap_or(true);
                             let rotation = if collapsed {
                                 -std::f32::consts::FRAC_PI_2
                             } else {
@@ -459,6 +466,22 @@ impl Widget for ProjectsPanel {
                                     draw_bg: { rotation: (rotation) }
                                 },
                             );
+                            // Show orange dot if any session in this project is working
+                            let project_working = self.sessions.iter().any(|s| {
+                                let matches_project = match project_id {
+                                    Some(pid) => &s.project_id == pid,
+                                    None => true,
+                                };
+                                matches_project
+                                    && self
+                                        .working_by_session
+                                        .get(&s.id)
+                                        .copied()
+                                        .unwrap_or(false)
+                            });
+                            item_widget
+                                .view(&[id!(project_working_dot)])
+                                .set_visible(cx, project_working);
                         }
                         PanelItemKind::SessionRow { session_id, title } => {
                             item_widget.button(&[id!(session_button)]).set_text(cx, title);

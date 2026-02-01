@@ -15,6 +15,9 @@ use std::sync::{Arc, OnceLock};
 
 // Lazy-initialized regex for detecting image data URLs
 static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
+const SIDEBAR_DEFAULT_WIDTH: f32 = 260.0;
+const SIDEBAR_MIN_WIDTH: f32 = 200.0;
+const SIDEBAR_MAX_WIDTH: f32 = 420.0;
 
 fn get_image_data_url_regex() -> &'static Regex {
     IMAGE_DATA_URL_REGEX.get_or_init(|| {
@@ -74,6 +77,229 @@ live_design! {
     use crate::components::simple_dialog::SimpleDialog;
     use crate::components::terminal::Terminal;
 
+    ChatPanel = <View> {
+        width: Fill, height: Fill
+        flow: Down
+        spacing: 0
+
+        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_SHADE_2) } }
+
+        session_summary = <RoundedView> {
+            visible: false
+            width: Fill, height: Fit
+            padding: { left: 16, right: 16, top: 12, bottom: 12 }
+            flow: Down
+            spacing: 8
+            show_bg: true
+            draw_bg: {
+                color: (THEME_COLOR_BG_DIALOG)
+                border_color: (THEME_COLOR_BORDER_DIALOG)
+                border_radius: 8.0
+                border_size: 1.0
+
+                fn pixel(self) -> vec4 {
+                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                    sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
+                    sdf.fill_keep(self.color);
+                    sdf.stroke(self.border_color, self.border_size);
+                    return sdf.result;
+                }
+            }
+
+            summary_header = <View> {
+                width: Fill, height: Fit
+                flow: Right
+                align: { y: 0.5 }
+
+                summary_title = <Label> {
+                    text: "Session Summary"
+                    draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                }
+                <View> { width: Fill }
+            }
+
+            summary_stats_label = <Label> {
+                width: Fill, height: Fit
+                text: ""
+                draw_text: { color: (THEME_COLOR_TEXT_DIM), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+            }
+
+            summary_diff = <Markdown> {
+                width: Fill, height: Fit
+                font_size: 9
+                font_color: (THEME_COLOR_TEXT_NORMAL)
+                paragraph_spacing: 6
+                pre_code_spacing: 6
+                use_code_block_widget: true
+
+                code_block = <View> {
+                    width: Fill, height: Fit
+                    flow: Down
+                    padding: { left: 8, right: 8, top: 6, bottom: 6 }
+                    margin: { top: 4, bottom: 4 }
+                    draw_bg: {
+                        color: (THEME_COLOR_BG_INPUT)
+                        border_radius: 6.0
+                    }
+
+                    code_view = <CodeView> {
+                        editor: {
+                            width: Fill
+                            height: Fit
+                            draw_bg: { color: (THEME_COLOR_BG_INPUT) }
+                        }
+                    }
+                }
+
+                draw_normal: {
+                    text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.4 }
+                    color: (THEME_COLOR_TEXT_NORMAL)
+                }
+                draw_italic: {
+                    text_style: <THEME_FONT_ITALIC> { font_size: 9 }
+                    color: (THEME_COLOR_TEXT_NORMAL)
+                }
+                draw_bold: {
+                    text_style: <THEME_FONT_BOLD> { font_size: 9 }
+                    color: (THEME_COLOR_TEXT_BOLD)
+                }
+                draw_fixed: {
+                    text_style: <THEME_FONT_CODE> { font_size: 8 }
+                    color: (THEME_COLOR_TEXT_CODE)
+                }
+            }
+        }
+
+        // Chat area - Unified
+        <View> {
+            width: Fill, height: Fill
+            flow: Down
+            spacing: 0
+            show_bg: true
+            draw_bg: { color: (THEME_COLOR_BG_APP) }
+
+            <View> {
+                width: Fill, height: Fill
+                message_list = <MessageList> { width: Fill, height: Fill }
+            }
+
+            permission_dialog = <PermissionDialog> { width: Fill }
+
+            input_row = <View> {
+                width: Fill, height: Fit
+                padding: { left: 32, right: 32, top: 12, bottom: 20 }
+                flow: Down, spacing: 8
+
+                // Attachments preview area
+                attachments_preview = <RoundedView> {
+                    visible: false
+                    width: Fill, height: Fit
+                    flow: Right, spacing: 8
+                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
+                    show_bg: true
+                    draw_bg: {
+                        color: (THEME_COLOR_SHADE_2)
+                        border_radius: 8.0
+                    }
+
+                    attachments_label = <Label> {
+                        text: "Attached:"
+                        draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                    }
+                    attachments_list = <Label> {
+                        text: ""
+                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHTER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                    }
+                    <View> { width: Fill }
+                    clear_attachments_button = <Button> {
+                        width: Fit, height: 20
+                        text: "Clear"
+                        draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                        draw_bg: {
+                            color: (THEME_COLOR_TRANSPARENT)
+                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                        }
+                    }
+                }
+
+                skill_preview = <RoundedView> {
+                    visible: false
+                    width: Fill, height: Fit
+                    flow: Down, spacing: 4
+                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
+                    show_bg: true
+                    draw_bg: {
+                        color: (THEME_COLOR_SHADE_2)
+                        border_radius: 8.0
+                    }
+
+                    skill_header = <View> {
+                        width: Fill, height: Fit
+                        flow: Right, spacing: 8
+                        align: { y: 0.5 }
+
+                        skill_name_label = <Label> {
+                            text: "Skill"
+                            draw_text: { color: (THEME_COLOR_SHADE_8), text_style: <THEME_FONT_BOLD> { font_size: 9 } }
+                        }
+                        <View> { width: Fill }
+                        clear_skill_button = <Button> {
+                            width: Fit, height: 20
+                            text: "Clear"
+                            draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                            }
+                        }
+                    }
+
+                    skill_desc_label = <Label> {
+                        text: ""
+                        draw_text: { color: (THEME_COLOR_SHADE_9), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }
+                    }
+                }
+
+                <InputBar> {
+                    width: Fill
+                    input_box = <InputField> {}
+                    <InputBarToolbar> {
+                        agent_dropdown = <InputBarDropDown> {
+                            labels: ["Agent"]
+                        }
+                        skill_dropdown = <InputBarDropDown> {
+                            width: 150
+                            labels: ["Skill"]
+                        }
+                        model_dropdown = <InputBarDropDown> {
+                            width: 150
+                            labels: ["Model"]
+                        }
+                        <View> { width: Fill }
+                        send_button = <SendButton> {
+                            margin: { left: 0 }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    TerminalPanelWrap = <View> {
+        width: Fill, height: 250
+        flow: Down
+        show_bg: true
+        draw_bg: { color: (THEME_COLOR_BG_APP) }
+
+        // Separator line
+        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } }
+
+        terminal_panel = <Terminal> {
+            width: Fill
+            height: Fill
+        }
+    }
+
     App = {{App}} {
         ui: <Window> {
             window: { inner_size: vec2(1200, 800) }
@@ -100,7 +326,7 @@ live_design! {
 
                         <HeaderBar> {
                             height: 36
-                            width: 260
+                            width: Fill
                             padding: { left: 80, right: 10 }
                             draw_bg: {
                                 color: (THEME_COLOR_BG_APP)
@@ -112,8 +338,11 @@ live_design! {
 
                         projects_panel = <ProjectsPanel> {}
                     }
-
-
+                    sidebar_resize_handle = <View> {
+                        width: 6, height: Fill
+                        show_bg: true
+                        draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) }
+                    }
 
                     <View> {
                         width: Fill, height: Fill
@@ -278,223 +507,8 @@ live_design! {
                                 }
                             }
                         }
-                        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_SHADE_2) } }
-
-                        session_summary = <RoundedView> {
-                            visible: false
-                            width: Fill, height: Fit
-                            padding: { left: 16, right: 16, top: 12, bottom: 12 }
-                            flow: Down
-                            spacing: 8
-                            show_bg: true
-                            draw_bg: {
-                                color: (THEME_COLOR_BG_DIALOG)
-                                border_color: (THEME_COLOR_BORDER_DIALOG)
-                                border_radius: 8.0
-                                border_size: 1.0
-
-                                fn pixel(self) -> vec4 {
-                                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                                    sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
-                                    sdf.fill_keep(self.color);
-                                    sdf.stroke(self.border_color, self.border_size);
-                                    return sdf.result;
-                                }
-                            }
-
-                            summary_header = <View> {
-                                width: Fill, height: Fit
-                                flow: Right
-                                align: { y: 0.5 }
-
-                                summary_title = <Label> {
-                                    text: "Session Summary"
-                                    draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
-                                }
-                                <View> { width: Fill }
-                            }
-
-                            summary_stats_label = <Label> {
-                                width: Fill, height: Fit
-                                text: ""
-                                draw_text: { color: (THEME_COLOR_TEXT_DIM), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                            }
-
-                            summary_diff = <Markdown> {
-                                width: Fill, height: Fit
-                                font_size: 9
-                                font_color: (THEME_COLOR_TEXT_NORMAL)
-                                paragraph_spacing: 6
-                                pre_code_spacing: 6
-                                use_code_block_widget: true
-
-                                code_block = <View> {
-                                    width: Fill, height: Fit
-                                    flow: Down
-                                    padding: { left: 8, right: 8, top: 6, bottom: 6 }
-                                    margin: { top: 4, bottom: 4 }
-                                    draw_bg: {
-                                        color: (THEME_COLOR_BG_INPUT)
-                                        border_radius: 6.0
-                                    }
-
-                                    code_view = <CodeView> {
-                                        editor: {
-                                            width: Fill
-                                            height: Fit
-                                            draw_bg: { color: (THEME_COLOR_BG_INPUT) }
-                                        }
-                                    }
-                                }
-
-                                draw_normal: {
-                                    text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.4 }
-                                    color: (THEME_COLOR_TEXT_NORMAL)
-                                }
-                                draw_italic: {
-                                    text_style: <THEME_FONT_ITALIC> { font_size: 9 }
-                                    color: (THEME_COLOR_TEXT_NORMAL)
-                                }
-                                draw_bold: {
-                                    text_style: <THEME_FONT_BOLD> { font_size: 9 }
-                                    color: (THEME_COLOR_TEXT_BOLD)
-                                }
-                                draw_fixed: {
-                                    text_style: <THEME_FONT_CODE> { font_size: 8 }
-                                    color: (THEME_COLOR_TEXT_CODE)
-                                }
-                            }
-                        }
-
-                        // Chat area - Unified
-                        <View> {
-                            width: Fill, height: Fill
-                            flow: Down
-                            spacing: 0
-                            show_bg: true
-                            draw_bg: { color: (THEME_COLOR_BG_APP) }
-
-                            <View> {
-                                width: Fill, height: Fill
-                                message_list = <MessageList> { width: Fill, height: Fill }
-                            }
-
-                            permission_dialog = <PermissionDialog> { width: Fill }
-
-                            input_row = <View> {
-                                width: Fill, height: Fit
-                                padding: { left: 32, right: 32, top: 12, bottom: 20 }
-                                flow: Down, spacing: 8
-
-                                // Attachments preview area
-                                attachments_preview = <RoundedView> {
-                                    visible: false
-                                    width: Fill, height: Fit
-                                    flow: Right, spacing: 8
-                                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
-                                    show_bg: true
-                                    draw_bg: {
-                                        color: (THEME_COLOR_SHADE_2)
-                                        border_radius: 8.0
-                                    }
-
-                                    attachments_label = <Label> {
-                                        text: "Attached:"
-                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                    }
-                                    attachments_list = <Label> {
-                                        text: ""
-                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHTER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                    }
-                                    <View> { width: Fill }
-                                    clear_attachments_button = <Button> {
-                                        width: Fit, height: 20
-                                        text: "Clear"
-                                        draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                        draw_bg: {
-                                            color: (THEME_COLOR_TRANSPARENT)
-                                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                        }
-                                    }
-                                }
-
-                                skill_preview = <RoundedView> {
-                                    visible: false
-                                    width: Fill, height: Fit
-                                    flow: Down, spacing: 4
-                                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
-                                    show_bg: true
-                                    draw_bg: {
-                                        color: (THEME_COLOR_SHADE_2)
-                                        border_radius: 8.0
-                                    }
-
-                                    skill_header = <View> {
-                                        width: Fill, height: Fit
-                                        flow: Right, spacing: 8
-                                        align: { y: 0.5 }
-
-                                        skill_name_label = <Label> {
-                                            text: "Skill"
-                                            draw_text: { color: (THEME_COLOR_SHADE_8), text_style: <THEME_FONT_BOLD> { font_size: 9 } }
-                                        }
-                                        <View> { width: Fill }
-                                        clear_skill_button = <Button> {
-                                            width: Fit, height: 20
-                                            text: "Clear"
-                                            draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                            draw_bg: {
-                                                color: (THEME_COLOR_TRANSPARENT)
-                                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                            }
-                                        }
-                                    }
-
-                                    skill_desc_label = <Label> {
-                                        text: ""
-                                        draw_text: { color: (THEME_COLOR_SHADE_9), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }
-                                    }
-                                }
-
-                                <InputBar> {
-                                    width: Fill
-                                    input_box = <InputField> {}
-                                    <InputBarToolbar> {
-                                        agent_dropdown = <InputBarDropDown> {
-                                            labels: ["Agent"]
-                                        }
-                                        skill_dropdown = <InputBarDropDown> {
-                                            width: 150
-                                            labels: ["Skill"]
-                                        }
-                                        model_dropdown = <InputBarDropDown> {
-                                            width: 150
-                                            labels: ["Model"]
-                                        }
-                                        <View> { width: Fill }
-                                        send_button = <SendButton> {
-                                            margin: { left: 0 }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Integrated Terminal
-                        <View> {
-                            width: Fill, height: 250
-                            flow: Down
-                            show_bg: true
-                            draw_bg: { color: (THEME_COLOR_BG_APP) }
-
-                            // Separator line
-                            <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } }
-
-                            terminal_panel = <Terminal> {
-                                width: Fill
-                                height: Fill
-                            }
-                        }
+                        <ChatPanel> {}
+                        terminal_panel_wrap = <TerminalPanelWrap> {}
                     }
                 }
                 }
@@ -515,6 +529,12 @@ pub struct App {
     state: AppState,
     #[rust]
     sidebar_open: bool,
+    #[rust]
+    sidebar_width: f32,
+    #[rust]
+    sidebar_drag_start: Option<(f64, f32)>,
+    #[rust]
+    terminal_open: bool,
     #[rust]
     client: Option<Arc<OpenCodeClient>>,
     #[rust]
@@ -597,6 +617,99 @@ impl App {
                 .set_text(cx, &skill.description);
         }
         self.ui.redraw(cx);
+    }
+
+    fn set_sidebar_width(&mut self, cx: &mut Cx, width: f32) {
+        let clamped = width.clamp(SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH);
+        self.sidebar_width = clamped;
+        self.ui
+            .side_panel(&[id!(side_panel)])
+            .apply_over(cx, live! { open_size: (clamped) });
+        self.ui.redraw(cx);
+    }
+
+    fn update_sidebar_handle_visibility(&self, cx: &mut Cx) {
+        let width = if self.sidebar_open { 6.0 } else { 0.0 };
+        self.ui
+            .view(&[id!(sidebar_resize_handle)])
+            .apply_over(cx, live! { width: (width) });
+        self.ui
+            .view(&[id!(sidebar_resize_handle)])
+            .set_visible(cx, self.sidebar_open);
+    }
+
+    fn toggle_sidebar(&mut self, cx: &mut Cx) {
+        self.sidebar_open = !self.sidebar_open;
+
+        if self.sidebar_open && self.sidebar_width <= 0.0 {
+            self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
+        }
+        if self.sidebar_open {
+            self.set_sidebar_width(cx, self.sidebar_width);
+        }
+        self.ui
+            .side_panel(&[id!(side_panel)])
+            .set_open(cx, self.sidebar_open);
+        self.ui
+            .side_panel(&[id!(traffic_light_spacer)])
+            .set_open(cx, !self.sidebar_open);
+        self.update_sidebar_handle_visibility(cx);
+
+        if self.sidebar_open {
+            self.ui
+                .view(&[id!(hamburger_button)])
+                .animator_play(cx, &[id!(open), id!(on)]);
+        } else {
+            self.ui
+                .view(&[id!(hamburger_button)])
+                .animator_play(cx, &[id!(open), id!(off)]);
+        }
+    }
+
+    fn toggle_terminal(&mut self, cx: &mut Cx) {
+        self.terminal_open = !self.terminal_open;
+        self.ui
+            .view(&[id!(terminal_panel_wrap)])
+            .set_visible(cx, self.terminal_open);
+    }
+
+    fn handle_sidebar_resize(&mut self, cx: &mut Cx, event: &Event) {
+        if !self.sidebar_open {
+            self.sidebar_drag_start = None;
+            return;
+        }
+
+        let handle_area = self.ui.view(&[id!(sidebar_resize_handle)]).area();
+        let hit = event.hits_with_options(
+            cx,
+            handle_area,
+            HitOptions::new().with_margin(Margin {
+                left: 4.0,
+                right: 4.0,
+                top: 0.0,
+                bottom: 0.0,
+            }),
+        );
+
+        match hit {
+            Hit::FingerHoverIn(_) => {
+                cx.set_cursor(MouseCursor::ColResize);
+            }
+            Hit::FingerDown(f) => {
+                cx.set_cursor(MouseCursor::ColResize);
+                self.sidebar_drag_start = Some((f.abs.x, self.sidebar_width));
+            }
+            Hit::FingerMove(f) => {
+                if let Some((start_x, start_width)) = self.sidebar_drag_start {
+                    let delta = (f.abs.x - start_x) as f32;
+                    self.set_sidebar_width(cx, start_width + delta);
+                }
+            }
+            Hit::FingerUp(_) => {
+                self.sidebar_drag_start = None;
+            }
+            _ => {}
+        }
     }
 
     /// Extract data URLs from text and add them as attachments
@@ -1137,11 +1250,19 @@ impl AppMain for App {
         match event {
             Event::Startup => {
                 self.connect_to_opencode(cx);
+                if !cx.in_makepad_studio() {
+                    if let Some(mut window) = self.ui.borrow_mut::<Window>() {
+                        window.set_fullscreen(cx);
+                    }
+                }
                 // Initialize terminal
                 self.ui.terminal(&[id!(terminal_panel)]).init_pty(cx);
 
-                // Initialize sidebar to open
+                // Initialize sidebar and terminal to open
                 self.sidebar_open = true;
+                self.terminal_open = true;
+                self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
+                self.set_sidebar_width(cx, self.sidebar_width);
                 self.ui.side_panel(&[id!(side_panel)]).set_open(cx, true);
                 self.ui
                     .side_panel(&[id!(traffic_light_spacer)])
@@ -1149,6 +1270,7 @@ impl AppMain for App {
                 self.ui
                     .view(&[id!(hamburger_button)])
                     .animator_play(cx, &[id!(open), id!(on)]);
+                self.update_sidebar_handle_visibility(cx);
             }
             Event::ImageInput(image) => {
                 self.handle_image_input(cx, image);
@@ -1156,8 +1278,23 @@ impl AppMain for App {
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
             }
+            Event::KeyDown(ke) => {
+                if (ke.modifiers.logo || ke.modifiers.control) && !ke.modifiers.shift && !ke.modifiers.alt {
+                    match ke.key_code {
+                        KeyCode::KeyD => {
+                            self.toggle_sidebar(cx);
+                        }
+                        KeyCode::KeyT => {
+                            self.toggle_terminal(cx);
+                        }
+                        _ => {}
+                    }
+                }
+            }
             _ => {}
         }
+
+        self.handle_sidebar_resize(cx, event);
 
         // Handle UI events and capture actions
         let actions = cx.capture_actions(|cx| {
@@ -1349,25 +1486,7 @@ impl AppMain for App {
         }
 
         if self.ui.button(&[id!(hamburger_button)]).clicked(&actions) {
-            self.sidebar_open = !self.sidebar_open;
-
-            // Toggle sidebar and synchronized spacer
-            self.ui
-                .side_panel(&[id!(side_panel)])
-                .set_open(cx, self.sidebar_open);
-            self.ui
-                .side_panel(&[id!(traffic_light_spacer)])
-                .set_open(cx, !self.sidebar_open);
-
-            if self.sidebar_open {
-                self.ui
-                    .view(&[id!(hamburger_button)])
-                    .animator_play(cx, &[id!(open), id!(on)]);
-            } else {
-                self.ui
-                    .view(&[id!(hamburger_button)])
-                    .animator_play(cx, &[id!(open), id!(off)]);
-            }
+            self.toggle_sidebar(cx);
         }
 
         if self.ui.button(&[id!(send_button)]).clicked(&actions) {

@@ -61,6 +61,7 @@ live_design! {
     // Hover states
     pub THEME_COLOR_HOVER_LIGHT = #2d2d2d
     pub THEME_COLOR_HOVER_MEDIUM = #333
+    pub THEME_COLOR_HOVER_SUBTLE = #ffffff10
     
     // ========================================
     // ACCENT COLORS
