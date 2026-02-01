@@ -1,11 +1,20 @@
-use crate::constants::OPENCODE_SERVER_URL;
+use crate::constants::{HEALTH_CHECK_INTERVAL_SECS, OPENCODE_SERVER_URL, SSE_RETRY_DELAY_SECS};
 use crate::state::actions::AppAction;
+use crate::utils::path_utils::normalize_worktree_canonical;
 use makepad_widgets::{log, Cx};
 use openpad_protocol::{
     ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest, PermissionRuleset,
     Project, PromptRequest, Session, SessionCreateRequest,
 };
 use std::sync::Arc;
+
+/// Helper to post an error action with a formatted message
+fn post_error_action(action_description: &str, error: impl std::fmt::Display) {
+    Cx::post_action(AppAction::SendMessageFailed(format!(
+        "{}: {}",
+        action_description, error
+    )));
+}
 
 /// Helper to create a directory-specific client if a directory is provided
 fn get_directory_client(
@@ -29,7 +38,7 @@ pub fn spawn_sse_subscriber(runtime: &tokio::runtime::Runtime, client: Arc<OpenC
             match client.list_sessions().await {
                 Ok(sessions) => break sessions,
                 Err(_) => {
-                    sleep(Duration::from_secs(2)).await;
+                    sleep(Duration::from_secs(SSE_RETRY_DELAY_SECS)).await;
                 }
             }
         };
@@ -60,7 +69,7 @@ pub fn spawn_health_checker(runtime: &tokio::runtime::Runtime, client: Arc<OpenC
                     version: "unknown".to_string(),
                 })),
             }
-            sleep(Duration::from_secs(5)).await;
+            sleep(Duration::from_secs(HEALTH_CHECK_INTERVAL_SECS)).await;
         }
     });
 }
@@ -77,19 +86,6 @@ pub fn spawn_project_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenC
     });
 }
 
-/// Normalize a worktree path to an absolute directory, matching how sessions are created.
-fn normalize_worktree(worktree: &str) -> String {
-    if worktree == "." {
-        if let Ok(current_dir) = std::env::current_dir() {
-            return current_dir.to_string_lossy().to_string();
-        }
-    }
-    match std::fs::canonicalize(worktree) {
-        Ok(path) => path.to_string_lossy().to_string(),
-        Err(_) => worktree.to_string(),
-    }
-}
-
 /// Spawns a task to load sessions for all projects by querying each project's directory
 pub fn spawn_all_sessions_loader(
     runtime: &tokio::runtime::Runtime,
@@ -100,7 +96,7 @@ pub fn spawn_all_sessions_loader(
     let normalized: Vec<String> = projects
         .iter()
         .filter(|p| p.worktree != "/" && !p.worktree.is_empty())
-        .map(|p| normalize_worktree(&p.worktree))
+        .map(|p| normalize_worktree_canonical(&p.worktree))
         .collect();
 
     runtime.spawn(async move {
@@ -185,7 +181,7 @@ pub fn spawn_message_sender(
                 }
                 Err(e) => {
                     log!("Failed to create session for message send: {}", e);
-                    Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
+                    post_error_action("Failed to create session", e);
                     return;
                 }
             }
@@ -205,7 +201,7 @@ pub fn spawn_message_sender(
         };
         if let Err(e) = target_client.send_prompt_with_options(&sid, request).await {
             log!("Failed to send prompt on session {}: {}", sid, e);
-            Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
+            post_error_action("Failed to send prompt", e);
         }
     });
 }
@@ -242,7 +238,7 @@ pub fn spawn_session_creator(
             }
             Err(e) => {
                 log!("Failed to create session (new session request): {}", e);
-                Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
+                post_error_action("Failed to create session", e);
             }
         }
     });
@@ -281,10 +277,7 @@ pub fn spawn_permission_reply(
             .respond_to_permission(&session_id, &request_id, response)
             .await
         {
-            Cx::post_action(AppAction::SendMessageFailed(format!(
-                "Permission response failed: {}",
-                e
-            )));
+            post_error_action("Permission response failed", e);
         }
     });
 }
@@ -372,10 +365,7 @@ pub fn spawn_session_deleter(
                 // Don't reload sessions here - let SSE handle it
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to delete session: {}",
-                    e
-                )));
+                post_error_action("Failed to delete session", e);
             }
         }
     });
@@ -402,10 +392,7 @@ pub fn spawn_session_updater(
                 // Don't reload sessions here - let SSE handle it
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to rename session: {}",
-                    e
-                )));
+                post_error_action("Failed to rename session", e);
             }
         }
     });
@@ -424,10 +411,7 @@ pub fn spawn_session_aborter(
                 // SSE will handle the session state update
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to abort session: {}",
-                    e
-                )));
+                post_error_action("Failed to abort session", e);
             }
         }
     });
@@ -462,10 +446,7 @@ pub fn spawn_session_brancher(
                     parent_session_id.clone(),
                     e
                 );
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to branch session: {}",
-                    e
-                )));
+                post_error_action("Failed to branch session", e);
             }
         }
     });
@@ -483,10 +464,7 @@ pub fn spawn_session_sharer(
                 Cx::post_action(AppAction::SessionUpdated(session));
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to share session: {}",
-                    e
-                )));
+                post_error_action("Failed to share session", e);
             }
         }
     });
@@ -504,10 +482,7 @@ pub fn spawn_session_unsharer(
                 Cx::post_action(AppAction::SessionUpdated(session));
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to unshare session: {}",
-                    e
-                )));
+                post_error_action("Failed to unshare session", e);
             }
         }
     });
@@ -527,10 +502,7 @@ pub fn spawn_session_summarizer(
         match client.summarize_session(&session_id, request).await {
             Ok(_) => {}
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to summarize session: {}",
-                    e
-                )));
+                post_error_action("Failed to summarize session", e);
             }
         }
     });
@@ -555,10 +527,7 @@ pub fn spawn_session_diff_loader(
                 });
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to load session diff: {}",
-                    e
-                )));
+                post_error_action("Failed to load session diff", e);
             }
         }
     });
@@ -588,10 +557,7 @@ pub fn spawn_message_reverter(
                 }
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to revert to message: {}",
-                    e
-                )));
+                post_error_action("Failed to revert to message", e);
             }
         }
     });
@@ -617,10 +583,7 @@ pub fn spawn_session_unreverter(
                 }
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to unrevert session: {}",
-                    e
-                )));
+                post_error_action("Failed to unrevert session", e);
             }
         }
     });

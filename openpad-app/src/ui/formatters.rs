@@ -1,3 +1,4 @@
+use crate::constants::{SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_MINUTE};
 use openpad_protocol::{AssistantError, TokenUsage};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -12,16 +13,16 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
 
     let diff_ms = now - timestamp_ms;
     let diff_secs = diff_ms / 1000;
-    let diff_mins = diff_secs / 60;
-    let diff_hours = diff_mins / 60;
+    let diff_mins = diff_secs / SECONDS_PER_MINUTE;
+    let diff_hours = diff_secs / SECONDS_PER_HOUR;
 
     // Less than 1 minute: "just now"
-    if diff_secs < 60 {
+    if diff_secs < SECONDS_PER_MINUTE {
         return "just now".to_string();
     }
 
     // Less than 60 minutes: "X min ago"
-    if diff_mins < 60 {
+    if diff_mins < SECONDS_PER_MINUTE {
         return format!("{} min ago", diff_mins);
     }
 
@@ -38,9 +39,9 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
     let timestamp_secs = timestamp_ms / 1000;
 
     // Simple formatting using chrono-like calculations
-    let time_of_day_secs = timestamp_secs % 86400;
-    let hours = (time_of_day_secs / 3600) as u8;
-    let minutes = ((time_of_day_secs % 3600) / 60) as u8;
+    let time_of_day_secs = timestamp_secs % SECONDS_PER_DAY;
+    let hours = (time_of_day_secs / SECONDS_PER_HOUR) as u8;
+    let minutes = ((time_of_day_secs % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE) as u8;
 
     // Format time (24-hour format for simplicity)
     let time_str = format!("{:02}:{:02}", hours, minutes);
