@@ -8,6 +8,14 @@ use openpad_protocol::{
 };
 use std::sync::Arc;
 
+/// Helper to post an error action with a formatted message
+fn post_error_action(action_description: &str, error: impl std::fmt::Display) {
+    Cx::post_action(AppAction::SendMessageFailed(format!(
+        "{}: {}",
+        action_description, error
+    )));
+}
+
 /// Helper to create a directory-specific client if a directory is provided
 fn get_directory_client(
     base_client: Arc<OpenCodeClient>,
@@ -173,7 +181,7 @@ pub fn spawn_message_sender(
                 }
                 Err(e) => {
                     log!("Failed to create session for message send: {}", e);
-                    Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
+                    post_error_action("Failed to create session", e);
                     return;
                 }
             }
@@ -193,7 +201,7 @@ pub fn spawn_message_sender(
         };
         if let Err(e) = target_client.send_prompt_with_options(&sid, request).await {
             log!("Failed to send prompt on session {}: {}", sid, e);
-            Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
+            post_error_action("Failed to send prompt", e);
         }
     });
 }
@@ -230,7 +238,7 @@ pub fn spawn_session_creator(
             }
             Err(e) => {
                 log!("Failed to create session (new session request): {}", e);
-                Cx::post_action(AppAction::SendMessageFailed(e.to_string()));
+                post_error_action("Failed to create session", e);
             }
         }
     });
@@ -269,10 +277,8 @@ pub fn spawn_permission_reply(
             .respond_to_permission(&session_id, &request_id, response)
             .await
         {
-            Cx::post_action(AppAction::SendMessageFailed(format!(
-                "Permission response failed: {}",
-                e
-            )));
+            log!("Failed to send permission reply: {}", e);
+            post_error_action("Permission response failed", e);
         }
     });
 }
@@ -360,10 +366,7 @@ pub fn spawn_session_deleter(
                 // Don't reload sessions here - let SSE handle it
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to delete session: {}",
-                    e
-                )));
+                post_error_action("Failed to delete session", e);
             }
         }
     });
@@ -390,10 +393,7 @@ pub fn spawn_session_updater(
                 // Don't reload sessions here - let SSE handle it
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to rename session: {}",
-                    e
-                )));
+                post_error_action("Failed to rename session", e);
             }
         }
     });
@@ -412,10 +412,7 @@ pub fn spawn_session_aborter(
                 // SSE will handle the session state update
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to abort session: {}",
-                    e
-                )));
+                post_error_action("Failed to abort session", e);
             }
         }
     });
@@ -450,10 +447,7 @@ pub fn spawn_session_brancher(
                     parent_session_id.clone(),
                     e
                 );
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to branch session: {}",
-                    e
-                )));
+                post_error_action("Failed to branch session", e);
             }
         }
     });
@@ -471,10 +465,7 @@ pub fn spawn_session_sharer(
                 Cx::post_action(AppAction::SessionUpdated(session));
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to share session: {}",
-                    e
-                )));
+                post_error_action("Failed to share session", e);
             }
         }
     });
@@ -492,10 +483,7 @@ pub fn spawn_session_unsharer(
                 Cx::post_action(AppAction::SessionUpdated(session));
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to unshare session: {}",
-                    e
-                )));
+                post_error_action("Failed to unshare session", e);
             }
         }
     });
@@ -515,10 +503,7 @@ pub fn spawn_session_summarizer(
         match client.summarize_session(&session_id, request).await {
             Ok(_) => {}
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to summarize session: {}",
-                    e
-                )));
+                post_error_action("Failed to summarize session", e);
             }
         }
     });
@@ -543,10 +528,7 @@ pub fn spawn_session_diff_loader(
                 });
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to load session diff: {}",
-                    e
-                )));
+                post_error_action("Failed to load session diff", e);
             }
         }
     });
@@ -576,10 +558,7 @@ pub fn spawn_message_reverter(
                 }
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to revert to message: {}",
-                    e
-                )));
+                post_error_action("Failed to revert to message", e);
             }
         }
     });
@@ -605,10 +584,7 @@ pub fn spawn_session_unreverter(
                 }
             }
             Err(e) => {
-                Cx::post_action(AppAction::SendMessageFailed(format!(
-                    "Failed to unrevert session: {}",
-                    e
-                )));
+                post_error_action("Failed to unrevert session", e);
             }
         }
     });

@@ -145,22 +145,27 @@ impl AppState {
 }
 
 fn build_model_entries(providers: &[Provider]) -> Vec<ModelDropdownEntry> {
+    /// Helper to get display label, preferring name over id
+    fn display_label(name: Option<&str>, id: &str) -> String {
+        name.unwrap_or(id).to_string()
+    }
+
     let mut entries = vec![ModelDropdownEntry::default_option()];
     for provider in providers {
         if let Some(models) = provider.models.as_ref() {
             if models.is_empty() {
                 continue;
             }
-            let provider_label = provider.name.as_deref().unwrap_or(&provider.id).to_string();
+            let provider_label = display_label(provider.name.as_deref(), &provider.id);
             let mut model_items: Vec<_> = models.iter().collect();
             model_items.sort_by(|a, b| {
-                let a_label = a.1.name.as_deref().unwrap_or(&a.1.id).to_string();
-                let b_label = b.1.name.as_deref().unwrap_or(&b.1.id).to_string();
+                let a_label = display_label(a.1.name.as_deref(), &a.1.id);
+                let b_label = display_label(b.1.name.as_deref(), &b.1.id);
                 a_label.cmp(&b_label)
             });
             entries.push(ModelDropdownEntry::provider_header(provider_label.clone()));
             for (_key, model) in model_items {
-                let model_label = format!("  {}", model.name.as_deref().unwrap_or(&model.id));
+                let model_label = format!("  {}", display_label(model.name.as_deref(), &model.id));
                 entries.push(ModelDropdownEntry::model_option(
                     provider.id.clone(),
                     model.id.clone(),
