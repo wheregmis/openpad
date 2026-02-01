@@ -12,6 +12,7 @@ live_design! {
     use crate::components::user_bubble::UserBubble;
     use crate::components::assistant_bubble::AssistantBubble;
     use crate::components::diff_view::DiffView;
+    use crate::components::permission_card::PermissionCard;
 
     pub MessageList = {{MessageList}} {
         width: Fill, height: Fill
@@ -336,6 +337,7 @@ impl MessageList {
         messages_with_parts: &[openpad_protocol::MessageWithParts],
     ) -> Vec<DisplayMessage> {
         let mut display = Vec::new();
+        let mut pending_diffs: Option<Vec<openpad_protocol::FileDiff>> = None;
         for mwp in messages_with_parts {
             let (role, timestamp, model_id, tokens, cost, error_text, is_error) = match &mwp.info {
                 openpad_protocol::Message::User(msg) => (
@@ -388,6 +390,22 @@ impl MessageList {
                 continue;
             }
 
+            let mut diffs = Vec::new();
+            match &mwp.info {
+                openpad_protocol::Message::User(msg) => {
+                    if let Some(summary) = &msg.summary {
+                        if !summary.diffs.is_empty() {
+                            pending_diffs = Some(summary.diffs.clone());
+                        }
+                    }
+                }
+                openpad_protocol::Message::Assistant(_) => {
+                    if let Some(pending) = pending_diffs.take() {
+                        diffs = pending;
+                    }
+                }
+            }
+
             display.push(DisplayMessage {
                 role: role.to_string(),
                 text,
@@ -398,7 +416,7 @@ impl MessageList {
                 cost,
                 error_text,
                 is_error,
-                diffs: Vec::new(),
+                diffs,
             });
         }
         display
