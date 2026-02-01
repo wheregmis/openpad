@@ -19,11 +19,11 @@ live_design! {
     // - Blue for headers
     pub ColoredDiffText = {{ColoredDiffText}} {
         width: Fill, height: Fit
-        
+
         draw_text: {
             // Slightly tighter line spacing for compact diff display
             text_style: <THEME_FONT_CODE> { font_size: 10, line_spacing: 1.2 }
-            
+
             fn get_color(self) -> vec4 {
                 return self.color;
             }
@@ -35,10 +35,10 @@ live_design! {
 pub struct ColoredDiffText {
     #[deref]
     view: View,
-    
+
     #[live]
     draw_text: DrawText,
-    
+
     /// Parsed diff lines with their associated types
     #[rust]
     lines: Vec<DiffLine>,
@@ -54,10 +54,10 @@ struct DiffLine {
 /// Type of diff line based on its prefix character
 #[derive(Clone, Copy, PartialEq)]
 enum DiffLineType {
-    Addition,  // Lines starting with '+'
-    Deletion,  // Lines starting with '-'
-    Context,   // Normal lines (space prefix or no special prefix)
-    Header,    // Separator lines (──) or ellipsis (...)
+    Addition, // Lines starting with '+'
+    Deletion, // Lines starting with '-'
+    Context,  // Normal lines (space prefix or no special prefix)
+    Header,   // Separator lines (──) or ellipsis (...)
 }
 
 impl Widget for ColoredDiffText {
@@ -67,8 +67,14 @@ impl Widget for ColoredDiffText {
 
     /// Draws the diff text with each line colored according to its type
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
-        cx.begin_turtle(walk, Layout::default());
-        
+        cx.begin_turtle(
+            walk,
+            Layout {
+                flow: Flow::Down,
+                ..Layout::default()
+            },
+        );
+
         // Render each line with its appropriate color (using constants defined above)
         for line in &self.lines {
             let text_color = match line.line_type {
@@ -77,12 +83,12 @@ impl Widget for ColoredDiffText {
                 DiffLineType::Context => DIFF_COLOR_CONTEXT,
                 DiffLineType::Header => DIFF_COLOR_HEADER,
             };
-            
+
             self.draw_text.color = text_color;
-            let line_text = format!("{}\n", line.text);
-            self.draw_text.draw_walk(cx, Walk::fit(), Align::default(), &line_text);
+            self.draw_text
+                .draw_walk(cx, Walk::fit(), Align::default(), &line.text);
         }
-        
+
         cx.end_turtle();
         DrawStep::done()
     }
@@ -92,25 +98,32 @@ impl ColoredDiffText {
     /// Parse the diff text and categorize each line by type
     pub fn set_diff_text(&mut self, cx: &mut Cx, text: &str) {
         self.lines.clear();
-        
+
         for line in text.lines() {
             // Determine line type based on prefix
             let line_type = if line.starts_with('+') {
                 DiffLineType::Addition
             } else if line.starts_with('-') {
                 DiffLineType::Deletion
-            } else if line.starts_with("──") || line.starts_with("...") {
+            } else if line.starts_with("──") || line.starts_with("...") || line.starts_with("@@")
+            {
                 DiffLineType::Header
             } else {
                 DiffLineType::Context
             };
-            
+
+            let display_text = if line.starts_with(' ') {
+                format!("·{}", &line[1..])
+            } else {
+                line.to_string()
+            };
+
             self.lines.push(DiffLine {
-                text: line.to_string(),
+                text: display_text,
                 line_type,
             });
         }
-        
+
         // Trigger redraw to display the new content
         self.view.redraw(cx);
     }
@@ -129,4 +142,3 @@ impl ColoredDiffTextApi for ColoredDiffTextRef {
         }
     }
 }
-
