@@ -536,6 +536,34 @@ pub fn spawn_session_summarizer(
     });
 }
 
+/// Spawns a task to load session diff details
+pub fn spawn_session_diff_loader(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    session_id: String,
+    message_id: Option<String>,
+) {
+    runtime.spawn(async move {
+        let diff = client
+            .session_diff(&session_id, message_id.as_deref())
+            .await;
+        match diff {
+            Ok(diffs) => {
+                Cx::post_action(AppAction::SessionDiffLoaded {
+                    session_id,
+                    diffs,
+                });
+            }
+            Err(e) => {
+                Cx::post_action(AppAction::SendMessageFailed(format!(
+                    "Failed to load session diff: {}",
+                    e
+                )));
+            }
+        }
+    });
+}
+
 /// Spawns a task to revert session to a specific message
 pub fn spawn_message_reverter(
     runtime: &tokio::runtime::Runtime,

@@ -359,6 +359,21 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.update_session_meta_ui(ui, cx);
             cx.redraw_all();
         }
+        AppAction::SessionDiffLoaded { session_id, diffs } => {
+            if let Some(existing) = state.sessions.iter_mut().find(|s| &s.id == session_id) {
+                let summary = existing.summary.get_or_insert_with(|| {
+                    openpad_protocol::SessionSummary {
+                        additions: 0,
+                        deletions: 0,
+                        files: diffs.len() as i64,
+                        diffs: Vec::new(),
+                    }
+                });
+                summary.diffs = diffs.clone();
+            }
+            state.update_session_meta_ui(ui, cx);
+            cx.redraw_all();
+        }
         AppAction::MessagesLoaded(messages) => {
             state.messages_data = messages.clone();
             ui.message_list(&[id!(message_list)])

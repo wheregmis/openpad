@@ -5,12 +5,12 @@
 
 use crate::{
     Agent, AppendPromptRequest, AuthSetRequest, CommandRequest, Config, ExecuteCommandRequest,
-    File, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest, HealthResponse,
-    LogRequest, MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest,
-    PermissionRequest, PermissionResponse, Project, PromptRequest, ProvidersResponse,
-    RevertRequest, SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest,
-    SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol, SymbolsSearchRequest,
-    TextSearchRequest, TextSearchResult,
+    File, FileDiff, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest,
+    HealthResponse, LogRequest, MessageWithParts, PathInfo, PermissionReply,
+    PermissionReplyRequest, PermissionRequest, PermissionResponse, Project, PromptRequest,
+    ProvidersResponse, RevertRequest, SessionCreateRequest, SessionInitRequest,
+    SessionSummarizeRequest, SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol,
+    SymbolsSearchRequest, TextSearchRequest, TextSearchResult,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
 use reqwest::Client as HttpClient;
@@ -388,6 +388,19 @@ impl OpenCodeClient {
         let endpoint = format!("/session/{}/summarize", session_id);
         self.post_json_bool(&endpoint, &request, "summarize session")
             .await
+    }
+
+    pub async fn session_diff(
+        &self,
+        session_id: &str,
+        message_id: Option<&str>,
+    ) -> Result<Vec<FileDiff>> {
+        let endpoint = if let Some(message_id) = message_id {
+            format!("/session/{}/diff?messageID={}", session_id, message_id)
+        } else {
+            format!("/session/{}/diff", session_id)
+        };
+        self.get_json(&endpoint, "get session diff").await
     }
 
     pub async fn list_messages(&self, session_id: &str) -> Result<Vec<MessageWithParts>> {

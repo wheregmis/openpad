@@ -43,7 +43,6 @@ live_design! {
                         }
 
                         revert_label = <Label> {
-                            visible: false
                             width: Fit, height: Fit
                             draw_text: {
                                 color: (THEME_COLOR_ACCENT_AMBER),
@@ -133,7 +132,6 @@ live_design! {
                         }
 
                         revert_label = <Label> {
-                            visible: false
                             width: Fit, height: Fit
                             draw_text: {
                                 color: (THEME_COLOR_ACCENT_AMBER),

@@ -1034,6 +1034,23 @@ impl App {
         async_runtime::spawn_session_summarizer(runtime, client, session_id, false);
     }
 
+    fn load_session_diff(
+        &mut self,
+        _cx: &mut Cx,
+        session_id: String,
+        message_id: Option<String>,
+    ) {
+        let Some(client) = self.client.clone() else {
+            self.state.error_message = Some("Not connected".to_string());
+            return;
+        };
+        let Some(runtime) = self._runtime.as_ref() else {
+            return;
+        };
+
+        async_runtime::spawn_session_diff_loader(runtime, client, session_id, message_id);
+    }
+
     fn branch_session(&mut self, _cx: &mut Cx, parent_session_id: String) {
         let Some(client) = self.client.clone() else {
             self.state.error_message = Some("Not connected".to_string());
@@ -1315,8 +1332,19 @@ impl AppMain for App {
         }
 
         if self.ui.button(&[id!(summarize_button)]).clicked(&actions) {
-            if let Some(session_id) = &self.state.current_session_id {
+            let session_id = self.state.current_session_id.clone();
+            if let Some(session_id) = session_id {
+                let message_id = self
+                    .state
+                    .messages_data
+                    .iter()
+                    .rev()
+                    .find_map(|mwp| match &mwp.info {
+                        openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
+                        _ => None,
+                    });
                 self.summarize_session(cx, session_id.clone());
+                self.load_session_diff(cx, session_id, message_id);
             }
         }
 
