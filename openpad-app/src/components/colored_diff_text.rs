@@ -1,13 +1,10 @@
 use makepad_widgets::*;
 
-// Diff line colors
+// Diff line colors - matching theme where possible, with custom colors for better readability
 const DIFF_COLOR_ADD: Vec4 = vec4(0.301, 0.792, 0.301, 1.0); // #4dca4d - bright green
 const DIFF_COLOR_DEL: Vec4 = vec4(0.878, 0.376, 0.376, 1.0); // #e06060 - soft red
-const DIFF_COLOR_CONTEXT: Vec4 = vec4(0.733, 0.757, 0.788, 1.0); // #bbc1c9 - lighter gray
+const DIFF_COLOR_CONTEXT: Vec4 = vec4(0.733, 0.757, 0.788, 1.0); // #bbc1c9 - lighter gray for readability
 const DIFF_COLOR_HEADER: Vec4 = vec4(0.533, 0.690, 0.859, 1.0); // #88b0db - soft blue
-
-// Line spacing for diff text (slightly tighter than normal text for compactness)
-const DIFF_LINE_SPACING: f64 = 1.2;
 
 live_design! {
     use link::theme::*;
@@ -24,6 +21,7 @@ live_design! {
         width: Fill, height: Fit
         
         draw_text: {
+            // Slightly tighter line spacing for compact diff display
             text_style: <THEME_FONT_CODE> { font_size: 10, line_spacing: 1.2 }
             
             fn get_color(self) -> vec4 {

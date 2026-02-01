@@ -89,11 +89,15 @@ Due to the local path dependencies on Makepad, testing requires:
 4. Viewing the diff in the expanded diff view
 
 ## Color Reference
-All colors are defined inline but reference the theme:
+Colors are defined as constants in `colored_diff_text.rs`:
+- `DIFF_COLOR_ADD`: #4dca4d (bright green)
+- `DIFF_COLOR_DEL`: #e06060 (soft red)
+- `DIFF_COLOR_CONTEXT`: #bbc1c9 (light gray)
+- `DIFF_COLOR_HEADER`: #88b0db (soft blue)
+
+Related theme colors (defined in `openpad-widgets/src/theme.rs` but not currently used):
 - `THEME_COLOR_DIFF_ADD_TEXT`: #4dca4d
 - `THEME_COLOR_DIFF_DEL_TEXT`: #e06060  
-- `THEME_COLOR_DIFF_ADD_BG`: #1a2e1a (not currently used)
-- `THEME_COLOR_DIFF_DEL_BG`: #2e1a1a (not currently used)
-- `THEME_COLOR_DIFF_CONTEXT_TEXT`: #888888 (old value)
-- Custom context color: #bbc1c9 (lighter for better readability)
-- Custom header color: #88b0db (soft blue)
+- `THEME_COLOR_DIFF_ADD_BG`: #1a2e1a (for future background coloring)
+- `THEME_COLOR_DIFF_DEL_BG`: #2e1a1a (for future background coloring)
+- `THEME_COLOR_DIFF_CONTEXT_TEXT`: #888888 (old darker context color)
