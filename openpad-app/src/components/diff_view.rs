@@ -1,3 +1,4 @@
+use crate::components::colored_diff_text::{ColoredDiffTextApi, ColoredDiffTextWidgetExt};
 use makepad_widgets::*;
 
 live_design! {
@@ -6,6 +7,7 @@ live_design! {
     use link::widgets::*;
     use openpad_widgets::openpad::*;
     use openpad_widgets::theme::*;
+    use crate::components::colored_diff_text::ColoredDiffText;
 
     pub DiffView = {{DiffView}} {
         width: Fill, height: Fit
@@ -72,14 +74,8 @@ live_design! {
             <ScrollYView> {
                 width: Fill, height: Fit
 
-                diff_text = <Label> {
+                diff_text = <ColoredDiffText> {
                     width: Fill, height: Fit
-                    text: ""
-                    draw_text: {
-                        color: (THEME_COLOR_DIFF_CONTEXT_TEXT)
-                        text_style: <THEME_FONT_CODE> { font_size: 10 }
-                        wrap: Word
-                    }
                 }
             }
         }
@@ -159,7 +155,7 @@ impl DiffView {
         let mut full_diff = String::new();
         for diff in diffs {
             let header = format!(
-                "── {} (+{} -{}) ──\n",
+                "... {} (+{} -{})\n",
                 diff.file, diff.additions, diff.deletions
             );
             full_diff.push_str(&header);
@@ -170,7 +166,9 @@ impl DiffView {
         }
 
         self.diff_text_content = full_diff.clone();
-        self.view.label(&[id!(diff_text)]).set_text(cx, &full_diff);
+        self.view
+            .colored_diff_text(&[id!(diff_text)])
+            .set_diff_text(cx, &full_diff);
 
         self.expanded = false;
         self.view.view(&[id!(diff_content)]).set_visible(cx, false);
@@ -180,7 +178,9 @@ impl DiffView {
 
     pub fn set_expanded(&mut self, cx: &mut Cx, expanded: bool) {
         self.expanded = expanded;
-        self.view.view(&[id!(diff_content)]).set_visible(cx, expanded);
+        self.view
+            .view(&[id!(diff_content)])
+            .set_visible(cx, expanded);
         if expanded {
             self.view.set_visible(cx, true);
         }
@@ -191,7 +191,9 @@ impl DiffView {
         self.expanded = false;
         self.diff_text_content.clear();
         self.summary_text.clear();
-        self.view.label(&[id!(summary_files_label)]).set_text(cx, "");
+        self.view
+            .label(&[id!(summary_files_label)])
+            .set_text(cx, "");
         self.view.label(&[id!(summary_add_label)]).set_text(cx, "");
         self.view.label(&[id!(summary_del_label)]).set_text(cx, "");
         self.view.set_visible(cx, false);

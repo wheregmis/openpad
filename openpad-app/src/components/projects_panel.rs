@@ -559,7 +559,8 @@ impl Widget for ProjectsPanel {
                             item_widget
                                 .view(&[id!(working_dot)])
                                 .set_visible(cx, working);
-                            let menu_open = self.open_menu_session_id.as_deref() == Some(session_id);
+                            let menu_open =
+                                self.open_menu_session_id.as_deref() == Some(session_id);
                             item_widget
                                 .view(&[id!(menu_panel)])
                                 .set_visible(cx, menu_open);

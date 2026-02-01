@@ -68,9 +68,9 @@ pub fn update_share_ui(ui: &WidgetRef, cx: &mut Cx, share_url: Option<&str>) {
         .set_text(cx, share_url.unwrap_or(""));
     ui.button(&[id!(share_button)]).set_visible(cx, !has_url);
     ui.button(&[id!(unshare_button)]).set_visible(cx, has_url);
-    ui.button(&[id!(copy_share_button)]).set_visible(cx, has_url);
-    ui.widget(&[id!(share_url_label)])
+    ui.button(&[id!(copy_share_button)])
         .set_visible(cx, has_url);
+    ui.widget(&[id!(share_url_label)]).set_visible(cx, has_url);
 }
 
 pub fn update_summary_ui(ui: &WidgetRef, cx: &mut Cx, summary: Option<&SessionSummary>) {
