@@ -24,8 +24,35 @@ pub ProjectsPanel = {{ProjectsPanel}} {
             ProjectHeader = <View> {
                 width: Fill, height: Fit
                 flow: Right, align: {y: 0.5}
-                padding: { top: 12, bottom: 4, left: 16 }
+                padding: { top: 12, bottom: 4, left: 8 }
+                cursor: Hand
+
+                chevron = <View> {
+                    width: 16, height: 16
+                    align: { x: 0.5, y: 0.5 }
+                    show_bg: true
+                    draw_bg: {
+                        instance rotation: 0.0
+                        fn pixel(self) -> vec4 {
+                            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                            let cx = self.rect_size.x * 0.5;
+                            let cy = self.rect_size.y * 0.5;
+                            let sz = 3.0;
+
+                            // Draw a triangle chevron
+                            sdf.rotate(self.rotation, cx, cy);
+                            sdf.move_to(cx - sz, cy - sz * 0.6);
+                            sdf.line_to(cx + sz, cy - sz * 0.6);
+                            sdf.line_to(cx, cy + sz * 0.6);
+                            sdf.close_path();
+                            sdf.fill(#888);
+                            return sdf.result;
+                        }
+                    }
+                }
+
                 project_name = <Label> {
+                    margin: { left: 4 }
                     draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
                 }
             }
@@ -217,6 +244,8 @@ pub struct ProjectsPanel {
     items: Vec<PanelItemKind>,
     #[rust]
     dirty: bool,
+    #[rust]
+    collapsed_projects: HashMap<Option<String>, bool>,
 }
 
 impl ProjectsPanel {
@@ -262,25 +291,32 @@ impl ProjectsPanel {
 
             let project_id = Some(project.id.clone());
             let name = Self::derive_project_name(project);
+            let collapsed = self
+                .collapsed_projects
+                .get(&project_id)
+                .copied()
+                .unwrap_or(false);
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: project_id.clone(),
                 name,
             });
 
-            if let Some(sessions) = grouped.get(&project_id) {
-                for session in sessions {
-                    let title = async_runtime::get_session_title(session);
-                    items.push(PanelItemKind::SessionRow {
-                        session_id: session.id.clone(),
-                        title,
-                    });
+            if !collapsed {
+                if let Some(sessions) = grouped.get(&project_id) {
+                    for session in sessions {
+                        let title = async_runtime::get_session_title(session);
+                        items.push(PanelItemKind::SessionRow {
+                            session_id: session.id.clone(),
+                            title,
+                        });
+                    }
                 }
-            }
 
-            items.push(PanelItemKind::NewSession {
-                project_id: project_id.clone(),
-            });
+                items.push(PanelItemKind::NewSession {
+                    project_id: project_id.clone(),
+                });
+            }
             items.push(PanelItemKind::Spacer);
         }
 
@@ -294,18 +330,27 @@ impl ProjectsPanel {
             .collect();
 
         if !ungrouped.is_empty() {
+            let collapsed = self
+                .collapsed_projects
+                .get(&None)
+                .copied()
+                .unwrap_or(false);
+
             items.push(PanelItemKind::ProjectHeader {
                 project_id: None,
                 name: "Other".to_string(),
             });
-            for session in ungrouped {
-                let title = async_runtime::get_session_title(session);
-                items.push(PanelItemKind::SessionRow {
-                    session_id: session.id.clone(),
-                    title,
-                });
+
+            if !collapsed {
+                for session in ungrouped {
+                    let title = async_runtime::get_session_title(session);
+                    items.push(PanelItemKind::SessionRow {
+                        session_id: session.id.clone(),
+                        title,
+                    });
+                }
+                items.push(PanelItemKind::NewSession { project_id: None });
             }
-            items.push(PanelItemKind::NewSession { project_id: None });
         }
 
         self.items = items;
@@ -325,6 +370,19 @@ impl Widget for ProjectsPanel {
                 continue;
             }
             match &self.items[item_id] {
+                PanelItemKind::ProjectHeader { project_id, .. } => {
+                    if widget.as_view().finger_up(&actions).is_some() {
+                        let collapsed = self
+                            .collapsed_projects
+                            .get(project_id)
+                            .copied()
+                            .unwrap_or(false);
+                        self.collapsed_projects
+                            .insert(project_id.clone(), !collapsed);
+                        self.dirty = true;
+                        self.redraw(cx);
+                    }
+                }
                 PanelItemKind::NewSession { project_id } => {
                     if widget.button(&[id!(new_session_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
@@ -380,8 +438,27 @@ impl Widget for ProjectsPanel {
                     let item_widget = list.item(cx, item_id, template);
 
                     match &panel_item {
-                        PanelItemKind::ProjectHeader { name, .. } => {
+                        PanelItemKind::ProjectHeader {
+                            name, project_id, ..
+                        } => {
                             item_widget.label(&[id!(project_name)]).set_text(cx, name);
+                            let collapsed = self
+                                .collapsed_projects
+                                .get(project_id)
+                                .copied()
+                                .unwrap_or(false);
+                            // Chevron: 0.0 = pointing down (expanded), -PI/2 = pointing right (collapsed)
+                            let rotation = if collapsed {
+                                -std::f32::consts::FRAC_PI_2
+                            } else {
+                                0.0
+                            };
+                            item_widget.view(&[id!(chevron)]).apply_over(
+                                cx,
+                                live! {
+                                    draw_bg: { rotation: (rotation) }
+                                },
+                            );
                         }
                         PanelItemKind::SessionRow { session_id, title } => {
                             item_widget.button(&[id!(session_button)]).set_text(cx, title);
