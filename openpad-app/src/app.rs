@@ -539,17 +539,14 @@ pub struct App {
 
 impl LiveRegister for App {
     fn live_register(cx: &mut Cx) {
-        crate::theme::live_design(cx);
         openpad_widgets::live_design(cx);
         makepad_code_editor::code_editor::live_design(cx);
         makepad_code_editor::code_view::live_design(cx);
-        crate::components::app_bg::live_design(cx);
         crate::components::user_bubble::live_design(cx);
         crate::components::assistant_bubble::live_design(cx);
         crate::components::projects_panel::live_design(cx);
         crate::components::message_list::live_design(cx);
         crate::components::permission_dialog::live_design(cx);
-        crate::components::simple_dialog::live_design(cx);
         crate::components::terminal::live_design(cx);
     }
 }
