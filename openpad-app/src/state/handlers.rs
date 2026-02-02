@@ -2,6 +2,7 @@ use crate::async_runtime::tasks;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::message_list::PendingPermissionDisplay;
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
+use crate::components::settings_dialog::SettingsDialogWidgetRefExt;
 use crate::constants::*;
 use crate::state::actions::AppAction;
 use crate::ui::state_updates;
@@ -84,6 +85,7 @@ pub struct AppState {
     pub selected_agent_idx: Option<usize>,
     pub selected_skill_idx: Option<usize>,
     pub attached_files: Vec<AttachedFile>,
+    pub config: Option<openpad_protocol::Config>,
 }
 
 impl AppState {
@@ -419,6 +421,10 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             ui.up_drop_down(&[id!(model_dropdown)]).set_labels(cx, labels);
             ui.up_drop_down(&[id!(model_dropdown)])
                 .set_selected_item(cx, 0);
+            
+            ui.settings_dialog(&[id!(settings_dialog)])
+                .set_providers(cx, state.providers.clone());
+                
             cx.redraw_all();
         }
         AppAction::AgentsLoaded(agents) => {
@@ -442,6 +448,17 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 .set_selected_item(cx, 0);
             state.selected_skill_idx = None;
             cx.redraw_all();
+        }
+        AppAction::ConfigLoaded(config) => {
+            state.config = Some(config.clone());
+            ui.settings_dialog(&[id!(settings_dialog)])
+                 .set_config(cx, &config);
+            cx.redraw_all();
+        }
+        AppAction::AuthSet { provider_id, success } => {
+            if *success {
+                // visual feedback handled by ProvidersLoaded which follows
+            }
         }
         _ => {}
     }

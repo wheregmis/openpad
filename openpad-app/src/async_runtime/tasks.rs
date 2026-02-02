@@ -437,8 +437,6 @@ pub fn spawn_session_brancher(
         match target_client.create_session_with_options(request).await {
             Ok(session) => {
                 Cx::post_action(AppAction::SessionCreated(session));
-                // Don't reload sessions here - let SSE handle it to avoid race conditions
-                // The SessionCreated SSE event will arrive and add the session to the list
             }
             Err(e) => {
                 log!(
@@ -584,6 +582,59 @@ pub fn spawn_session_unreverter(
             }
             Err(e) => {
                 post_error_action("Failed to unrevert session", e);
+            }
+        }
+    });
+}
+
+/// Spawns a task to fetch global config
+pub fn spawn_config_loader(runtime: &tokio::runtime::Runtime, client: Arc<OpenCodeClient>) {
+    runtime.spawn(async move {
+        match client.get_config().await {
+            Ok(config) => {
+                Cx::post_action(AppAction::ConfigLoaded(config));
+            }
+            Err(e) => {
+                eprintln!("Failed to load config: {}", e);
+            }
+        }
+    });
+}
+
+/// Spawns a task to set auth for a provider
+pub fn spawn_auth_setter(
+    runtime: &tokio::runtime::Runtime,
+    client: Arc<OpenCodeClient>,
+    provider_id: String,
+    api_key: String,
+) {
+    use openpad_protocol::AuthSetRequest;
+
+    runtime.spawn(async move {
+        let request = AuthSetRequest {
+            auth_type: "api".to_string(),
+            key: api_key,
+        };
+        match client.set_auth(&provider_id, request).await {
+            Ok(success) => {
+                Cx::post_action(AppAction::AuthSet {
+                    provider_id,
+                    success,
+                });
+                // Reload providers to update status if server reflects it
+                match client.get_providers().await {
+                     Ok(providers_response) => {
+                        Cx::post_action(AppAction::ProvidersLoaded(providers_response));
+                    }
+                    Err(_) => {}
+                }
+            }
+            Err(e) => {
+                post_error_action("Failed to set auth", e);
+                Cx::post_action(AppAction::AuthSet {
+                    provider_id,
+                    success: false,
+                });
             }
         }
     });

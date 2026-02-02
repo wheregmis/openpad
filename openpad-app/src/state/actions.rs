@@ -57,6 +57,11 @@ pub enum AppAction {
     ProvidersLoaded(ProvidersResponse),
     AgentsLoaded(Vec<Agent>),
     SkillsLoaded(Vec<Skill>),
+    ConfigLoaded(openpad_protocol::Config),
+    AuthSet {
+        provider_id: String,
+        success: bool,
+    },
 }
 
 #[derive(Clone, Debug, DefaultNone)]

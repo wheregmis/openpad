@@ -11,6 +11,7 @@ use openpad_protocol::OpenCodeClient;
 use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction};
+use crate::components::settings_dialog::SettingsDialogWidgetRefExt;
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
 
@@ -79,6 +80,7 @@ live_design! {
     use crate::components::message_list::MessageList;
     use crate::components::diff_view::DiffView;
     use crate::components::terminal::Terminal;
+    use crate::components::settings_dialog::SettingsDialog;
 
     ChatPanel = <View> {
         width: Fill, height: Fill
@@ -335,6 +337,20 @@ live_design! {
                                 border_radius: 0.0
                                 border_size: 1.0
                             }
+                            
+                            <View> { width: Fill }
+                            
+                            settings_button = <Button> {
+                                width: 24, height: 24
+                                text: "⚙"
+                                draw_bg: {
+                                    color: (THEME_COLOR_TRANSPARENT)
+                                    color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                    border_radius: 4.0
+                                    border_size: 0.0
+                                }
+                                draw_text: { color: (THEME_COLOR_TEXT_MUTED) }
+                            }
                         }
 
                         projects_panel = <ProjectsPanel> {}
@@ -516,6 +532,9 @@ live_design! {
 
                 // Simple dialog for confirmations and inputs (shown as overlay)
                 simple_dialog = <SimpleDialog> {}
+                
+                // Settings Dialog
+                settings_dialog = <SettingsDialog> {}
             }
         }
     }
@@ -556,6 +575,7 @@ impl LiveRegister for App {
         crate::components::permission_dialog::live_design(cx);
         crate::components::diff_view::live_design(cx);
         crate::components::terminal::live_design(cx);
+        crate::components::settings_dialog::live_design(cx);
     }
 }
 
@@ -895,7 +915,8 @@ impl App {
         };
         async_runtime::spawn_providers_loader(runtime, client.clone());
         async_runtime::spawn_agents_loader(runtime, client.clone());
-        async_runtime::spawn_skills_loader(runtime, client);
+        async_runtime::spawn_skills_loader(runtime, client.clone());
+        async_runtime::spawn_config_loader(runtime, client);
     }
 
     fn load_pending_permissions(&mut self) {
@@ -1067,6 +1088,7 @@ impl App {
         async_runtime::spawn_permission_reply(runtime, client, session_id, request_id, reply);
     }
 
+
     fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
         // Show confirmation dialog
         self.ui.simple_dialog(&[id!(simple_dialog)]).show_confirm(
@@ -1232,6 +1254,9 @@ impl App {
                         directory,
                     );
                 }
+            }
+            "set_auth" => {
+                async_runtime::spawn_auth_setter(runtime, client, data.to_string(), value);
             }
             _ => {}
         }
@@ -1574,6 +1599,10 @@ impl AppMain for App {
 
         if self.ui.button(&[id!(hamburger_button)]).clicked(&actions) {
             self.toggle_sidebar(cx);
+        }
+
+        if self.ui.button(&[id!(settings_button)]).clicked(&actions) {
+            self.ui.settings_dialog(&[id!(settings_dialog)]).show(cx);
         }
 
         if self.ui.button(&[id!(send_button)]).clicked(&actions) {

@@ -9,6 +9,7 @@ pub mod message_list;
 pub mod permission_card;
 pub mod permission_dialog;
 pub mod projects_panel;
+pub mod settings_dialog;
 pub mod terminal;
 pub mod user_bubble;
 
@@ -20,3 +21,4 @@ pub use permission_card::{PermissionCard, PermissionCardAction, PermissionCardAp
 pub use permission_dialog::{PermissionDialog, PermissionDialogRef};
 pub use projects_panel::{PanelItemKind, ProjectsPanel, ProjectsPanelRef};
 pub use terminal::{Terminal, TerminalAction, TerminalWidgetRefExt};
+pub use settings_dialog::{SettingsDialog, SettingsDialogRef};
