@@ -1,4 +1,4 @@
-use crate::components::diff_view::DiffViewWidgetRefExt;
+use crate::components::diff_view::{DiffViewApi, DiffViewWidgetRefExt};
 use crate::components::permission_card::PermissionCardWidgetRefExt;
 use makepad_widgets::*;
 
@@ -346,37 +346,21 @@ live_design! {
                         }
 
                         revert_button = <Button> {
-                            width: Fit, height: 20
-                            text: "Revert"
-                            draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                // radius: 4.0
-                                border_size: 0.0
-                            }
-                            draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
-                            }
-                        }
-
-                        diff_button = <Button> {
-                            width: Fit, height: 20
-                            text: "Diff"
-                            draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                // radius: 4.0
-                                border_size: 0.0
-                            }
-                            draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
-                            }
-                        }
-                    }
+                             width: Fit, height: 20
+                             text: "Revert"
+                             draw_bg: {
+                                 color: (THEME_COLOR_TRANSPARENT)
+                                 color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                 // radius: 4.0
+                                 border_size: 0.0
+                             }
+                             draw_text: {
+                                 color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                 color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                             }
+                         }
+                     }
                 }
             }
         }
@@ -570,18 +554,6 @@ impl MessageList {
         } else {
             lines.join("\n")
         }
-    }
-
-    fn diff_summary(diffs: &[openpad_protocol::FileDiff], expanded: bool) -> String {
-        let file_count = diffs.len();
-        let additions: i64 = diffs.iter().map(|d| d.additions).sum();
-        let deletions: i64 = diffs.iter().map(|d| d.deletions).sum();
-        let file_label = if file_count == 1 { "file" } else { "files" };
-        let chevron = if expanded { "▾" } else { "▸" };
-        format!(
-            "{} {} · +{} -{} {}",
-            file_count, file_label, additions, deletions, chevron
-        )
     }
 
     fn rebuild_from_parts(
@@ -837,18 +809,27 @@ impl Widget for MessageList {
                 }
             }
 
-            if widget.button(&[id!(diff_button)]).clicked(&actions) {
-                if let Some(message) = self.messages.get_mut(item_id) {
-                    message.show_diffs = !message.show_diffs;
-                    self.redraw(cx);
-                }
-            }
-
             if widget.button(&[id!(steps_button)]).clicked(&actions) {
                 if let Some(message) = self.messages.get_mut(item_id) {
                     if !message.steps.is_empty() {
                         message.show_steps = !message.show_steps;
                         self.redraw(cx);
+                    }
+                }
+            }
+
+            // Handle diff view toggle via summary_header click
+            if item_id < self.messages.len() {
+                let msg = &self.messages[item_id];
+                if !msg.diffs.is_empty() {
+                    if widget
+                        .diff_view(&[id!(diff_view)])
+                        .summary_header_clicked(cx)
+                    {
+                        if let Some(message) = self.messages.get_mut(item_id) {
+                            message.show_diffs = !message.show_diffs;
+                            self.redraw(cx);
+                        }
                     }
                 }
             }
@@ -1194,16 +1175,6 @@ impl Widget for MessageList {
                             item_widget
                                 .button(&[id!(revert_button)])
                                 .set_visible(cx, false);
-                            let show_diff_button = !msg.diffs.is_empty();
-                            let diff_button = item_widget.button(&[id!(diff_button)]);
-                            if show_diff_button {
-                                let label = Self::diff_summary(&msg.diffs, msg.show_diffs);
-                                diff_button.set_text(cx, &label);
-                                diff_button.set_visible(cx, true);
-                            } else {
-                                diff_button.set_text(cx, "");
-                                diff_button.set_visible(cx, false);
-                            }
                             item_widget.view(&[id!(msg_actions)]).set_visible(cx, true);
 
                             // Set diff view data
