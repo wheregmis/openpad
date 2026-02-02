@@ -980,6 +980,12 @@ impl App {
                     AppAction::UnrevertSession(session_id) => {
                         self.unrevert_session(cx, session_id.clone());
                     }
+                    AppAction::RequestSessionDiff {
+                        session_id,
+                        message_id,
+                    } => {
+                        self.load_session_diff(cx, session_id.clone(), message_id.clone());
+                    }
                     AppAction::DialogConfirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }

@@ -21,6 +21,10 @@ pub enum AppAction {
         session_id: String,
         diffs: Vec<FileDiff>,
     },
+    RequestSessionDiff {
+        session_id: String,
+        message_id: Option<String>,
+    },
     MessagesLoaded(Vec<MessageWithParts>),
     MessageReceived(Message),
     PartReceived {

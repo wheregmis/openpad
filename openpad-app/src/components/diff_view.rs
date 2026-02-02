@@ -172,6 +172,7 @@ impl DiffView {
 
         self.expanded = false;
         self.view.view(&[id!(diff_content)]).set_visible(cx, false);
+        self.view.view(&[id!(summary_header)]).set_visible(cx, true);
         self.view.set_visible(cx, true);
         self.redraw(cx);
     }
@@ -196,6 +197,9 @@ impl DiffView {
             .set_text(cx, "");
         self.view.label(&[id!(summary_add_label)]).set_text(cx, "");
         self.view.label(&[id!(summary_del_label)]).set_text(cx, "");
+        self.view
+            .view(&[id!(summary_header)])
+            .set_visible(cx, false);
         self.view.set_visible(cx, false);
         self.redraw(cx);
     }

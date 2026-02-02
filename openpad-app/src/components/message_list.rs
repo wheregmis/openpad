@@ -47,15 +47,6 @@ live_design! {
                             text: "..."
                         }
 
-                        revert_label = <Label> {
-                            width: Fit, height: Fit
-                            draw_text: {
-                                color: (THEME_COLOR_ACCENT_AMBER),
-                                text_style: <THEME_FONT_BOLD> { font_size: 8 },
-                            }
-                            text: "REVERT"
-                        }
-
                         <Label> {
                             width: Fit, height: Fit
                             draw_text: {
@@ -112,7 +103,7 @@ live_design! {
                     width: Fill, height: Fit
                     flow: Down,
 
-                    // Metadata row (model, timestamp, revert, steps toggle inline)
+                    // Metadata row (model, timestamp | copy icon, revert icon, steps)
                     <View> {
                         width: Fill, height: Fit
                         flow: Right,
@@ -138,13 +129,36 @@ live_design! {
                             text: "..."
                         }
 
-                        revert_label = <Label> {
-                            width: Fit, height: Fit
-                            draw_text: {
-                                color: (THEME_COLOR_ACCENT_AMBER),
-                                text_style: <THEME_FONT_BOLD> { font_size: 8 },
+                        <View> { width: Fill }
+
+                        copy_action_button = <Button> {
+                            width: Fit, height: 20
+                            text: "Copy"
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                border_size: 0.0
                             }
-                            text: "REVERT"
+                            draw_text: {
+                                color: (THEME_COLOR_TEXT_PRIMARY)
+                                color_hover: (THEME_COLOR_TEXT_BRIGHT)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
+                        }
+
+                        revert_action_button = <Button> {
+                            width: Fit, height: 20
+                            text: "Revert"
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                border_size: 0.0
+                            }
+                            draw_text: {
+                                color: (THEME_COLOR_ACCENT_AMBER)
+                                color_hover: (THEME_COLOR_TEXT_BRIGHT)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
                         }
 
                         steps_button = <Button> {
@@ -155,8 +169,8 @@ live_design! {
                                 border_size: 0.0
                             }
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                                color: (THEME_COLOR_TEXT_PRIMARY)
+                                color_hover: (THEME_COLOR_TEXT_BRIGHT)
                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 }
                             }
                             text: "Show steps"
@@ -699,7 +713,8 @@ impl MessageList {
             if steps_only {
                 if let Some(ref mut pending) = pending_steps_only {
                     pending.steps.extend(steps);
-                    pending.duration_ms = duration_ms.or(pending.duration_ms);
+                    // Prefer original (first) duration when merging steps-only messages
+                    pending.duration_ms = pending.duration_ms.or(duration_ms);
                 } else {
                     pending_steps_only = Some(DisplayMessage {
                         role: role.to_string(),
@@ -806,11 +821,17 @@ impl Widget for MessageList {
                 continue;
             }
 
-            if widget.button(&[id!(copy_button)]).clicked(&actions) {
+            if widget.button(&[id!(copy_action_button)]).clicked(&actions)
+                || widget.button(&[id!(copy_button)]).clicked(&actions)
+            {
                 cx.copy_to_clipboard(&self.messages[item_id].text);
             }
 
-            if widget.button(&[id!(revert_button)]).clicked(&actions) {
+            if widget
+                .button(&[id!(revert_action_button)])
+                .clicked(&actions)
+                || widget.button(&[id!(revert_button)]).clicked(&actions)
+            {
                 if let Some(message_id) = &self.messages[item_id].message_id {
                     cx.action(MessageListAction::RevertToMessage(message_id.clone()));
                 }
@@ -929,9 +950,6 @@ impl Widget for MessageList {
                             .set_text(cx, &status_text);
                         item_widget.label(&[id!(timestamp_label)]).set_text(cx, "");
                         item_widget
-                            .label(&[id!(revert_label)])
-                            .set_visible(cx, false);
-                        item_widget
                             .label(&[id!(model_label)])
                             .set_text(cx, "ASSISTANT");
                         item_widget.label(&[id!(error_label)]).set_text(cx, "");
@@ -980,9 +998,20 @@ impl Widget for MessageList {
                             .as_ref()
                             .and_then(|id| self.revert_message_id.as_ref().map(|rev| rev == id))
                             .unwrap_or(false);
-                        item_widget
-                            .label(&[id!(revert_label)])
-                            .set_visible(cx, is_revert_point);
+                        let last_assistant_idx =
+                            self.messages.iter().rposition(|m| m.role == "assistant");
+                        let show_revert = is_revert_point
+                            || (self.revert_message_id.is_none()
+                                && last_assistant_idx == Some(item_id));
+                        if msg.role == "assistant" {
+                            // Metadata row (first child of AssistantBubble) holds Copy/Revert/Show steps; keep visible
+                            item_widget
+                                .button(&[id!(copy_action_button)])
+                                .set_visible(cx, true);
+                            item_widget
+                                .button(&[id!(revert_action_button)])
+                                .set_visible(cx, show_revert);
+                        }
 
                         // Set timestamp if available
                         if let Some(timestamp) = msg.timestamp {
@@ -1158,10 +1187,13 @@ impl Widget for MessageList {
                                 }
                             }
 
-                            let show_revert = msg.message_id.is_some() && !msg.is_error;
+                            // Copy and Revert are in the top row as icons; hide them in bottom row
+                            item_widget
+                                .button(&[id!(copy_button)])
+                                .set_visible(cx, false);
                             item_widget
                                 .button(&[id!(revert_button)])
-                                .set_visible(cx, show_revert);
+                                .set_visible(cx, false);
                             let show_diff_button = !msg.diffs.is_empty();
                             let diff_button = item_widget.button(&[id!(diff_button)]);
                             if show_diff_button {

@@ -398,6 +398,21 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 &state.messages_data,
                 state.current_revert_message_id(),
             );
+            // Request session diff so file changes show on the last assistant message
+            if let Some(session_id) = state.current_session_id.clone() {
+                let message_id = state
+                    .messages_data
+                    .iter()
+                    .rev()
+                    .find_map(|mwp| match &mwp.info {
+                        openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
+                        _ => None,
+                    });
+                cx.action(AppAction::RequestSessionDiff {
+                    session_id,
+                    message_id,
+                });
+            }
         }
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
