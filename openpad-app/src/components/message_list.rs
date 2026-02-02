@@ -148,67 +148,84 @@ live_design! {
                         }
                     }
 
-                    msg_text = <Markdown> {
+                    markdown_view = <View> {
+                        visible: false
                         width: Fill, height: Fit
-                        font_size: 10
-                        font_color: (THEME_COLOR_TEXT_NORMAL)
-                        paragraph_spacing: 8
-                        pre_code_spacing: 6
-                        use_code_block_widget: true
-
-                        code_block = <View> {
+                        msg_text = <Markdown> {
                             width: Fill, height: Fit
-                            flow: Down
-                            padding: { left: 8, right: 8, top: 6, bottom: 6 }
-                            margin: { top: 4, bottom: 4 }
-                            draw_bg: {
-                                color: (THEME_COLOR_BG_INPUT)
-                                border_radius: 6.0
-                            }
+                            font_size: 10
+                            font_color: (THEME_COLOR_TEXT_NORMAL)
+                            paragraph_spacing: 8
+                            pre_code_spacing: 6
+                            use_code_block_widget: true
 
-                            code_view = <CodeView> {
-                                editor: {
-                                    width: Fill
-                                    height: Fit
-                                    draw_bg: { color: (THEME_COLOR_BG_INPUT) }
-                                    token_colors: {
-                                        unknown: (THEME_COLOR_TEXT_NORMAL)
-                                        branch_keyword: (THEME_COLOR_ACCENT_PURPLE)
-                                        comment: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                        constant: (THEME_COLOR_ACCENT_AMBER)
-                                        delimiter: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                        delimiter_highlight: (THEME_COLOR_TEXT_BRIGHT)
-                                        identifier: (THEME_COLOR_TEXT_NORMAL)
-                                        loop_keyword: (THEME_COLOR_ACCENT_PURPLE)
-                                        number: (THEME_COLOR_ACCENT_AMBER)
-                                        other_keyword: (THEME_COLOR_ACCENT_BLUE)
-                                        function: (THEME_COLOR_ACCENT_BLUE)
-                                        punctuator: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                        string: (THEME_COLOR_TEXT_CODE)
-                                        typename: (THEME_COLOR_TEXT_BOLD)
-                                        whitespace: (THEME_COLOR_TEXT_NORMAL)
-                                        error_decoration: (THEME_COLOR_ACCENT_RED)
-                                        warning_decoration: (THEME_COLOR_ACCENT_AMBER)
+                            code_block = <View> {
+                                width: Fill, height: Fit
+                                flow: Down
+                                padding: { left: 8, right: 8, top: 6, bottom: 6 }
+                                margin: { top: 4, bottom: 4 }
+                                draw_bg: {
+                                    color: (THEME_COLOR_BG_INPUT)
+                                    border_radius: 6.0
+                                }
+
+                                code_view = <CodeView> {
+                                    editor: {
+                                        width: Fill
+                                        height: Fit
+                                        draw_bg: { color: (THEME_COLOR_BG_INPUT) }
+                                        token_colors: {
+                                            unknown: (THEME_COLOR_TEXT_NORMAL)
+                                            branch_keyword: (THEME_COLOR_ACCENT_PURPLE)
+                                            comment: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                            constant: (THEME_COLOR_ACCENT_AMBER)
+                                            delimiter: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                                            delimiter_highlight: (THEME_COLOR_TEXT_BRIGHT)
+                                            identifier: (THEME_COLOR_TEXT_NORMAL)
+                                            loop_keyword: (THEME_COLOR_ACCENT_PURPLE)
+                                            number: (THEME_COLOR_ACCENT_AMBER)
+                                            other_keyword: (THEME_COLOR_ACCENT_BLUE)
+                                            function: (THEME_COLOR_ACCENT_BLUE)
+                                            punctuator: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                                            string: (THEME_COLOR_TEXT_CODE)
+                                            typename: (THEME_COLOR_TEXT_BOLD)
+                                            whitespace: (THEME_COLOR_TEXT_NORMAL)
+                                            error_decoration: (THEME_COLOR_ACCENT_RED)
+                                            warning_decoration: (THEME_COLOR_ACCENT_AMBER)
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        draw_normal: {
-                            text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 }
-                            color: (THEME_COLOR_TEXT_NORMAL)
+                            draw_normal: {
+                                text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 }
+                                color: (THEME_COLOR_TEXT_NORMAL)
+                            }
+                            draw_italic: {
+                                text_style: <THEME_FONT_ITALIC> { font_size: 10 }
+                                color: (THEME_COLOR_TEXT_NORMAL)
+                            }
+                            draw_bold: {
+                                text_style: <THEME_FONT_BOLD> { font_size: 10 }
+                                color: (THEME_COLOR_TEXT_BOLD)
+                            }
+                            draw_fixed: {
+                                text_style: <THEME_FONT_CODE> { font_size: 9 }
+                                color: (THEME_COLOR_TEXT_CODE)
+                            }
                         }
-                        draw_italic: {
-                            text_style: <THEME_FONT_ITALIC> { font_size: 10 }
-                            color: (THEME_COLOR_TEXT_NORMAL)
-                        }
-                        draw_bold: {
-                            text_style: <THEME_FONT_BOLD> { font_size: 10 }
-                            color: (THEME_COLOR_TEXT_BOLD)
-                        }
-                        draw_fixed: {
-                            text_style: <THEME_FONT_CODE> { font_size: 9 }
-                            color: (THEME_COLOR_TEXT_CODE)
+                    }
+
+                    label_view = <View> {
+                        visible: false
+                        width: Fill, height: Fit
+                        msg_label = <Label> {
+                            width: Fill, height: Fit
+                            draw_text: {
+                                color: (THEME_COLOR_TEXT_NORMAL)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 }
+                                word: Wrap
+                            }
                         }
                     }
 
@@ -459,9 +476,14 @@ impl Widget for MessageList {
 
         if self.is_working {
             if let Event::NextFrame(_) = event {
+                // Only redraw on next frame if we are actually working/streaming
+                // We rely on append_text_for_message to trigger redraws when content updates
+                // But we still need this for the "working..." timer update
                 self.redraw(cx);
             }
-            cx.new_next_frame();
+            // Throttle timer updates to 100ms instead of every frame to save CPU
+            // The timer only updates seconds anyway
+             cx.new_next_frame(); 
         }
 
         let actions = cx.capture_actions(|cx| {
@@ -542,8 +564,12 @@ impl Widget for MessageList {
                             "Agent working...".to_string()
                         };
                         let item_widget = list.item(cx, item_id, live_id!(AssistantMsg));
+                        
+                        // For status, always use label for better performance
+                        item_widget.view(&[id!(markdown_view)]).set_visible(cx, false);
+                        item_widget.view(&[id!(label_view)]).set_visible(cx, true);
                         item_widget
-                            .widget(&[id!(msg_text)])
+                            .widget(&[id!(msg_label)])
                             .set_text(cx, &status_text);
                         item_widget.label(&[id!(timestamp_label)]).set_text(cx, "");
                         item_widget
@@ -565,7 +591,27 @@ impl Widget for MessageList {
                         };
 
                         let item_widget = list.item(cx, item_id, template);
-                        item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
+                        
+                        if msg.role == "user" {
+                            item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
+                        } else {
+                            // HEURISTIC: content triggers markdown if it has backticks, hash headers, or > quotes
+                            // This is a simple check to avoid markdown widget cost for plain text
+                            let needs_markdown = msg.text.contains("```") 
+                                || msg.text.contains("`") 
+                                || msg.text.contains("# ")
+                                || msg.text.contains("> ");
+
+                            if needs_markdown {
+                                item_widget.view(&[id!(label_view)]).set_visible(cx, false);
+                                item_widget.view(&[id!(markdown_view)]).set_visible(cx, true);
+                                item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
+                            } else {
+                                item_widget.view(&[id!(markdown_view)]).set_visible(cx, false);
+                                item_widget.view(&[id!(label_view)]).set_visible(cx, true);
+                                item_widget.widget(&[id!(msg_label)]).set_text(cx, &msg.text);
+                            }
+                        }
 
                         let is_revert_point = msg
                             .message_id
@@ -674,13 +720,15 @@ impl MessageListRef {
         revert_message_id: Option<String>,
     ) {
         if let Some(mut inner) = self.borrow_mut() {
-            let was_empty = inner.messages.is_empty();
             inner.messages = MessageList::rebuild_from_parts(messages_with_parts);
             inner.revert_message_id = revert_message_id;
-            // Reset scroll position when loading a new set of messages
-            // to avoid stale first_id from a previous longer list
-            if was_empty || messages_with_parts.is_empty() {
-                inner.view.portal_list(&[id!(list)]).set_first_id(0);
+            // Scroll to the last message so users see the most recent conversation
+            let msg_count = inner.messages.len();
+            if msg_count > 0 {
+                inner
+                    .view
+                    .portal_list(&[id!(list)])
+                    .set_first_id(msg_count.saturating_sub(1));
             }
             inner.redraw(cx);
         }
@@ -693,6 +741,7 @@ impl MessageListRef {
             if let Some(last) = inner.messages.last_mut() {
                 if last.role == role {
                     last.text.push_str(text);
+                    // Only redraw if content changed
                     inner.redraw(cx);
                     return;
                 }
