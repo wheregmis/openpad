@@ -91,151 +91,168 @@ pub ProjectsPanel = {{ProjectsPanel}} {
 
             SessionRow = <View> {
                 width: Fill, height: Fit
-                padding: { top: 1, bottom: 1, left: 16 }
-                flow: Right,
-                spacing: 2,
-                align: { y: 0.5 }
+                flow: Overlay
 
-                session_button = <Button> {
-                    width: Fill, height: 24
-                    margin: { right: 8 }
-                    text: "Session"
-                    draw_bg: {
-                        color: (THEME_COLOR_TRANSPARENT)
-                        color_hover: (THEME_COLOR_HOVER_SUBTLE)
-                        border_radius: 4.0
-                        border_size: 0.0
-                    }
-                    draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
-                }
-
-                summary_stats = <View> {
-                    width: Fit, height: Fit
-                    margin: { right: 6 }
-                    flow: Right
-                    spacing: 6
-                    align: { y: 0.5 }
-
-                    summary_files_label = <Label> {
-                        width: Fit, height: Fit
-                        draw_text: {
-                            color: (THEME_COLOR_TEXT_MUTED_DARK)
-                            text_style: <THEME_FONT_REGULAR> { font_size: 8 }
-                        }
-                        text: ""
-                    }
-
-                    summary_add_label = <Label> {
-                        width: Fit, height: Fit
-                        draw_text: {
-                            color: (THEME_COLOR_DIFF_ADD_TEXT)
-                            text_style: <THEME_FONT_REGULAR> { font_size: 8 }
-                        }
-                        text: ""
-                    }
-
-                    summary_del_label = <Label> {
-                        width: Fit, height: Fit
-                        draw_text: {
-                            color: (THEME_COLOR_DIFF_DEL_TEXT)
-                            text_style: <THEME_FONT_REGULAR> { font_size: 8 }
-                        }
-                        text: ""
-                    }
-                }
-
-                working_dot = <View> {
-                    visible: false
-                    width: 6, height: 6
-                    show_bg: true
-                    draw_bg: {
-                        color: (THEME_COLOR_ACCENT_AMBER)
-                        fn pixel(self) -> vec4 {
-                            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                            let c = self.rect_size * 0.5;
-                            let r = min(c.x, c.y) - 0.5;
-                            sdf.circle(c.x, c.y, r);
-                            sdf.fill(self.color);
-                            return sdf.result;
-                        }
-                    }
-                }
-                menu_button = <Button> {
-                    width: 28, height: 28
-                    text: "⋯"
-                    align: { x: 0.5, y: 0.5 }
-                    draw_bg: {
-                        color: (THEME_COLOR_TRANSPARENT)
-                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                        border_radius: 6.0
-                        border_size: 0.0
-                    }
-                    draw_text: {
-                        color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                        color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                        text_style: <THEME_FONT_BOLD> { font_size: 12 }
-                    }
-                }
-
-                menu_panel = <View> {
-                    visible: false
-                    width: Fit, height: Fit
+                // Main row content
+                <View> {
+                    width: Fill, height: Fit
+                    padding: { top: 1, bottom: 1, left: 16 }
                     flow: Right,
                     spacing: 2,
-                    margin: { right: 4 }
                     align: { y: 0.5 }
 
-                    menu_rename = <Button> {
-                        width: Fit, height: 22
-                        text: "Rename"
+                    session_button = <Button> {
+                        width: Fill, height: 24
+                        margin: { right: 8 }
+                        text: "Session"
                         draw_bg: {
                             color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                            color_hover: (THEME_COLOR_HOVER_SUBTLE)
                             border_radius: 4.0
                             border_size: 0.0
                         }
-                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                        draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
                     }
 
-                    menu_branch = <Button> {
-                        width: Fit, height: 22
-                        text: "Branch"
-                        draw_bg: {
-                            color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                            border_radius: 4.0
-                            border_size: 0.0
+                    summary_stats = <View> {
+                        width: Fit, height: Fit
+                        margin: { right: 6 }
+                        flow: Right
+                        spacing: 6
+                        align: { y: 0.5 }
+
+                        summary_files_label = <Label> {
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: (THEME_COLOR_TEXT_MUTED_DARK)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
+                            text: ""
                         }
-                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+
+                        summary_add_label = <Label> {
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: (THEME_COLOR_DIFF_ADD_TEXT)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
+                            text: ""
+                        }
+
+                        summary_del_label = <Label> {
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: (THEME_COLOR_DIFF_DEL_TEXT)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
+                            text: ""
+                        }
                     }
 
-                    menu_abort = <Button> {
-                        width: Fit, height: 22
-                        text: "Abort"
+                    working_dot = <View> {
                         visible: false
+                        width: 6, height: 6
+                        show_bg: true
                         draw_bg: {
-                            color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_ACCENT_RED)
-                            border_radius: 4.0
-                            border_size: 0.0
+                            color: (THEME_COLOR_ACCENT_AMBER)
+                            fn pixel(self) -> vec4 {
+                                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                                let c = self.rect_size * 0.5;
+                                let r = min(c.x, c.y) - 0.5;
+                                sdf.circle(c.x, c.y, r);
+                                sdf.fill(self.color);
+                                return sdf.result;
+                            }
                         }
-                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                     }
-
-                    menu_delete = <Button> {
-                        width: Fit, height: 22
-                        text: "Delete"
+                    menu_button = <Button> {
+                        width: 28, height: 28
+                        text: "⋯"
+                        align: { x: 0.5, y: 0.5 }
                         draw_bg: {
                             color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_ACCENT_RED)
-                            border_radius: 4.0
+                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                            border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                        draw_text: {
+                            color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                            text_style: <THEME_FONT_BOLD> { font_size: 12 }
+                        }
                     }
                 }
 
+                // Floating menu panel - overlays on top, right-aligned
+                <View> {
+                    width: Fill, height: Fit
+                    padding: { top: 1, bottom: 1, right: 4 }
+                    align: { x: 1.0, y: 0.5 }
 
+                    menu_panel = <RoundedView> {
+                        visible: false
+                        width: Fit, height: Fit
+                        flow: Right,
+                        spacing: 2,
+                        padding: { left: 6, right: 6, top: 2, bottom: 2 }
+                        show_bg: true
+                        draw_bg: {
+                            color: #2a2a2a
+                            border_radius: 6.0
+                            border_size: 1.0
+                            border_color: #444
+                        }
+
+                        menu_rename = <Button> {
+                            width: Fit, height: 22
+                            text: "Rename"
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                border_radius: 4.0
+                                border_size: 0.0
+                            }
+                            draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                        }
+
+                        menu_branch = <Button> {
+                            width: Fit, height: 22
+                            text: "Branch"
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                border_radius: 4.0
+                                border_size: 0.0
+                            }
+                            draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                        }
+
+                        menu_abort = <Button> {
+                            width: Fit, height: 22
+                            text: "Abort"
+                            visible: false
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_ACCENT_RED)
+                                border_radius: 4.0
+                                border_size: 0.0
+                            }
+                            draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                        }
+
+                        menu_delete = <Button> {
+                            width: Fit, height: 22
+                            text: "Delete"
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_ACCENT_RED)
+                                border_radius: 4.0
+                                border_size: 0.0
+                            }
+                            draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                        }
+                    }
+                }
             }
 
             Spacer = <View> { width: Fill, height: 12 }
