@@ -522,14 +522,173 @@ impl MessageList {
         out
     }
 
+    /// Get a human-readable description of what the step is doing based on tool calls.
+    fn get_step_description(step: &DisplayStep) -> String {
+        if step.details.is_empty() {
+            return if step.reason.is_empty() {
+                "Working...".to_string()
+            } else {
+                step.reason.clone()
+            };
+        }
+
+        // Analyze the tools in this step to generate a descriptive summary
+        let tool_names: Vec<&str> = step.details.iter().map(|d| d.tool.as_str()).collect();
+
+        // Check for specific patterns
+        let has_read = tool_names
+            .iter()
+            .any(|t| t.contains("read") || t.contains("grep") || t.contains("search"));
+        let has_write = tool_names
+            .iter()
+            .any(|t| t.contains("write") || t.contains("patch") || t.contains("apply"));
+        let has_execute = tool_names
+            .iter()
+            .any(|t| t.contains("execute") || t.contains("run") || t.contains("shell"));
+
+        if has_write && has_read {
+            "Reading and modifying files".to_string()
+        } else if has_write {
+            "Modifying files".to_string()
+        } else if has_read {
+            if tool_names.len() == 1 {
+                // Single read operation - show what file
+                if let Some(detail) = step.details.first() {
+                    if let Some(path) = Self::extract_path(&detail.input_summary) {
+                        return format!("Reading {}", Self::format_path(&path));
+                    }
+                }
+                "Reading files".to_string()
+            } else {
+                format!("Reading {} files", step.details.len())
+            }
+        } else if has_execute {
+            "Running commands".to_string()
+        } else if tool_names.len() == 1 {
+            // Single tool with no special pattern
+            if let Some(detail) = step.details.first() {
+                format!("{}", Self::format_tool_name(&detail.tool))
+            } else {
+                "Processing".to_string()
+            }
+        } else {
+            format!("{} operations", step.details.len())
+        }
+    }
+
+    /// Extract file path from input summary if present.
+    fn extract_path(input: &str) -> Option<String> {
+        // Look for path= pattern
+        if let Some(start) = input.find("path=") {
+            let rest = &input[start + 5..];
+            // Find the end of the path value
+            let end = rest.find(' ').unwrap_or(rest.len());
+            let path = &rest[..end];
+            if !path.is_empty() {
+                return Some(path.to_string());
+            }
+        }
+        None
+    }
+
+    /// Format a file path for display - show just the filename unless needed for context.
+    fn format_path(path: &str) -> String {
+        // If it's a long path, just show the last component
+        if path.len() > 40 {
+            if let Some(filename) = path.split('/').last().or_else(|| path.split('\\').last()) {
+                return format!(".../{}", filename);
+            }
+        }
+        path.to_string()
+    }
+
+    /// Format tool name to be more readable.
+    fn format_tool_name(tool: &str) -> String {
+        match tool {
+            "apply_patch" | "patch" => "Applying changes",
+            "read" | "read_file" => "Reading file",
+            "write" | "write_file" => "Writing file",
+            "grep" | "search" => "Searching",
+            "execute" | "shell" | "run" => "Running command",
+            "list" | "ls" => "Listing directory",
+            "cat" => "Viewing file",
+            _ => tool,
+        }
+        .to_string()
+    }
+
+    /// Get icon/indicator for a tool type.
+    fn get_tool_icon(tool: &str) -> &'static str {
+        match tool {
+            "apply_patch" | "patch" => "📝",
+            "read" | "read_file" | "cat" => "📄",
+            "write" | "write_file" => "💾",
+            "grep" | "search" => "🔍",
+            "execute" | "shell" | "run" => "⚡",
+            "list" | "ls" => "📁",
+            _ => "•",
+        }
+    }
+
+    /// Format tool input to be more concise and readable.
+    fn format_tool_input(input: &str) -> String {
+        if input.is_empty() {
+            return String::new();
+        }
+
+        // Parse key=value pairs and format them nicely
+        let mut formatted_parts = Vec::new();
+
+        // Extract path
+        if let Some(path) = Self::extract_path(input) {
+            formatted_parts.push(Self::format_path(&path));
+        }
+
+        // Extract other interesting parameters
+        for (key, label) in [("offset", "@"), ("limit", "limit"), ("command", "cmd")].iter() {
+            if let Some(start) = input.find(&format!("{}=", key)) {
+                let rest = &input[start + key.len() + 1..];
+                let end = rest.find(' ').unwrap_or(rest.len());
+                let value = &rest[..end];
+                if !value.is_empty() && value.len() < 50 {
+                    if key == &"offset" {
+                        formatted_parts.push(format!("@ {}", value));
+                    } else if key == &"limit" {
+                        // Don't show limit if it's just the default
+                        if value != "50" && value != "100" {
+                            formatted_parts.push(format!("limit {}", value));
+                        }
+                    } else {
+                        formatted_parts.push(format!("{}: {}", label, value));
+                    }
+                }
+            }
+        }
+
+        if formatted_parts.is_empty() {
+            // Fallback: truncate the raw input
+            if input.len() > 50 {
+                format!("{}...", &input[..47])
+            } else {
+                input.to_string()
+            }
+        } else {
+            formatted_parts.join(" ")
+        }
+    }
+
     /// Format a single step's body (tool details, optional cost/tokens).
     fn format_step_body(step: &DisplayStep) -> String {
         let mut lines: Vec<String> = Vec::new();
         for d in &step.details {
-            let line = if d.input_summary.is_empty() {
-                format!("• {} → {}", d.tool, d.result)
+            let icon = Self::get_tool_icon(&d.tool);
+            let tool_name = Self::format_tool_name(&d.tool);
+            let input = Self::format_tool_input(&d.input_summary);
+
+            let line = if input.is_empty() {
+                format!("{} {} → {}", icon, tool_name, d.result)
             } else {
-                format!("• {} {} → {}", d.tool, d.input_summary, d.result)
+                format!("{} {} {} → {}", icon, tool_name, input, d.result)
             };
             lines.push(line);
         }
@@ -914,10 +1073,23 @@ impl Widget for MessageList {
                             .unwrap_or(0);
                         let mins = elapsed / 60;
                         let secs = elapsed % 60;
-                        let status_text = if elapsed > 0 {
-                            format!("Agent working... {}:{:02}", mins, secs)
+                        // Show what the agent is currently doing based on the last step
+                        let current_activity = if let Some(msg) = self.messages.last() {
+                            if let Some(last_step) = msg.steps.last() {
+                                Self::get_step_description(last_step)
+                            } else if !msg.steps.is_empty() {
+                                "Processing...".to_string()
+                            } else {
+                                "Thinking...".to_string()
+                            }
                         } else {
-                            "Agent working...".to_string()
+                            "Thinking...".to_string()
+                        };
+
+                        let status_text = if elapsed > 0 {
+                            format!("{} {}:{:02}", current_activity, mins, secs)
+                        } else {
+                            current_activity
                         };
                         let item_widget = list.item(cx, item_id, live_id!(AssistantMsg));
 
@@ -1139,16 +1311,8 @@ impl Widget for MessageList {
                                     if step_id < msg.steps.len() {
                                         let step = &msg.steps[step_id];
                                         let chevron = if step.expanded { "▾" } else { "▸" };
-                                        let header = if step.reason.is_empty() {
-                                            format!("{} Step {}", chevron, step_id + 1)
-                                        } else {
-                                            format!(
-                                                "{} Step {}: {}",
-                                                chevron,
-                                                step_id + 1,
-                                                step.reason
-                                            )
-                                        };
+                                        let description = Self::get_step_description(step);
+                                        let header = format!("{} {}", chevron, description);
                                         steps_base.view(&[row_id]).set_visible(cx, true);
                                         steps_base
                                             .view(&[row_id])
