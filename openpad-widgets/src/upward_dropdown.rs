@@ -196,9 +196,13 @@ impl UpDropDown {
                     let menu_height = cx.turtle().used_height();
                     let area = self.draw_bg.area().rect(cx);
                     let mut shift_y = -menu_height;
+
+                    // Ensure dropdown doesn't extend above window boundary
                     if area.pos.y + shift_y < 0.0 {
-                        shift_y = -area.pos.y * 0.8;
+                        // Position dropdown at top of window with small padding
+                        shift_y = -area.pos.y + 4.0;
                     }
+
                     let shift = DVec2 { x: 0.0, y: shift_y };
 
                     popup_menu.end(cx, self.draw_bg.area(), shift);

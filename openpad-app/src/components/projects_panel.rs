@@ -111,7 +111,11 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                             border_radius: 4.0
                             border_size: 0.0
                         }
-                        draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
+                        draw_text: {
+                            color: (THEME_COLOR_TEXT_NORMAL),
+                            text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                            word: Wrap
+                        }
                     }
 
                     summary_stats = <View> {

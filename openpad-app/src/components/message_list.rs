@@ -94,6 +94,94 @@ live_design! {
 
             PermissionMsg = <PermissionCard> {}
 
+            // Thinking/Working indicator shown while agent is processing
+            ThinkingMsg = <View> {
+                width: Fill, height: Fit
+                flow: Down,
+                padding: { top: 8, bottom: 8, left: 24, right: 100 }
+
+                <AssistantBubble> {
+                    width: Fill, height: Fit
+                    flow: Down,
+                    padding: { top: 10, bottom: 10, left: 14, right: 14 }
+                    draw_bg: {
+                        color: (THEME_COLOR_BG_ASSISTANT_BUBBLE)
+                        border_color: (THEME_COLOR_BORDER_MEDIUM)
+                    }
+
+                    // Header: "Thinking" label with animated dots and timer
+                    <View> {
+                        width: Fill, height: Fit
+                        flow: Right,
+                        spacing: 8,
+                        margin: { bottom: 6 }
+                        align: { y: 0.5 }
+
+                        thinking_indicator = <View> {
+                            width: Fit, height: Fit
+                            flow: Right,
+                            spacing: 4,
+                            align: { y: 0.5 }
+
+                            thinking_icon = <Label> {
+                                width: Fit, height: Fit
+                                draw_text: {
+                                    color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                    text_style: <THEME_FONT_REGULAR> { font_size: 9 }
+                                }
+                                text: "◐"
+                            }
+
+                            thinking_label = <Label> {
+                                width: Fit, height: Fit
+                                draw_text: {
+                                    color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                    text_style: <THEME_FONT_BOLD> { font_size: 9 }
+                                }
+                                text: "Thinking"
+                            }
+                        }
+
+                        <View> { width: Fill }
+
+                        thinking_timer = <Label> {
+                            width: Fit, height: Fit
+                            draw_text: {
+                                color: (THEME_COLOR_TEXT_MUTED_DARKER)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
+                            text: ""
+                        }
+                    }
+
+                    // Current activity description
+                    thinking_activity = <Label> {
+                        width: Fill, height: Fit
+                        draw_text: {
+                            color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                            text_style: <THEME_FONT_ITALIC> { font_size: 9, line_spacing: 1.3 }
+                            word: Wrap
+                        }
+                        text: ""
+                    }
+
+                    // Active tool calls list
+                    thinking_tools = <View> {
+                        visible: false
+                        width: Fill, height: Fit
+                        flow: Down,
+                        spacing: 3,
+                        margin: { top: 8 }
+
+                        tool_row_0 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_0 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_0 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_0 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
+                        tool_row_1 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_1 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_1 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_1 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
+                        tool_row_2 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_2 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_2 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_2 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
+                        tool_row_3 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_3 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_3 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_3 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
+                        tool_row_4 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_4 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_4 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_4 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
+                    }
+                }
+            }
+
             AssistantMsg = <View> {
                 width: Fill, height: Fit
                 flow: Down,
@@ -373,6 +461,8 @@ pub struct StepDetail {
     pub tool: String,
     pub input_summary: String,
     pub result: String,
+    /// Whether this tool call is currently running
+    pub is_running: bool,
 }
 
 /// Per-step info shown under an assistant message (from step-start / step-finish / tool parts).
@@ -387,6 +477,8 @@ pub struct DisplayStep {
     pub expanded: bool,
     /// Whether any tool in this step had an error.
     pub has_error: bool,
+    /// Whether any tool in this step is currently running.
+    pub has_running: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -432,9 +524,24 @@ pub struct MessageList {
     pending_permissions: Vec<PendingPermissionDisplay>,
     #[rust]
     working_since: Option<std::time::Instant>,
+    #[rust]
+    thinking_frame: usize,
 }
 
 impl MessageList {
+    /// Get the animated thinking icon based on current frame
+    fn thinking_icon(&self) -> &'static str {
+        // Cycle through unicode spinner characters: ◐◑◒◓◔◕
+        match self.thinking_frame {
+            0 => "◐",
+            1 => "◑",
+            2 => "◒",
+            3 => "◓",
+            4 => "◔",
+            _ => "◕",
+        }
+    }
+
     fn steps_header_label(msg: &DisplayMessage) -> String {
         if msg.show_steps {
             "▾ Hide steps".to_string()
@@ -526,11 +633,13 @@ impl MessageList {
 
     /// Get a human-readable description of what the step is doing based on tool calls.
     fn get_step_description(step: &DisplayStep) -> String {
+        let running_prefix = if step.has_running { "⏳ " } else { "" };
+
         if step.details.is_empty() {
             return if step.reason.is_empty() {
-                "Working...".to_string()
+                format!("{}Working...", running_prefix)
             } else {
-                step.reason.clone()
+                format!("{}{}", running_prefix, step.reason)
             };
         }
 
@@ -548,7 +657,7 @@ impl MessageList {
             .iter()
             .any(|t| t.contains("execute") || t.contains("run") || t.contains("shell"));
 
-        if has_write && has_read {
+        let description = if has_write && has_read {
             "Reading and modifying files".to_string()
         } else if has_write {
             "Modifying files".to_string()
@@ -557,7 +666,7 @@ impl MessageList {
                 // Single read operation - show what file
                 if let Some(detail) = step.details.first() {
                     if let Some(path) = Self::extract_path(&detail.input_summary) {
-                        return format!("Reading {}", Self::format_path(&path));
+                        return format!("{}Reading {}", running_prefix, Self::format_path(&path));
                     }
                 }
                 "Reading files".to_string()
@@ -575,7 +684,9 @@ impl MessageList {
             }
         } else {
             format!("{} operations", step.details.len())
-        }
+        };
+
+        format!("{}{}", running_prefix, description)
     }
 
     /// Extract file path from input summary if present.
@@ -683,11 +794,22 @@ impl MessageList {
     fn format_step_body(step: &DisplayStep) -> String {
         let mut lines: Vec<String> = Vec::new();
         for d in &step.details {
-            let icon = Self::get_tool_icon(&d.tool);
+            let icon = if d.is_running {
+                "⏳"
+            } else {
+                Self::get_tool_icon(&d.tool)
+            };
             let tool_name = Self::format_tool_name(&d.tool);
             let input = Self::format_tool_input(&d.input_summary);
 
-            let line = if input.is_empty() {
+            let line = if d.is_running {
+                // For running tools, show a progress indicator instead of result
+                if input.is_empty() {
+                    format!("{} {} ...", icon, tool_name)
+                } else {
+                    format!("{} {} {} ...", icon, tool_name, input)
+                }
+            } else if input.is_empty() {
                 format!("{} {} → {}", icon, tool_name, d.result)
             } else {
                 format!("{} {} {} → {}", icon, tool_name, input, d.result)
@@ -782,18 +904,24 @@ impl MessageList {
                         details: Vec::new(),
                         expanded: false,
                         has_error: false,
+                        has_running: false,
                     });
                 } else if let Some((tool, input_summary, result)) = p.tool_display() {
                     let has_error = result.starts_with("Error");
+                    let is_running = result == "(running)" || result == "(pending)";
                     let detail = StepDetail {
                         tool,
                         input_summary,
                         result: result.clone(),
+                        is_running,
                     };
                     if let Some(last) = steps.last_mut() {
                         last.details.push(detail);
                         if has_error {
                             last.has_error = true;
+                        }
+                        if is_running {
+                            last.has_running = true;
                         }
                     } else {
                         steps.push(DisplayStep {
@@ -803,6 +931,7 @@ impl MessageList {
                             details: vec![detail],
                             expanded: false,
                             has_error,
+                            has_running: is_running,
                         });
                     }
                 } else if let Some((reason, cost, tokens)) = p.step_finish_info() {
@@ -810,6 +939,8 @@ impl MessageList {
                         last.reason = reason.to_string();
                         last.cost = cost;
                         last.tokens = tokens.cloned();
+                        // Step is finished, no longer running
+                        last.has_running = false;
                     } else {
                         steps.push(DisplayStep {
                             reason: reason.to_string(),
@@ -818,6 +949,7 @@ impl MessageList {
                             details: Vec::new(),
                             expanded: false,
                             has_error: false,
+                            has_running: false,
                         });
                     }
                 }
@@ -906,6 +1038,10 @@ impl MessageList {
                 display.push(prev);
             }
 
+            // Show steps by default if this is an assistant message with steps but no text yet
+            // (i.e., still processing/streaming). Once text arrives, hide steps automatically.
+            let show_steps = role == "assistant" && text.is_empty() && !steps.is_empty();
+
             display.push(DisplayMessage {
                 role: role.to_string(),
                 text: if role == "assistant" && text.is_empty() && !steps.is_empty() {
@@ -923,7 +1059,7 @@ impl MessageList {
                 diffs,
                 show_diffs: false,
                 steps,
-                show_steps: false,
+                show_steps,
                 duration_ms,
             });
         }
@@ -941,6 +1077,8 @@ impl Widget for MessageList {
 
         if self.is_working {
             if let Event::NextFrame(_) = event {
+                // Animate thinking indicator (cycle through ◐◑◒◓◔◕)
+                self.thinking_frame = (self.thinking_frame + 1) % 6;
                 // Only redraw on next frame if we are actually working/streaming
                 // We rely on append_text_for_message to trigger redraws when content updates
                 // But we still need this for the "working..." timer update
@@ -1082,41 +1220,126 @@ impl Widget for MessageList {
                             .unwrap_or(0);
                         let mins = elapsed / 60;
                         let secs = elapsed % 60;
-                        // Show what the agent is currently doing based on the last step
-                        let current_activity = if let Some(msg) = self.messages.last() {
-                            if let Some(last_step) = msg.steps.last() {
-                                Self::get_step_description(last_step)
-                            } else if !msg.steps.is_empty() {
-                                "Processing...".to_string()
+
+                        // Get current activity and running tools from the last message
+                        let (current_activity, running_tools) =
+                            if let Some(msg) = self.messages.last() {
+                                if let Some(last_step) = msg.steps.last() {
+                                    let activity = Self::get_step_description(last_step);
+                                    // Collect running tools from the last step
+                                    let tools: Vec<(String, String, String)> = last_step
+                                        .details
+                                        .iter()
+                                        .filter(|d| d.is_running)
+                                        .map(|d| {
+                                            let icon = Self::get_tool_icon(&d.tool);
+                                            let name = Self::format_tool_name(&d.tool);
+                                            let input = Self::format_tool_input(&d.input_summary);
+                                            (icon.to_string(), name, input)
+                                        })
+                                        .collect();
+                                    (activity, tools)
+                                } else if !msg.steps.is_empty() {
+                                    ("Processing...".to_string(), Vec::new())
+                                } else {
+                                    ("Thinking...".to_string(), Vec::new())
+                                }
                             } else {
-                                "Thinking...".to_string()
+                                ("Thinking...".to_string(), Vec::new())
+                            };
+
+                        // Format timer text
+                        let timer_text = if elapsed > 0 {
+                            format!("· {}m, {}s", mins, secs)
+                        } else {
+                            String::new()
+                        };
+
+                        // Use the dedicated Thinking template
+                        let item_widget = list.item(cx, item_id, live_id!(ThinkingMsg));
+
+                        // Set thinking label with timer and animated icon
+                        item_widget
+                            .label(&[id!(thinking_label)])
+                            .set_text(cx, "Thinking");
+                        item_widget
+                            .label(&[id!(thinking_icon)])
+                            .set_text(cx, self.thinking_icon());
+                        item_widget
+                            .label(&[id!(thinking_timer)])
+                            .set_text(cx, &timer_text);
+
+                        // Set current activity description
+                        item_widget
+                            .label(&[id!(thinking_activity)])
+                            .set_text(cx, &current_activity);
+
+                        // Show running tools if any
+                        let has_tools = !running_tools.is_empty();
+                        item_widget
+                            .view(&[id!(thinking_tools)])
+                            .set_visible(cx, has_tools);
+                        if has_tools {
+                            // Update each tool row (up to 5)
+                            for (idx, (icon, name, input)) in
+                                running_tools.iter().take(5).enumerate()
+                            {
+                                let (row_id, icon_id, name_id, input_id) = match idx {
+                                    0 => (
+                                        live_id!(tool_row_0),
+                                        live_id!(tool_icon_0),
+                                        live_id!(tool_name_0),
+                                        live_id!(tool_input_0),
+                                    ),
+                                    1 => (
+                                        live_id!(tool_row_1),
+                                        live_id!(tool_icon_1),
+                                        live_id!(tool_name_1),
+                                        live_id!(tool_input_1),
+                                    ),
+                                    2 => (
+                                        live_id!(tool_row_2),
+                                        live_id!(tool_icon_2),
+                                        live_id!(tool_name_2),
+                                        live_id!(tool_input_2),
+                                    ),
+                                    3 => (
+                                        live_id!(tool_row_3),
+                                        live_id!(tool_icon_3),
+                                        live_id!(tool_name_3),
+                                        live_id!(tool_input_3),
+                                    ),
+                                    4 => (
+                                        live_id!(tool_row_4),
+                                        live_id!(tool_icon_4),
+                                        live_id!(tool_name_4),
+                                        live_id!(tool_input_4),
+                                    ),
+                                    _ => continue,
+                                };
+                                let tools_view = item_widget.view(&[id!(thinking_tools)]);
+                                tools_view.view(&[row_id]).set_visible(cx, true);
+                                tools_view.label(&[icon_id]).set_text(cx, icon);
+                                tools_view.label(&[name_id]).set_text(cx, name);
+                                tools_view.label(&[input_id]).set_text(cx, input);
                             }
-                        } else {
-                            "Thinking...".to_string()
-                        };
+                            // Hide unused tool rows
+                            for idx in running_tools.len()..5 {
+                                let row_id = match idx {
+                                    0 => live_id!(tool_row_0),
+                                    1 => live_id!(tool_row_1),
+                                    2 => live_id!(tool_row_2),
+                                    3 => live_id!(tool_row_3),
+                                    4 => live_id!(tool_row_4),
+                                    _ => continue,
+                                };
+                                item_widget
+                                    .view(&[id!(thinking_tools)])
+                                    .view(&[row_id])
+                                    .set_visible(cx, false);
+                            }
+                        }
 
-                        let status_text = if elapsed > 0 {
-                            format!("{} {}:{:02}", current_activity, mins, secs)
-                        } else {
-                            current_activity
-                        };
-                        let item_widget = list.item(cx, item_id, live_id!(AssistantMsg));
-
-                        // For status, always use label for better performance
-                        item_widget
-                            .view(&[id!(markdown_view)])
-                            .set_visible(cx, false);
-                        item_widget.view(&[id!(label_view)]).set_visible(cx, true);
-                        item_widget
-                            .widget(&[id!(msg_label)])
-                            .set_text(cx, &status_text);
-                        item_widget.label(&[id!(timestamp_label)]).set_text(cx, "");
-                        item_widget
-                            .label(&[id!(model_label)])
-                            .set_text(cx, "ASSISTANT");
-                        item_widget.label(&[id!(error_label)]).set_text(cx, "");
-                        item_widget.view(&[id!(stats_row)]).set_visible(cx, false);
-                        item_widget.view(&[id!(msg_actions)]).set_visible(cx, false);
                         item_widget.draw_all(cx, scope);
                     } else {
                         let msg = &self.messages[item_id];
@@ -1328,18 +1551,26 @@ impl Widget for MessageList {
                                         let header_button =
                                             steps_base.view(&[row_id]).button(&[header_id]);
                                         header_button.set_text(cx, &header);
-                                        if step.has_error {
-                                            // THEME_COLOR_ACCENT_RED = #ef4444
-                                            let error_color = vec4(0.937, 0.267, 0.267, 1.0);
-                                            header_button.apply_over(
-                                                cx,
-                                                live! {
-                                                    draw_text: {
-                                                        color: (error_color)
-                                                    }
-                                                },
-                                            );
-                                        }
+                                        // Always set the color to ensure proper state reset
+                                        let (text_color, hover_color) = if step.has_error {
+                                            // THEME_COLOR_ACCENT_RED = #ef4444, slightly lighter for hover
+                                            (
+                                                vec4(0.937, 0.267, 0.267, 1.0),
+                                                vec4(1.0, 0.4, 0.4, 1.0),
+                                            )
+                                        } else {
+                                            // THEME_COLOR_TEXT_MUTED_LIGHT / THEME_COLOR_TEXT_BRIGHT
+                                            (vec4(0.65, 0.65, 0.65, 1.0), vec4(0.9, 0.9, 0.9, 1.0))
+                                        };
+                                        header_button.apply_over(
+                                            cx,
+                                            live! {
+                                                draw_text: {
+                                                    color: (text_color)
+                                                    color_hover: (hover_color)
+                                                }
+                                            },
+                                        );
                                         steps_base
                                             .view(&[row_id])
                                             .view(&[body_id])
@@ -1391,8 +1622,32 @@ impl MessageListRef {
         revert_message_id: Option<String>,
     ) {
         if let Some(mut inner) = self.borrow_mut() {
+            let _had_messages = !inner.messages.is_empty();
+            let last_had_running_steps = inner
+                .messages
+                .last()
+                .map(|m| {
+                    m.role == "assistant"
+                        && m.text.is_empty()
+                        && m.steps.iter().any(|s| s.has_running)
+                })
+                .unwrap_or(false);
+
             inner.messages = MessageList::rebuild_from_parts(messages_with_parts);
             inner.revert_message_id = revert_message_id;
+
+            // Auto-show steps for the last assistant message if:
+            // 1. It has running tools (actively working)
+            // 2. Or we were already showing steps with running tools (continue streaming)
+            if let Some(last) = inner.messages.last_mut() {
+                if last.role == "assistant" && last.text.is_empty() && !last.steps.is_empty() {
+                    let has_running = last.steps.iter().any(|s| s.has_running);
+                    if has_running || last_had_running_steps {
+                        last.show_steps = true;
+                    }
+                }
+            }
+
             // Scroll to the last message so users see the most recent conversation
             let msg_count = inner.messages.len();
             if msg_count > 0 {
@@ -1411,7 +1666,13 @@ impl MessageListRef {
             // SSE parts arrive in order, so the last message of the matching role is the target
             if let Some(last) = inner.messages.last_mut() {
                 if last.role == role {
+                    let was_empty = last.text.is_empty();
                     last.text.push_str(text);
+                    // Once text starts arriving for assistant messages, hide the steps automatically
+                    // (steps were shown during "thinking" phase, now showing the actual response)
+                    if role == "assistant" && was_empty && !last.steps.is_empty() {
+                        last.show_steps = false;
+                    }
                     // Only redraw if content changed
                     inner.redraw(cx);
                     return;
@@ -1478,6 +1739,7 @@ impl MessageListRef {
             inner.is_working = working;
             if working && inner.working_since.is_none() {
                 inner.working_since = Some(std::time::Instant::now());
+                inner.thinking_frame = 0; // Reset animation frame
             } else if !working {
                 inner.working_since = None;
             }

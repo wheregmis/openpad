@@ -272,18 +272,22 @@ live_design! {
                 <InputBar> {
                     width: Fill
                     input_box = <InputField> {}
-                    <InputBarToolbar> {
+                    input_bar_toolbar = <InputBarToolbar> {
                         agent_dropdown = <InputBarDropDown> {
-                            labels: ["Agent"]
-                        }
-                        skill_dropdown = <InputBarDropDown> {
-                            width: 150
-                            labels: ["Skill"]
-                        }
-                        model_dropdown = <InputBarDropDown> {
-                            width: 150
-                            labels: ["Model"]
-                        }
+                             labels: ["Agent"]
+                         }
+                         skill_dropdown = <InputBarDropDown> {
+                             width: 120
+                             labels: ["Skill"]
+                         }
+                         provider_dropdown = <InputBarDropDown> {
+                             width: 120
+                             labels: ["Provider"]
+                         }
+                         model_dropdown = <InputBarDropDown> {
+                             width: 150
+                             labels: ["Model"]
+                         }
                         <View> { width: Fill }
                         send_button = <SendButton> {
                             margin: { left: 0 }
@@ -1747,37 +1751,46 @@ impl AppMain for App {
         if self.ui.button(&[id!(clear_skill_button)]).clicked(&actions) {
             self.state.selected_skill_idx = None;
             self.ui
-                .up_drop_down(&[id!(skill_dropdown)])
+                .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
             self.update_skill_ui(cx);
         }
 
-        // Handle dropdown selections
+        // Handle dropdown selections (main input bar only)
+        // Provider selection changed - update model list
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(model_dropdown)])
+            .up_drop_down(&[id!(input_bar_toolbar), id!(provider_dropdown)])
             .changed(&actions)
         {
-            if let Some(entry) = self.state.model_entries.get(idx) {
-                if entry.selectable {
-                    self.state.selected_model_entry = idx;
-                } else if self.state.model_entries.len() > self.state.selected_model_entry {
-                    self.ui
-                        .up_drop_down(&[id!(model_dropdown)])
-                        .set_selected_item(cx, self.state.selected_model_entry);
-                }
-            }
+            self.state.selected_provider_idx = idx;
+            self.state.update_model_list_for_provider();
+            self.ui
+                .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+                .set_labels(cx, self.state.model_labels.clone());
+            self.ui
+                .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+                .set_selected_item(cx, 0);
+        }
+
+        // Model selection changed
+        if let Some(idx) = self
+            .ui
+            .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+            .changed(&actions)
+        {
+            self.state.selected_model_idx = idx;
         }
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(agent_dropdown)])
+            .up_drop_down(&[id!(input_bar_toolbar), id!(agent_dropdown)])
             .changed(&actions)
         {
             self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
         }
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(skill_dropdown)])
+            .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
             .changed(&actions)
         {
             self.state.selected_skill_idx = if idx > 0 { Some(idx - 1) } else { None };
