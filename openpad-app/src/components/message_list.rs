@@ -385,6 +385,8 @@ pub struct DisplayStep {
     pub details: Vec<StepDetail>,
     /// Whether this step's details are expanded (collapsible per step).
     pub expanded: bool,
+    /// Whether any tool in this step had an error.
+    pub has_error: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -779,15 +781,20 @@ impl MessageList {
                         tokens: None,
                         details: Vec::new(),
                         expanded: false,
+                        has_error: false,
                     });
                 } else if let Some((tool, input_summary, result)) = p.tool_display() {
+                    let has_error = result.starts_with("Error");
                     let detail = StepDetail {
                         tool,
                         input_summary,
-                        result,
+                        result: result.clone(),
                     };
                     if let Some(last) = steps.last_mut() {
                         last.details.push(detail);
+                        if has_error {
+                            last.has_error = true;
+                        }
                     } else {
                         steps.push(DisplayStep {
                             reason: String::new(),
@@ -795,6 +802,7 @@ impl MessageList {
                             tokens: None,
                             details: vec![detail],
                             expanded: false,
+                            has_error,
                         });
                     }
                 } else if let Some((reason, cost, tokens)) = p.step_finish_info() {
@@ -809,6 +817,7 @@ impl MessageList {
                             tokens: tokens.cloned(),
                             details: Vec::new(),
                             expanded: false,
+                            has_error: false,
                         });
                     }
                 }
@@ -1314,10 +1323,23 @@ impl Widget for MessageList {
                                         let description = Self::get_step_description(step);
                                         let header = format!("{} {}", chevron, description);
                                         steps_base.view(&[row_id]).set_visible(cx, true);
-                                        steps_base
-                                            .view(&[row_id])
-                                            .button(&[header_id])
-                                            .set_text(cx, &header);
+
+                                        // Apply error styling if step has errors
+                                        let header_button =
+                                            steps_base.view(&[row_id]).button(&[header_id]);
+                                        header_button.set_text(cx, &header);
+                                        if step.has_error {
+                                            // THEME_COLOR_ACCENT_RED = #ef4444
+                                            let error_color = vec4(0.937, 0.267, 0.267, 1.0);
+                                            header_button.apply_over(
+                                                cx,
+                                                live! {
+                                                    draw_text: {
+                                                        color: (error_color)
+                                                    }
+                                                },
+                                            );
+                                        }
                                         steps_base
                                             .view(&[row_id])
                                             .view(&[body_id])
