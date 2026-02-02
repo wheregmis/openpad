@@ -68,7 +68,7 @@ jobs:
 
       - name: Build macOS package
         run: |
-          cargo packager --release -p openpad-app
+          cargo packager -- -p openpad-app --release
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
