@@ -709,6 +709,34 @@ pub enum Part {
         #[serde(default)]
         url: String,
     },
+    #[serde(rename = "step-start")]
+    StepStart {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        #[serde(default)]
+        snapshot: Option<String>,
+    },
+    #[serde(rename = "step-finish")]
+    StepFinish {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        #[serde(default)]
+        reason: String,
+        #[serde(default)]
+        snapshot: Option<String>,
+        #[serde(default)]
+        cost: f64,
+        #[serde(default)]
+        tokens: Option<TokenUsage>,
+    },
     // Other part types — we don't render them but must not break parsing
     #[serde(other)]
     Unknown,
@@ -741,6 +769,21 @@ impl Part {
         match self {
             Part::Text { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::File { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::StepStart { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::StepFinish { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            _ => None,
+        }
+    }
+
+    /// If this is a step-finish part, return (reason, cost, tokens).
+    pub fn step_finish_info(&self) -> Option<(&str, f64, Option<&TokenUsage>)> {
+        match self {
+            Part::StepFinish {
+                reason,
+                cost,
+                tokens,
+                ..
+            } => Some((reason.as_str(), *cost, tokens.as_ref())),
             _ => None,
         }
     }

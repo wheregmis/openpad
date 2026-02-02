@@ -37,6 +37,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Sessions grouped under their project
 - [x] Selected session highlighting
 - [x] "New session" button per project
+- [x] Settings tab in sidebar (toggle between Projects and Settings panels)
 
 ### UI Components
 - [x] HeaderBar with title and status
@@ -48,6 +49,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] UserBubble / AssistantBubble
 - [x] InputBar, InputField, SendButton
 - [x] AppBg (gradient background)
+- [x] SettingsDialog (Settings panel: provider selection, API key, config display; theme-styled)
 
 ---
 
@@ -105,15 +107,15 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 ### Phase 3: Model & Provider Management
 
 #### Model Selection
-- [ ] Fetch available providers and models (`get_providers()`)
+- [x] Fetch available providers and models (`get_providers()`)
 - [ ] Model picker UI (dropdown or dialog)
 - [ ] Send prompts with specific `ModelSpec`
 - [ ] Show current model in header or session context
 - [ ] Model variant support (e.g., "extended" thinking)
 
 #### Auth & Configuration
-- [ ] API key management (`set_auth()`)
-- [ ] Configuration display (`get_config()`)
+- [x] API key management (`set_auth()`) — Settings panel: provider dropdown, API key input, Update Key button
+- [x] Configuration display (`get_config()`) — Current Configuration section in Settings panel
 - [ ] Provider status indicators
 
 #### Agent Selection
@@ -245,7 +247,9 @@ openpad/
 │       ├── assistant_bubble.rs
 │       ├── projects_panel.rs
 │       ├── message_list.rs
-│       └── permission_dialog.rs
+│       ├── permission_dialog.rs
+│       ├── settings_dialog.rs
+│       └── ...
 └── openpad-widgets/      # Reusable Makepad widgets
     └── src/widgets/
         ├── header_bar.rs

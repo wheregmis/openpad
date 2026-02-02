@@ -112,9 +112,9 @@ live_design! {
                     width: Fill, height: Fit
                     flow: Down,
 
-                    // Metadata row
+                    // Metadata row (model, timestamp, revert, steps toggle inline)
                     <View> {
-                        width: Fit, height: Fit
+                        width: Fill, height: Fit
                         flow: Right,
                         spacing: 8,
                         margin: { bottom: 4 }
@@ -145,6 +145,37 @@ live_design! {
                                 text_style: <THEME_FONT_BOLD> { font_size: 8 },
                             }
                             text: "REVERT"
+                        }
+
+                        steps_button = <Button> {
+                            width: Fit, height: 20
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                border_size: 0.0
+                            }
+                            draw_text: {
+                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                            }
+                            text: "Show steps"
+                        }
+                    }
+
+                    steps_expanded = <View> {
+                        visible: false
+                        width: Fill, height: Fit
+                        flow: Down,
+                        margin: { top: 2, bottom: 4 }
+                        steps_label = <Label> {
+                            width: Fill, height: Fit
+                            draw_text: {
+                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
+                                text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }
+                                word: Wrap
+                            }
+                            text: ""
                         }
                     }
 
@@ -327,6 +358,14 @@ live_design! {
     }
 }
 
+/// Per-step info shown under an assistant message (from step-start / step-finish parts).
+#[derive(Clone, Debug)]
+pub struct DisplayStep {
+    pub reason: String,
+    pub cost: f64,
+    pub tokens: Option<openpad_protocol::TokenUsage>,
+}
+
 #[derive(Clone, Debug)]
 pub struct DisplayMessage {
     pub role: String,
@@ -340,6 +379,12 @@ pub struct DisplayMessage {
     pub is_error: bool,
     pub diffs: Vec<openpad_protocol::FileDiff>,
     pub show_diffs: bool,
+    /// Steps (step-start / step-finish) for assistant messages.
+    pub steps: Vec<DisplayStep>,
+    /// Whether the steps block is expanded (collapsible control).
+    pub show_steps: bool,
+    /// Duration in ms (completed - created) for "2m, 18s" in steps header.
+    pub duration_ms: Option<i64>,
 }
 
 #[derive(Clone, Debug)]
@@ -367,6 +412,53 @@ pub struct MessageList {
 }
 
 impl MessageList {
+    fn steps_header_label(msg: &DisplayMessage) -> String {
+        if msg.show_steps {
+            "▾ Hide steps".to_string()
+        } else {
+            let suffix = msg
+                .duration_ms
+                .map(|ms| crate::ui::formatters::format_duration_ms(ms))
+                .unwrap_or_else(|| format!("{} steps", msg.steps.len()));
+            format!("▸ Show steps • {}", suffix)
+        }
+    }
+
+    /// Aggregated step summary for expanded view (OpenCode-style: one line by reason).
+    fn format_steps_aggregated(steps: &[DisplayStep]) -> String {
+        if steps.is_empty() {
+            return String::new();
+        }
+        use std::collections::HashMap;
+        let mut by_reason: HashMap<String, usize> = HashMap::new();
+        for s in steps {
+            let key = if s.reason.is_empty() {
+                "step".to_string()
+            } else {
+                s.reason.to_string()
+            };
+            *by_reason.entry(key).or_insert(0) += 1;
+        }
+        let n = steps.len();
+        let mut parts: Vec<String> = by_reason
+            .into_iter()
+            .map(|(reason, count)| {
+                if count == 1 {
+                    reason
+                } else {
+                    format!("{}× {}", count, reason)
+                }
+            })
+            .collect();
+        parts.sort();
+        let summary = parts.join(", ");
+        if n == 1 {
+            format!("1 step: {}", summary)
+        } else {
+            format!("{} steps: {}", n, summary)
+        }
+    }
+
     fn diff_summary(diffs: &[openpad_protocol::FileDiff], expanded: bool) -> String {
         let file_count = diffs.len();
         let additions: i64 = diffs.iter().map(|d| d.additions).sum();
@@ -384,55 +476,84 @@ impl MessageList {
     ) -> Vec<DisplayMessage> {
         let mut display = Vec::new();
         let mut pending_diffs: Option<Vec<openpad_protocol::FileDiff>> = None;
+        let mut pending_steps_only: Option<DisplayMessage> = None;
         for mwp in messages_with_parts {
-            let (role, timestamp, model_id, tokens, cost, error_text, is_error) = match &mwp.info {
-                openpad_protocol::Message::User(msg) => (
-                    "user",
-                    Some(msg.time.created),
-                    None,
-                    None,
-                    None,
-                    None,
-                    false,
-                ),
-                openpad_protocol::Message::Assistant(msg) => {
-                    let model = if !msg.model_id.is_empty() {
-                        Some(msg.model_id.clone())
-                    } else {
-                        None
-                    };
-                    let error_text = msg
-                        .error
-                        .as_ref()
-                        .map(crate::ui::formatters::format_assistant_error);
-                    (
-                        "assistant",
+            let (role, timestamp, model_id, tokens, cost, error_text, is_error, duration_ms) =
+                match &mwp.info {
+                    openpad_protocol::Message::User(msg) => (
+                        "user",
                         Some(msg.time.created),
-                        model,
-                        msg.tokens.clone(),
-                        Some(msg.cost),
-                        error_text,
-                        msg.error.is_some(),
-                    )
-                }
-            };
+                        None,
+                        None,
+                        None,
+                        None,
+                        false,
+                        None,
+                    ),
+                    openpad_protocol::Message::Assistant(msg) => {
+                        let model = if !msg.model_id.is_empty() {
+                            Some(msg.model_id.clone())
+                        } else {
+                            None
+                        };
+                        let error_text = msg
+                            .error
+                            .as_ref()
+                            .map(crate::ui::formatters::format_assistant_error);
+                        let duration_ms = msg
+                            .time
+                            .completed
+                            .map(|completed| completed - msg.time.created)
+                            .filter(|d| *d >= 0);
+                        (
+                            "assistant",
+                            Some(msg.time.created),
+                            model,
+                            msg.tokens.clone(),
+                            Some(msg.cost),
+                            error_text,
+                            msg.error.is_some(),
+                            duration_ms,
+                        )
+                    }
+                };
 
             let message_id = mwp.info.id().to_string();
 
             let mut text_parts: Vec<String> = Vec::new();
+            let mut steps: Vec<DisplayStep> = Vec::new();
             for p in &mwp.parts {
                 if let Some(text) = p.text_content() {
                     text_parts.push(text.to_string());
                 } else if let Some((_mime, filename, _url)) = p.file_info() {
                     let name = filename.unwrap_or("attachment");
                     text_parts.push(format!("[Attachment: {}]", name));
+                } else if matches!(p, openpad_protocol::Part::StepStart { .. }) {
+                    steps.push(DisplayStep {
+                        reason: String::new(),
+                        cost: 0.,
+                        tokens: None,
+                    });
+                } else if let Some((reason, cost, tokens)) = p.step_finish_info() {
+                    if let Some(last) = steps.last_mut() {
+                        last.reason = reason.to_string();
+                        last.cost = cost;
+                        last.tokens = tokens.cloned();
+                    } else {
+                        steps.push(DisplayStep {
+                            reason: reason.to_string(),
+                            cost,
+                            tokens: tokens.cloned(),
+                        });
+                    }
                 }
             }
             let mut text = text_parts.join("\n");
             if text.is_empty() && error_text.is_some() {
                 text = "Assistant error".to_string();
             }
-            if text.is_empty() {
+            let has_content = !text.is_empty() || (role == "assistant" && !steps.is_empty());
+            if !has_content {
                 continue;
             }
 
@@ -452,9 +573,71 @@ impl MessageList {
                 }
             }
 
+            let steps_only =
+                role == "assistant" && text.is_empty() && !steps.is_empty() && !is_error;
+
+            if steps_only {
+                if let Some(ref mut pending) = pending_steps_only {
+                    pending.steps.extend(steps);
+                    pending.duration_ms = duration_ms.or(pending.duration_ms);
+                } else {
+                    pending_steps_only = Some(DisplayMessage {
+                        role: role.to_string(),
+                        text: String::new(),
+                        message_id: Some(message_id),
+                        timestamp,
+                        model_id,
+                        tokens,
+                        cost,
+                        error_text: None,
+                        is_error: false,
+                        diffs: Vec::new(),
+                        show_diffs: false,
+                        steps,
+                        show_steps: false,
+                        duration_ms,
+                    });
+                }
+                continue;
+            }
+
+            if role == "assistant" && !text.is_empty() {
+                if let Some(pending) = pending_steps_only.take() {
+                    let mut merged_steps = pending.steps;
+                    merged_steps.extend(steps);
+                    let merged_duration = duration_ms.or(pending.duration_ms);
+                    display.push(DisplayMessage {
+                        role: role.to_string(),
+                        text,
+                        message_id: Some(message_id),
+                        timestamp,
+                        model_id,
+                        tokens,
+                        cost,
+                        error_text,
+                        is_error,
+                        diffs,
+                        show_diffs: false,
+                        steps: merged_steps,
+                        show_steps: false,
+                        duration_ms: merged_duration,
+                    });
+                    continue;
+                }
+            }
+
+            if let Some(mut prev) = pending_steps_only.take() {
+                prev.text = format!("Completed {} steps.", prev.steps.len());
+                display.push(prev);
+            }
+
             display.push(DisplayMessage {
                 role: role.to_string(),
-                text,
+                text: if role == "assistant" && text.is_empty() && !steps.is_empty() {
+                    format!("Completed {} steps.", steps.len())
+                } else {
+                    text
+                },
                 message_id: Some(message_id),
                 timestamp,
                 model_id,
@@ -464,7 +647,14 @@ impl MessageList {
                 is_error,
                 diffs,
                 show_diffs: false,
+                steps,
+                show_steps: false,
+                duration_ms,
             });
+        }
+        if let Some(mut prev) = pending_steps_only.take() {
+            prev.text = format!("Completed {} steps.", prev.steps.len());
+            display.push(prev);
         }
         display
     }
@@ -483,7 +673,7 @@ impl Widget for MessageList {
             }
             // Throttle timer updates to 100ms instead of every frame to save CPU
             // The timer only updates seconds anyway
-             cx.new_next_frame(); 
+            cx.new_next_frame();
         }
 
         let actions = cx.capture_actions(|cx| {
@@ -510,6 +700,15 @@ impl Widget for MessageList {
                 if let Some(message) = self.messages.get_mut(item_id) {
                     message.show_diffs = !message.show_diffs;
                     self.redraw(cx);
+                }
+            }
+
+            if widget.button(&[id!(steps_button)]).clicked(&actions) {
+                if let Some(message) = self.messages.get_mut(item_id) {
+                    if !message.steps.is_empty() {
+                        message.show_steps = !message.show_steps;
+                        self.redraw(cx);
+                    }
                 }
             }
         }
@@ -564,9 +763,11 @@ impl Widget for MessageList {
                             "Agent working...".to_string()
                         };
                         let item_widget = list.item(cx, item_id, live_id!(AssistantMsg));
-                        
+
                         // For status, always use label for better performance
-                        item_widget.view(&[id!(markdown_view)]).set_visible(cx, false);
+                        item_widget
+                            .view(&[id!(markdown_view)])
+                            .set_visible(cx, false);
                         item_widget.view(&[id!(label_view)]).set_visible(cx, true);
                         item_widget
                             .widget(&[id!(msg_label)])
@@ -591,25 +792,31 @@ impl Widget for MessageList {
                         };
 
                         let item_widget = list.item(cx, item_id, template);
-                        
+
                         if msg.role == "user" {
                             item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
                         } else {
                             // HEURISTIC: content triggers markdown if it has backticks, hash headers, or > quotes
                             // This is a simple check to avoid markdown widget cost for plain text
-                            let needs_markdown = msg.text.contains("```") 
-                                || msg.text.contains("`") 
+                            let needs_markdown = msg.text.contains("```")
+                                || msg.text.contains("`")
                                 || msg.text.contains("# ")
                                 || msg.text.contains("> ");
 
                             if needs_markdown {
                                 item_widget.view(&[id!(label_view)]).set_visible(cx, false);
-                                item_widget.view(&[id!(markdown_view)]).set_visible(cx, true);
+                                item_widget
+                                    .view(&[id!(markdown_view)])
+                                    .set_visible(cx, true);
                                 item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
                             } else {
-                                item_widget.view(&[id!(markdown_view)]).set_visible(cx, false);
+                                item_widget
+                                    .view(&[id!(markdown_view)])
+                                    .set_visible(cx, false);
                                 item_widget.view(&[id!(label_view)]).set_visible(cx, true);
-                                item_widget.widget(&[id!(msg_label)]).set_text(cx, &msg.text);
+                                item_widget
+                                    .widget(&[id!(msg_label)])
+                                    .set_text(cx, &msg.text);
                             }
                         }
 
@@ -672,9 +879,34 @@ impl Widget for MessageList {
                                 item_widget.label(&[id!(cost_label)]).set_text(cx, "");
                             }
 
+                            // Hide message-level tokens/cost when steps are expanded to avoid duplicate stats
+                            let has_steps_expanded = !msg.steps.is_empty() && msg.show_steps;
+                            if has_steps_expanded {
+                                show_stats = false;
+                            }
                             item_widget
                                 .view(&[id!(stats_row)])
                                 .set_visible(cx, show_stats);
+
+                            let has_steps = !msg.steps.is_empty();
+                            item_widget
+                                .button(&[id!(steps_button)])
+                                .set_visible(cx, has_steps);
+                            if has_steps {
+                                let header = Self::steps_header_label(msg);
+                                item_widget
+                                    .button(&[id!(steps_button)])
+                                    .set_text(cx, &header);
+                            }
+                            item_widget
+                                .view(&[id!(steps_expanded)])
+                                .set_visible(cx, has_steps && msg.show_steps);
+                            if has_steps && msg.show_steps {
+                                let steps_text = Self::format_steps_aggregated(&msg.steps);
+                                item_widget
+                                    .label(&[id!(steps_label)])
+                                    .set_text(cx, &steps_text);
+                            }
 
                             let show_revert = msg.message_id.is_some() && !msg.is_error;
                             item_widget
@@ -759,6 +991,9 @@ impl MessageListRef {
                 is_error: false,
                 diffs: Vec::new(),
                 show_diffs: false,
+                steps: Vec::new(),
+                show_steps: false,
+                duration_ms: None,
             });
             inner.redraw(cx);
         }
@@ -784,6 +1019,9 @@ impl MessageListRef {
                 is_error: false,
                 diffs: Vec::new(),
                 show_diffs: false,
+                steps: Vec::new(),
+                show_steps: false,
+                duration_ms: None,
             });
             inner.redraw(cx);
         }

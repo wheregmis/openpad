@@ -67,8 +67,25 @@ pub fn format_token_usage(tokens: &TokenUsage) -> String {
     )
 }
 
+/// Compact token summary for step list (reduces vertical overflow).
+pub fn format_token_usage_short(tokens: &TokenUsage) -> String {
+    format!("in {} / out {}", tokens.input, tokens.output)
+}
+
 pub fn format_cost(cost: f64) -> String {
     format!("Cost: ${:.4}", cost)
+}
+
+/// Formats a duration in milliseconds as "2m, 18s" (minutes and seconds).
+pub fn format_duration_ms(ms: i64) -> String {
+    let total_secs = (ms / 1000).max(0) as u64;
+    let mins = total_secs / 60;
+    let secs = total_secs % 60;
+    if mins > 0 {
+        format!("{}m, {}s", mins, secs)
+    } else {
+        format!("{}s", secs)
+    }
 }
 
 pub fn format_assistant_error(error: &AssistantError) -> String {
