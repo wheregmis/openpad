@@ -88,7 +88,7 @@ live_design! {
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
                                 color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                border_radius: 4.0
+                                // radius: 4.0
                                 border_size: 0.0
                             }
                             draw_text: {
@@ -159,7 +159,7 @@ live_design! {
                             pre_code_spacing: 6
                             use_code_block_widget: true
 
-                            code_block = <View> {
+                            code_block = <RoundedView> {
                                 width: Fill, height: Fit
                                 flow: Down
                                 padding: { left: 8, right: 8, top: 6, bottom: 6 }
@@ -279,7 +279,7 @@ live_design! {
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
                                 color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                border_radius: 4.0
+                                // radius: 4.0
                                 border_size: 0.0
                             }
                             draw_text: {
@@ -295,7 +295,7 @@ live_design! {
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
                                 color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                border_radius: 4.0
+                                // radius: 4.0
                                 border_size: 0.0
                             }
                             draw_text: {
@@ -311,7 +311,7 @@ live_design! {
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
                                 color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                border_radius: 4.0
+                                // radius: 4.0
                                 border_size: 0.0
                             }
                             draw_text: {
