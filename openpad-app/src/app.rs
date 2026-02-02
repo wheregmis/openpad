@@ -1368,10 +1368,13 @@ impl AppMain for App {
                 // Initialize terminal
                 self.ui.terminal(&[id!(terminal_panel)]).init_pty(cx);
 
-                // Initialize sidebar and terminal to open
+                // Initialize sidebar open, terminal collapsed by default
                 self.sidebar_open = true;
                 self.sidebar_mode = SidebarMode::Projects;
-                self.terminal_open = true;
+                self.terminal_open = false;
+                self.ui
+                    .view(&[id!(terminal_panel_wrap)])
+                    .set_visible(cx, false);
                 self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
                 self.set_sidebar_width(cx, self.sidebar_width);
                 self.ui.side_panel(&[id!(side_panel)]).set_open(cx, true);

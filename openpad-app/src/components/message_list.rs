@@ -168,14 +168,25 @@ live_design! {
                         width: Fill, height: Fit
                         flow: Down,
                         margin: { top: 2, bottom: 4 }
-                        steps_label = <Label> {
+
+                        steps_scroll = <ScrollYView> {
                             width: Fill, height: Fit
-                            draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }
-                                word: Wrap
+                            content = <View> {
+                                width: Fill, height: Fit
+                                flow: Down
+                                spacing: 2
+
+                                step_row_0 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_0_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_0_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_0_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_1 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_1_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_1_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_1_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_2 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_2_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_2_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_2_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_3 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_3_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_3_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_3_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_4 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_4_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_4_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_4_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_5 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_5_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_5_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_5_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_6 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_6_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_6_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_6_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_7 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_7_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_7_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_7_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_8 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_8_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_8_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_8_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_9 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_9_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, step_row_9_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 12, top: 2, bottom: 4 }, step_row_9_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
                             }
-                            text: ""
                         }
                     }
 
@@ -358,12 +369,24 @@ live_design! {
     }
 }
 
-/// Per-step info shown under an assistant message (from step-start / step-finish parts).
+/// One tool call within a step (tool name, input summary, output or error).
+#[derive(Clone, Debug)]
+pub struct StepDetail {
+    pub tool: String,
+    pub input_summary: String,
+    pub result: String,
+}
+
+/// Per-step info shown under an assistant message (from step-start / step-finish / tool parts).
 #[derive(Clone, Debug)]
 pub struct DisplayStep {
     pub reason: String,
     pub cost: f64,
     pub tokens: Option<openpad_protocol::TokenUsage>,
+    /// Tool calls and their results within this step.
+    pub details: Vec<StepDetail>,
+    /// Whether this step's details are expanded (collapsible per step).
+    pub expanded: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -459,6 +482,82 @@ impl MessageList {
         }
     }
 
+    /// Max steps to show in detailed list before truncating.
+    const MAX_STEPS_DETAILED: usize = 10;
+
+    /// Max step rows (inline, no PortalList) for collapsible steps inside the bubble.
+    const MAX_STEP_ROWS: usize = 10;
+
+    /// Per-step list for expanded view: "Step N: reason" plus tool details (tool, input → result).
+    fn format_steps_detailed(steps: &[DisplayStep]) -> String {
+        if steps.is_empty() {
+            return String::new();
+        }
+        let rest = steps.len().saturating_sub(Self::MAX_STEPS_DETAILED);
+        let show: &[DisplayStep] = if rest > 0 {
+            &steps[..steps.len() - rest]
+        } else {
+            steps
+        };
+        let mut lines: Vec<String> = Vec::new();
+        for (i, s) in show.iter().enumerate() {
+            let n = i + 1;
+            let header = if s.reason.is_empty() {
+                format!("Step {}", n)
+            } else {
+                format!("Step {}: {}", n, s.reason)
+            };
+            lines.push(header);
+            for d in &s.details {
+                let detail_line = if d.input_summary.is_empty() {
+                    format!("  • {} → {}", d.tool, d.result)
+                } else {
+                    format!("  • {} {} → {}", d.tool, d.input_summary, d.result)
+                };
+                lines.push(detail_line);
+            }
+        }
+        let mut out = lines.join("\n");
+        if rest > 0 {
+            out.push_str(&format!("\n… {} more steps", rest));
+        }
+        out
+    }
+
+    /// Format a single step's body (tool details, optional cost/tokens).
+    fn format_step_body(step: &DisplayStep) -> String {
+        let mut lines: Vec<String> = Vec::new();
+        for d in &step.details {
+            let line = if d.input_summary.is_empty() {
+                format!("• {} → {}", d.tool, d.result)
+            } else {
+                format!("• {} {} → {}", d.tool, d.input_summary, d.result)
+            };
+            lines.push(line);
+        }
+        if step.cost > 0.0 || step.tokens.is_some() {
+            let mut stats = Vec::new();
+            if step.cost > 0.0 {
+                stats.push(crate::ui::formatters::format_cost(step.cost));
+            }
+            if let Some(ref t) = step.tokens {
+                stats.push(crate::ui::formatters::format_token_usage_short(t));
+            }
+            if !stats.is_empty() {
+                lines.push(stats.join(" · "));
+            }
+        }
+        if lines.is_empty() {
+            if step.reason.is_empty() {
+                "—".to_string()
+            } else {
+                step.reason.clone()
+            }
+        } else {
+            lines.join("\n")
+        }
+    }
+
     fn diff_summary(diffs: &[openpad_protocol::FileDiff], expanded: bool) -> String {
         let file_count = diffs.len();
         let additions: i64 = diffs.iter().map(|d| d.additions).sum();
@@ -533,7 +632,26 @@ impl MessageList {
                         reason: String::new(),
                         cost: 0.,
                         tokens: None,
+                        details: Vec::new(),
+                        expanded: false,
                     });
+                } else if let Some((tool, input_summary, result)) = p.tool_display() {
+                    let detail = StepDetail {
+                        tool,
+                        input_summary,
+                        result,
+                    };
+                    if let Some(last) = steps.last_mut() {
+                        last.details.push(detail);
+                    } else {
+                        steps.push(DisplayStep {
+                            reason: String::new(),
+                            cost: 0.,
+                            tokens: None,
+                            details: vec![detail],
+                            expanded: false,
+                        });
+                    }
                 } else if let Some((reason, cost, tokens)) = p.step_finish_info() {
                     if let Some(last) = steps.last_mut() {
                         last.reason = reason.to_string();
@@ -544,6 +662,8 @@ impl MessageList {
                             reason: reason.to_string(),
                             cost,
                             tokens: tokens.cloned(),
+                            details: Vec::new(),
+                            expanded: false,
                         });
                     }
                 }
@@ -708,6 +828,41 @@ impl Widget for MessageList {
                     if !message.steps.is_empty() {
                         message.show_steps = !message.show_steps;
                         self.redraw(cx);
+                    }
+                }
+            }
+
+            // Per-step collapse/expand (inline step rows)
+            if item_id < self.messages.len() {
+                let msg = &self.messages[item_id];
+                if msg.role == "assistant" && msg.show_steps && !msg.steps.is_empty() {
+                    let steps_base =
+                        widget.view(&[id!(steps_expanded), id!(steps_scroll), id!(content)]);
+                    for step_id in 0..MessageList::MAX_STEP_ROWS.min(msg.steps.len()) {
+                        let (row_id, header_id) = match step_id {
+                            0 => (live_id!(step_row_0), live_id!(step_row_0_header)),
+                            1 => (live_id!(step_row_1), live_id!(step_row_1_header)),
+                            2 => (live_id!(step_row_2), live_id!(step_row_2_header)),
+                            3 => (live_id!(step_row_3), live_id!(step_row_3_header)),
+                            4 => (live_id!(step_row_4), live_id!(step_row_4_header)),
+                            5 => (live_id!(step_row_5), live_id!(step_row_5_header)),
+                            6 => (live_id!(step_row_6), live_id!(step_row_6_header)),
+                            7 => (live_id!(step_row_7), live_id!(step_row_7_header)),
+                            8 => (live_id!(step_row_8), live_id!(step_row_8_header)),
+                            9 => (live_id!(step_row_9), live_id!(step_row_9_header)),
+                            _ => continue,
+                        };
+                        if steps_base
+                            .view(&[row_id])
+                            .button(&[header_id])
+                            .clicked(&actions)
+                        {
+                            if let Some(step) = self.messages[item_id].steps.get_mut(step_id) {
+                                step.expanded = !step.expanded;
+                                self.redraw(cx);
+                            }
+                            break;
+                        }
                     }
                 }
             }
@@ -902,10 +1057,105 @@ impl Widget for MessageList {
                                 .view(&[id!(steps_expanded)])
                                 .set_visible(cx, has_steps && msg.show_steps);
                             if has_steps && msg.show_steps {
-                                let steps_text = Self::format_steps_aggregated(&msg.steps);
-                                item_widget
-                                    .label(&[id!(steps_label)])
-                                    .set_text(cx, &steps_text);
+                                let steps_base = item_widget.view(&[
+                                    id!(steps_expanded),
+                                    id!(steps_scroll),
+                                    id!(content),
+                                ]);
+                                for step_id in 0..Self::MAX_STEP_ROWS {
+                                    let (row_id, header_id, body_id, content_id) = match step_id {
+                                        0 => (
+                                            live_id!(step_row_0),
+                                            live_id!(step_row_0_header),
+                                            live_id!(step_row_0_body),
+                                            live_id!(step_row_0_content),
+                                        ),
+                                        1 => (
+                                            live_id!(step_row_1),
+                                            live_id!(step_row_1_header),
+                                            live_id!(step_row_1_body),
+                                            live_id!(step_row_1_content),
+                                        ),
+                                        2 => (
+                                            live_id!(step_row_2),
+                                            live_id!(step_row_2_header),
+                                            live_id!(step_row_2_body),
+                                            live_id!(step_row_2_content),
+                                        ),
+                                        3 => (
+                                            live_id!(step_row_3),
+                                            live_id!(step_row_3_header),
+                                            live_id!(step_row_3_body),
+                                            live_id!(step_row_3_content),
+                                        ),
+                                        4 => (
+                                            live_id!(step_row_4),
+                                            live_id!(step_row_4_header),
+                                            live_id!(step_row_4_body),
+                                            live_id!(step_row_4_content),
+                                        ),
+                                        5 => (
+                                            live_id!(step_row_5),
+                                            live_id!(step_row_5_header),
+                                            live_id!(step_row_5_body),
+                                            live_id!(step_row_5_content),
+                                        ),
+                                        6 => (
+                                            live_id!(step_row_6),
+                                            live_id!(step_row_6_header),
+                                            live_id!(step_row_6_body),
+                                            live_id!(step_row_6_content),
+                                        ),
+                                        7 => (
+                                            live_id!(step_row_7),
+                                            live_id!(step_row_7_header),
+                                            live_id!(step_row_7_body),
+                                            live_id!(step_row_7_content),
+                                        ),
+                                        8 => (
+                                            live_id!(step_row_8),
+                                            live_id!(step_row_8_header),
+                                            live_id!(step_row_8_body),
+                                            live_id!(step_row_8_content),
+                                        ),
+                                        9 => (
+                                            live_id!(step_row_9),
+                                            live_id!(step_row_9_header),
+                                            live_id!(step_row_9_body),
+                                            live_id!(step_row_9_content),
+                                        ),
+                                        _ => continue,
+                                    };
+                                    if step_id < msg.steps.len() {
+                                        let step = &msg.steps[step_id];
+                                        let chevron = if step.expanded { "▾" } else { "▸" };
+                                        let header = if step.reason.is_empty() {
+                                            format!("{} Step {}", chevron, step_id + 1)
+                                        } else {
+                                            format!(
+                                                "{} Step {}: {}",
+                                                chevron,
+                                                step_id + 1,
+                                                step.reason
+                                            )
+                                        };
+                                        steps_base.view(&[row_id]).set_visible(cx, true);
+                                        steps_base
+                                            .view(&[row_id])
+                                            .button(&[header_id])
+                                            .set_text(cx, &header);
+                                        steps_base
+                                            .view(&[row_id])
+                                            .view(&[body_id])
+                                            .set_visible(cx, step.expanded);
+                                        steps_base
+                                            .view(&[row_id])
+                                            .label(&[content_id])
+                                            .set_text(cx, &Self::format_step_body(step));
+                                    } else {
+                                        steps_base.view(&[row_id]).set_visible(cx, false);
+                                    }
+                                }
                             }
 
                             let show_revert = msg.message_id.is_some() && !msg.is_error;

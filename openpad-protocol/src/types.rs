@@ -737,9 +737,79 @@ pub enum Part {
         #[serde(default)]
         tokens: Option<TokenUsage>,
     },
+    #[serde(rename = "tool")]
+    Tool {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        #[serde(default, rename = "callID")]
+        call_id: String,
+        #[serde(default)]
+        tool: String,
+        state: ToolState,
+        #[serde(default)]
+        metadata: Option<HashMap<String, serde_json::Value>>,
+    },
     // Other part types — we don't render them but must not break parsing
     #[serde(other)]
     Unknown,
+}
+
+/// Tool execution state (pending / running / completed / error).
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "status", rename_all = "lowercase")]
+pub enum ToolState {
+    Pending {
+        #[serde(default)]
+        input: HashMap<String, serde_json::Value>,
+        #[serde(default)]
+        raw: String,
+    },
+    Running {
+        #[serde(default)]
+        input: HashMap<String, serde_json::Value>,
+        #[serde(default)]
+        title: String,
+        #[serde(default)]
+        metadata: HashMap<String, serde_json::Value>,
+        #[serde(default)]
+        time: ToolStateTime,
+    },
+    Completed {
+        #[serde(default)]
+        input: HashMap<String, serde_json::Value>,
+        #[serde(default)]
+        output: String,
+        #[serde(default)]
+        title: String,
+        #[serde(default)]
+        metadata: HashMap<String, serde_json::Value>,
+        #[serde(default)]
+        time: ToolStateTime,
+    },
+    Error {
+        #[serde(default)]
+        input: HashMap<String, serde_json::Value>,
+        #[serde(default)]
+        error: String,
+        #[serde(default)]
+        metadata: HashMap<String, serde_json::Value>,
+        #[serde(default)]
+        time: ToolStateTime,
+    },
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ToolStateTime {
+    #[serde(default)]
+    pub start: Option<f64>,
+    #[serde(default)]
+    pub end: Option<f64>,
+    #[serde(default)]
+    pub compacted: Option<f64>,
 }
 
 impl Part {
@@ -771,6 +841,7 @@ impl Part {
             Part::File { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::StepStart { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::StepFinish { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Tool { message_id, .. } if !message_id.is_empty() => Some(message_id),
             _ => None,
         }
     }
@@ -785,6 +856,76 @@ impl Part {
                 ..
             } => Some((reason.as_str(), *cost, tokens.as_ref())),
             _ => None,
+        }
+    }
+
+    /// If this is a tool part, return (tool_name, input_summary, result) for display.
+    /// result is either the output string or "Error: {error}".
+    pub fn tool_display(&self) -> Option<(String, String, String)> {
+        match self {
+            Part::Tool { tool, state, .. } => {
+                let input_summary = summarize_tool_input(&state.input());
+                let result = state.output_or_error();
+                Some((tool.clone(), input_summary, result))
+            }
+            _ => None,
+        }
+    }
+}
+
+fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -> String {
+    if input.is_empty() {
+        return String::new();
+    }
+    // Prefer human-readable keys: path, offset, limit, command, etc.
+    let keys = ["path", "offset", "limit", "command", "arguments", "name"];
+    let mut parts: Vec<String> = Vec::new();
+    for k in keys {
+        if let Some(v) = input.get(k) {
+            let s = match v {
+                serde_json::Value::String(s) => s.clone(),
+                serde_json::Value::Number(n) => n.to_string(),
+                serde_json::Value::Bool(b) => b.to_string(),
+                _ => v.to_string(),
+            };
+            if !s.is_empty() {
+                parts.push(format!("{}={}", k, truncate_display(&s, 60)));
+            }
+        }
+    }
+    if parts.is_empty() {
+        let single = serde_json::to_string(input).unwrap_or_default();
+        truncate_display(&single, 80).to_string()
+    } else {
+        parts.join(" ")
+    }
+}
+
+fn truncate_display(s: &str, max: usize) -> String {
+    let s = s.trim();
+    if s.len() <= max {
+        s.to_string()
+    } else {
+        format!("{}…", s.chars().take(max).collect::<String>())
+    }
+}
+
+impl ToolState {
+    fn input(&self) -> &HashMap<String, serde_json::Value> {
+        match self {
+            ToolState::Pending { input, .. } => input,
+            ToolState::Running { input, .. } => input,
+            ToolState::Completed { input, .. } => input,
+            ToolState::Error { input, .. } => input,
+        }
+    }
+
+    fn output_or_error(&self) -> String {
+        match self {
+            ToolState::Pending { .. } => "(pending)".to_string(),
+            ToolState::Running { .. } => "(running)".to_string(),
+            ToolState::Completed { output, .. } => truncate_display(output, 200).to_string(),
+            ToolState::Error { error, .. } => format!("Error: {}", truncate_display(error, 200)),
         }
     }
 }
