@@ -53,11 +53,11 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 
 ## What's Remaining
 
-### Phase 1: Core Chat Polish
+### Phase 1: Core Chat Polish ✅ COMPLETED
 
 #### Markdown & Rich Text Rendering
 - [x] Parse markdown in assistant messages (bold, italic, headers, lists)
-- [x] Code block rendering with syntax highlighting (rendering done; highlighting pending)
+- [x] Code block rendering with syntax highlighting
 - [x] Inline code styling
 - [x] Link rendering
 
@@ -65,7 +65,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Wire `PermissionRequested` SSE events to show PermissionDialog
 - [x] PermissionDialog actions wired to permission reply API
 - [x] Display permission type, pattern, and context
-- [x] Inline permission UI (non-modal)
+- [x] Inline permission UI (non-modal, embedded in chat)
 
 #### Error Handling
 - [x] Surface `AssistantError` details (ProviderAuthError, APIError, etc.)
@@ -79,7 +79,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Message timestamps
 - [x] Copy message text to clipboard
 
-### Phase 2: Session Features
+### Phase 2: Session Features ✅ COMPLETED
 
 #### Session Operations
 - [x] Delete session
@@ -94,13 +94,13 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 
 #### Session Sharing
 - [x] Share session publicly (`share_session()`)
-- [x] Display share URL
+- [x] Display share URL (with copy button)
 - [x] Unshare session
 
 #### Session Summary
 - [x] Trigger session summarization (`summarize_session()`)
 - [x] Display file change summary (additions/deletions/files)
-- [x] Diff visualization for session changes
+- [x] Diff visualization for session changes (with colored rendering)
 
 ### Phase 3: Model & Provider Management
 
@@ -137,13 +137,14 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 
 ### Phase 5: Advanced Features
 
-#### Embedded Terminal
+#### Embedded Terminal (Partially Implemented)
 - [x] PTY-based terminal with shell integration (portable-pty)
 - [x] ANSI escape sequence parsing (colors, SGR, CSI private modes)
 - [x] Shell command input via TextInput inside PortalList
 - [x] Output rendering with PortalList virtualization
 - [x] Prompt detection and filtering
 - [x] Backspace handling in shell echo
+- [x] Terminal component integrated in app
 - [ ] Clear terminal output (Ctrl+L or clear command)
 - [ ] Terminal resize support (dynamic rows/cols)
 - [ ] Command history (up/down arrow keys)
@@ -156,19 +157,27 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [ ] Command palette UI
 
 #### UI Enhancements
-- [ ] Theme support (dark/light/custom)
+- [x] Theme support (theme color constants defined)
+- [ ] Theme switching UI (dark/light selector)
 - [ ] Keyboard shortcuts
-- [ ] Multi-project workspace switching
+- [x] Multi-project workspace support (projects listed, sessions grouped)
 - [ ] Session search/filter
 - [ ] Notification toasts (`show_toast()`)
 - [ ] Scroll-to-bottom on new messages
 - [ ] Loading spinners during async operations
 
 #### SSE Event Coverage
-- [ ] Handle `SessionDeleted` events
+- [x] Handle `SessionDeleted` events
+- [x] Handle `SessionCreated` events
+- [x] Handle `SessionUpdated` events
+- [x] Handle `MessageUpdated` events
+- [x] Handle `PartUpdated` events
+- [x] Handle `SessionError` events
+- [x] Handle `PermissionRequested` events
+- [x] Handle `PermissionResponded` events
+- [x] Handle `PermissionDismissed` events
 - [ ] Handle `MessageRemoved` events
 - [ ] Handle `PartRemoved` events
-- [ ] Handle `SessionError` events
 - [ ] Reconnect SSE on stream disconnect
 
 ---
@@ -182,21 +191,21 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 | `GET /session` | ✅ | ✅ |
 | `POST /session` | ✅ | ✅ |
 | `GET /session/:id` | ✅ | ❌ |
-| `PATCH /session/:id` | ✅ | ❌ |
-| `DELETE /session/:id` | ✅ | ❌ |
+| `PATCH /session/:id` | ✅ | ✅ |
+| `DELETE /session/:id` | ✅ | ✅ |
 | `GET /session/:id/children` | ✅ | ❌ |
 | `POST /session/:id/init` | ✅ | ❌ |
-| `POST /session/:id/abort` | ✅ | ❌ |
-| `POST /session/:id/share` | ✅ | ❌ |
-| `POST /session/:id/unshare` | ✅ | ❌ |
-| `POST /session/:id/summarize` | ✅ | ❌ |
+| `POST /session/:id/abort` | ✅ | ✅ |
+| `POST /session/:id/share` | ✅ | ✅ |
+| `POST /session/:id/unshare` | ✅ | ✅ |
+| `POST /session/:id/summarize` | ✅ | ✅ |
 | `GET /session/:id/message` | ✅ | ✅ |
 | `GET /session/:id/message/:mid` | ✅ | ❌ |
 | `POST /session/:id/message` | ✅ | ✅ |
 | `POST /session/:id/command` | ✅ | ❌ |
 | `POST /session/:id/shell` | ✅ | ❌ |
-| `POST /session/:id/revert` | ✅ | ❌ |
-| `POST /session/:id/unrevert` | ✅ | ❌ |
+| `POST /session/:id/revert` | ✅ | ✅ |
+| `POST /session/:id/unrevert` | ✅ | ✅ |
 | `POST /session/:id/permissions/:pid` | ✅ | ❌ |
 | `POST /permission/:pid/reply` | ✅ | ✅ |
 | `GET /project` | ✅ | ✅ |
@@ -215,7 +224,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 | TUI APIs (7 endpoints) | ✅ | ❌ |
 
 **Protocol coverage:** 100% of OpenCode API  
-**App integration:** ~25% of available API endpoints
+**App integration:** ~40% of available API endpoints (up from ~25%)
 
 ---
 
