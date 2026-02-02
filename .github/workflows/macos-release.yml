@@ -68,7 +68,8 @@ jobs:
 
       - name: Build macOS package
         run: |
-          cargo packager -- -p openpad-app --release
+          set -euo pipefail
+          cargo packager --release --formats dmg
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
