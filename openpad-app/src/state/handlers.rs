@@ -7,11 +7,12 @@ use crate::constants::*;
 use crate::state::actions::AppAction;
 use crate::ui::state_updates;
 use makepad_widgets::*;
-use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_protocol::{
-    Agent, AssistantMessage, AssistantError, Event as OcEvent, Message, MessageTime, MessageWithParts,
-    ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider, Session, Skill,
+    Agent, AssistantError, AssistantMessage, Event as OcEvent, Message, MessageTime,
+    MessageWithParts, ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider,
+    Session, Skill,
 };
+use openpad_widgets::UpDropDownWidgetRefExt;
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -371,14 +372,15 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::SessionDiffLoaded { session_id, diffs } => {
             if let Some(existing) = state.find_session_mut(session_id) {
-                let summary = existing.summary.get_or_insert_with(|| {
-                    openpad_protocol::SessionSummary {
-                        additions: 0,
-                        deletions: 0,
-                        files: diffs.len() as i64,
-                        diffs: Vec::new(),
-                    }
-                });
+                let summary =
+                    existing
+                        .summary
+                        .get_or_insert_with(|| openpad_protocol::SessionSummary {
+                            additions: 0,
+                            deletions: 0,
+                            files: diffs.len() as i64,
+                            diffs: Vec::new(),
+                        });
                 summary.diffs = diffs.clone();
             }
             state.update_session_meta_ui(ui, cx);
@@ -391,8 +393,11 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::MessagesLoaded(messages) => {
             state.messages_data = messages.clone();
-            ui.message_list(&[id!(message_list)])
-                .set_messages(cx, &state.messages_data, state.current_revert_message_id());
+            ui.message_list(&[id!(message_list)]).set_messages(
+                cx,
+                &state.messages_data,
+                state.current_revert_message_id(),
+            );
         }
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
@@ -418,13 +423,14 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 .iter()
                 .map(|entry| entry.label.clone())
                 .collect();
-            ui.up_drop_down(&[id!(model_dropdown)]).set_labels(cx, labels);
+            ui.up_drop_down(&[id!(model_dropdown)])
+                .set_labels(cx, labels);
             ui.up_drop_down(&[id!(model_dropdown)])
                 .set_selected_item(cx, 0);
-            
-            ui.settings_dialog(&[id!(settings_dialog)])
+
+            ui.settings_dialog(&[id!(side_panel), id!(settings_panel)])
                 .set_providers(cx, state.providers.clone());
-                
+
             cx.redraw_all();
         }
         AppAction::AgentsLoaded(agents) => {
@@ -432,7 +438,8 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.agents = agents.clone();
             let mut labels: Vec<String> = vec!["Default".to_string()];
             labels.extend(state.agents.iter().map(|a| a.name.clone()));
-            ui.up_drop_down(&[id!(agent_dropdown)]).set_labels(cx, labels);
+            ui.up_drop_down(&[id!(agent_dropdown)])
+                .set_labels(cx, labels);
             ui.up_drop_down(&[id!(agent_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_agent_idx = None;
@@ -443,7 +450,8 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.skills = skills.clone();
             let mut labels: Vec<String> = vec!["Skill".to_string()];
             labels.extend(state.skills.iter().map(|s| s.name.clone()));
-            ui.up_drop_down(&[id!(skill_dropdown)]).set_labels(cx, labels);
+            ui.up_drop_down(&[id!(skill_dropdown)])
+                .set_labels(cx, labels);
             ui.up_drop_down(&[id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_skill_idx = None;
@@ -451,11 +459,14 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::ConfigLoaded(config) => {
             state.config = Some(config.clone());
-            ui.settings_dialog(&[id!(settings_dialog)])
-                 .set_config(cx, &config);
+            ui.settings_dialog(&[id!(side_panel), id!(settings_panel)])
+                .set_config(cx, &config);
             cx.redraw_all();
         }
-        AppAction::AuthSet { provider_id, success } => {
+        AppAction::AuthSet {
+            provider_id: _,
+            success,
+        } => {
             if *success {
                 // visual feedback handled by ProvidersLoaded which follows
             }
@@ -567,8 +578,11 @@ fn handle_message_updated(
         });
     }
 
-    ui.message_list(&[id!(message_list)])
-        .set_messages(cx, &state.messages_data, state.current_revert_message_id());
+    ui.message_list(&[id!(message_list)]).set_messages(
+        cx,
+        &state.messages_data,
+        state.current_revert_message_id(),
+    );
 }
 
 /// Handles part update events
@@ -609,8 +623,11 @@ fn handle_part_updated(
                 mwp.parts.push(part.clone());
             }
 
-            ui.message_list(&[id!(message_list)])
-                .set_messages(cx, &state.messages_data, state.current_revert_message_id());
+            ui.message_list(&[id!(message_list)]).set_messages(
+                cx,
+                &state.messages_data,
+                state.current_revert_message_id(),
+            );
         }
 
         if should_update_work {
@@ -642,9 +659,13 @@ fn set_session_working(
         return;
     }
     if working {
-        state.working_by_session.insert(session_id.to_string(), true);
+        state
+            .working_by_session
+            .insert(session_id.to_string(), true);
     } else {
-        state.working_by_session.insert(session_id.to_string(), false);
+        state
+            .working_by_session
+            .insert(session_id.to_string(), false);
     }
     state.update_projects_panel(ui, cx);
 }
@@ -735,6 +756,9 @@ fn push_session_error_message(
         parts: vec![part],
     });
 
-    ui.message_list(&[id!(message_list)])
-        .set_messages(cx, &state.messages_data, state.current_revert_message_id());
+    ui.message_list(&[id!(message_list)]).set_messages(
+        cx,
+        &state.messages_data,
+        state.current_revert_message_id(),
+    );
 }

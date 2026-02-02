@@ -11,9 +11,15 @@ use openpad_protocol::OpenCodeClient;
 use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction};
-use crate::components::settings_dialog::SettingsDialogWidgetRefExt;
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
+
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+enum SidebarMode {
+    #[default]
+    Projects,
+    Settings,
+}
 
 // Lazy-initialized regex for detecting image data URLs
 static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -337,23 +343,57 @@ live_design! {
                                 border_radius: 0.0
                                 border_size: 1.0
                             }
-                            
+
                             <View> { width: Fill }
-                            
-                            settings_button = <Button> {
-                                width: 24, height: 24
-                                text: "⚙"
-                                draw_bg: {
-                                    color: (THEME_COLOR_TRANSPARENT)
-                                    color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                    border_radius: 4.0
-                                    border_size: 0.0
+
+                            sidebar_tabs = <View> {
+                                width: Fit, height: Fill
+                                flow: Right
+                                spacing: 4
+                                align: { y: 0.5 }
+
+                                projects_tab = <Button> {
+                                    width: Fit, height: 24
+                                    padding: { left: 8, right: 8, top: 4, bottom: 4 }
+                                    text: "Projects"
+                                    draw_bg: {
+                                        color: (THEME_COLOR_TRANSPARENT)
+                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                        border_radius: 4.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text: {
+                                        color: (THEME_COLOR_TEXT_MUTED)
+                                        text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                                    }
                                 }
-                                draw_text: { color: (THEME_COLOR_TEXT_MUTED) }
+
+                                settings_tab = <Button> {
+                                    width: Fit, height: 24
+                                    padding: { left: 8, right: 8, top: 4, bottom: 4 }
+                                    text: "Settings"
+                                    draw_bg: {
+                                        color: (THEME_COLOR_TRANSPARENT)
+                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                        border_radius: 4.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text: {
+                                        color: (THEME_COLOR_TEXT_MUTED)
+                                        text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                                    }
+                                }
                             }
                         }
 
-                        projects_panel = <ProjectsPanel> {}
+                        projects_panel = <ProjectsPanel> {
+                            visible: true
+                        }
+
+                        settings_panel = <SettingsDialog> {
+                            visible: false
+                            width: Fill, height: Fill
+                        }
                     }
                     sidebar_resize_handle = <View> {
                         width: 6, height: Fill
@@ -532,9 +572,6 @@ live_design! {
 
                 // Simple dialog for confirmations and inputs (shown as overlay)
                 simple_dialog = <SimpleDialog> {}
-                
-                // Settings Dialog
-                settings_dialog = <SettingsDialog> {}
             }
         }
     }
@@ -553,6 +590,8 @@ pub struct App {
     sidebar_width: f32,
     #[rust]
     sidebar_drag_start: Option<(f64, f32)>,
+    #[rust]
+    sidebar_mode: SidebarMode,
     #[rust]
     terminal_open: bool,
     #[rust]
@@ -675,6 +714,7 @@ impl App {
             .side_panel(&[id!(traffic_light_spacer)])
             .set_open(cx, !self.sidebar_open);
         self.update_sidebar_handle_visibility(cx);
+        self.update_sidebar_panel_visibility(cx);
 
         if self.sidebar_open {
             self.ui
@@ -685,6 +725,59 @@ impl App {
                 .view(&[id!(hamburger_button)])
                 .animator_play(cx, &[id!(open), id!(off)]);
         }
+    }
+
+    fn update_sidebar_panel_visibility(&mut self, cx: &mut Cx) {
+        let show_projects = self.sidebar_mode == SidebarMode::Projects;
+        let show_settings = self.sidebar_mode == SidebarMode::Settings;
+
+        // Use widget() for custom widgets (ProjectsPanel, SettingsDialog).
+        self.ui
+            .widget(&[id!(side_panel), id!(projects_panel)])
+            .set_visible(cx, show_projects);
+        self.ui
+            .widget(&[id!(side_panel), id!(settings_panel)])
+            .set_visible(cx, show_settings);
+
+        // Update tab button styling to show active state
+        // Use hex colors directly since theme constants aren't available in Rust code
+        let projects_color = if show_projects {
+            vec4(0.9, 0.91, 0.93, 1.0) // THEME_COLOR_TEXT_PRIMARY equivalent
+        } else {
+            vec4(0.53, 0.53, 0.53, 1.0) // THEME_COLOR_TEXT_MUTED equivalent (#888)
+        };
+
+        let settings_color = if show_settings {
+            vec4(0.9, 0.91, 0.93, 1.0) // THEME_COLOR_TEXT_PRIMARY equivalent
+        } else {
+            vec4(0.53, 0.53, 0.53, 1.0) // THEME_COLOR_TEXT_MUTED equivalent (#888)
+        };
+
+        self.ui
+            .button(&[id!(side_panel), id!(sidebar_tabs), id!(projects_tab)])
+            .apply_over(
+                cx,
+                live! {
+                    draw_text: {
+                        color: (projects_color)
+                    }
+                },
+            );
+
+        self.ui
+            .button(&[id!(side_panel), id!(sidebar_tabs), id!(settings_tab)])
+            .apply_over(
+                cx,
+                live! {
+                    draw_text: {
+                        color: (settings_color)
+                    }
+                },
+            );
+
+        // Force redraw of the side panel to ensure visibility changes take effect
+        self.ui.view(&[id!(side_panel)]).redraw(cx);
+        self.ui.redraw(cx);
     }
 
     fn toggle_terminal(&mut self, cx: &mut Cx) {
@@ -1088,7 +1181,6 @@ impl App {
         async_runtime::spawn_permission_reply(runtime, client, session_id, request_id, reply);
     }
 
-
     fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
         // Show confirmation dialog
         self.ui.simple_dialog(&[id!(simple_dialog)]).show_confirm(
@@ -1278,6 +1370,7 @@ impl AppMain for App {
 
                 // Initialize sidebar and terminal to open
                 self.sidebar_open = true;
+                self.sidebar_mode = SidebarMode::Projects;
                 self.terminal_open = true;
                 self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
                 self.set_sidebar_width(cx, self.sidebar_width);
@@ -1289,6 +1382,7 @@ impl AppMain for App {
                     .view(&[id!(hamburger_button)])
                     .animator_play(cx, &[id!(open), id!(on)]);
                 self.update_sidebar_handle_visibility(cx);
+                self.update_sidebar_panel_visibility(cx);
             }
             Event::ImageInput(image) => {
                 self.handle_image_input(cx, image);
@@ -1601,8 +1695,25 @@ impl AppMain for App {
             self.toggle_sidebar(cx);
         }
 
-        if self.ui.button(&[id!(settings_button)]).clicked(&actions) {
-            self.ui.settings_dialog(&[id!(settings_dialog)]).show(cx);
+        if self
+            .ui
+            .button(&[id!(side_panel), id!(sidebar_tabs), id!(projects_tab)])
+            .clicked(&actions)
+        {
+            self.sidebar_mode = SidebarMode::Projects;
+            self.update_sidebar_panel_visibility(cx);
+        }
+
+        if self
+            .ui
+            .button(&[id!(side_panel), id!(sidebar_tabs), id!(settings_tab)])
+            .clicked(&actions)
+        {
+            self.sidebar_mode = SidebarMode::Settings;
+            if !self.sidebar_open {
+                self.toggle_sidebar(cx);
+            }
+            self.update_sidebar_panel_visibility(cx);
         }
 
         if self.ui.button(&[id!(send_button)]).clicked(&actions) {

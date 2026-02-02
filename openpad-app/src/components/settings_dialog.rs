@@ -12,64 +12,22 @@ live_design! {
     use openpad_widgets::theme::*;
 
     pub SettingsDialog = {{SettingsDialog}} {
-        width: 400, height: Fit
+        width: Fill, height: Fill
         flow: Down
-        padding: { left: 20, right: 20, top: 20, bottom: 20 }
-        spacing: 15
-        visible: false
         show_bg: true
 
         draw_bg: {
             color: (THEME_COLOR_BG_APP)
-            uniform border_color: (THEME_COLOR_BORDER_MEDIUM)
-            uniform border_radius: 12.0
-            uniform border_size: 1.0
-
-            fn pixel(self) -> vec4 {
-                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
-                sdf.fill_keep(self.color);
-                sdf.stroke(self.border_color, self.border_size);
-                return sdf.result;
-            }
         }
 
-        header = <View> {
-            width: Fill, height: Fit
-            flow: Right
-            align: { y: 0.5 }
+        <ScrollYView> {
+            width: Fill, height: Fill
 
-            title = <Label> {
-                text: "Settings"
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_PRIMARY)
-                    text_style: <THEME_FONT_BOLD> { font_size: 14 }
-                }
-            }
-
-            <View> { width: Fill }
-
-            close_button = <Button> {
-                width: 24, height: 24
-                text: "x"
-                draw_bg: {
-                    color: (THEME_COLOR_TRANSPARENT)
-                    color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                    border_radius: 4.0
-                    border_size: 0.0
-                }
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_DIM)
-                    text_style: <THEME_FONT_REGULAR> { font_size: 12 }
-                }
-            }
-        }
-
-        separator = <View> {
-            width: Fill, height: 1
-            show_bg: true
-            draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) }
-        }
+            content = <View> {
+                width: Fill, height: Fit
+                flow: Down
+                spacing: 12
+                padding: { left: 16, right: 16, top: 16, bottom: 16 }
 
         // Provider Selection
         <View> {
@@ -235,6 +193,8 @@ live_design! {
                 }
             }
         }
+            }
+        }
     }
 }
 
@@ -256,23 +216,27 @@ impl Widget for SettingsDialog {
             self.view.handle_event(cx, event, scope);
         });
 
-        if self.view.button(&[id!(close_button)]).clicked(&actions) {
-            self.hide(cx);
-        }
+        // Panel is controlled by sidebar tabs - no close button needed
 
         if let Some(idx) = self
             .view
-            .up_drop_down(&[id!(provider_dropdown)])
+            .up_drop_down(&[id!(content), id!(provider_dropdown)])
             .changed(&actions)
         {
             self.selected_provider_idx = Some(idx);
-            self.view.text_input(&[id!(key_input)]).set_text(cx, "");
+            self.view
+                .text_input(&[id!(content), id!(key_input)])
+                .set_text(cx, "");
         }
 
-        if self.view.button(&[id!(save_button)]).clicked(&actions) {
+        if self
+            .view
+            .button(&[id!(content), id!(save_button)])
+            .clicked(&actions)
+        {
             if let Some(idx) = self.selected_provider_idx {
                 if let Some(provider) = self.providers.get(idx) {
-                    let key = self.view.text_input(&[id!(key_input)]).text();
+                    let key = self.view.text_input(&[id!(content), id!(key_input)]).text();
                     if !key.is_empty() {
                         cx.action(AppAction::DialogConfirmed {
                             dialog_type: format!("set_auth:{}", provider.id),
@@ -300,6 +264,8 @@ impl SettingsDialog {
         self.redraw(cx);
     }
 
+    // Keep these methods for compatibility, but they're now controlled by parent visibility
+
     pub fn set_providers(&mut self, cx: &mut Cx, providers: Vec<Provider>) {
         self.providers = providers;
 
@@ -310,14 +276,14 @@ impl SettingsDialog {
             .map(|p| p.name.clone().unwrap_or_default())
             .collect();
         self.view
-            .up_drop_down(&[id!(provider_dropdown)])
+            .up_drop_down(&[id!(content), id!(provider_dropdown)])
             .set_labels(cx, items);
     }
 
     pub fn set_config(&mut self, cx: &mut Cx, config: &Config) {
         let display = format!("{:#?}", config); // Simple debug print for now
         self.view
-            .label(&[id!(config_display)])
+            .label(&[id!(content), id!(config_display)])
             .set_text(cx, &display);
     }
 }
