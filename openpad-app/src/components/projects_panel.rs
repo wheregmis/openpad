@@ -194,13 +194,26 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                         width: Fit, height: Fit
                         flow: Right,
                         spacing: 2,
-                        padding: { left: 6, right: 6, top: 2, bottom: 2 }
+                        padding: { left: 4, right: 6, top: 2, bottom: 2 }
                         show_bg: true
                         draw_bg: {
                             color: #2a2a2a
                             border_radius: 6.0
                             border_size: 1.0
                             border_color: #444
+                        }
+
+                        menu_collapse = <Button> {
+                            width: 22, height: 22
+                            text: "〉"
+                            align: { x: 0.5, y: 0.5 }
+                            draw_bg: {
+                                color: (THEME_COLOR_TRANSPARENT)
+                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                border_radius: 4.0
+                                border_size: 0.0
+                            }
+                            draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
                         }
 
                         menu_rename = <Button> {
@@ -453,7 +466,9 @@ impl Widget for ProjectsPanel {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
 
-                    if widget.button(&[id!(menu_button)]).clicked(&actions) {
+                    if widget.button(&[id!(menu_button)]).clicked(&actions)
+                        || widget.button(&[id!(menu_collapse)]).clicked(&actions)
+                    {
                         let next = if self.open_menu_session_id.as_deref() == Some(&session_id) {
                             None
                         } else {
@@ -581,6 +596,9 @@ impl Widget for ProjectsPanel {
                             item_widget
                                 .view(&[id!(menu_panel)])
                                 .set_visible(cx, menu_open);
+                            item_widget
+                                .button(&[id!(menu_button)])
+                                .set_visible(cx, !menu_open);
                             item_widget
                                 .button(&[id!(menu_abort)])
                                 .set_visible(cx, working);
