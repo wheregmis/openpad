@@ -14,9 +14,14 @@ Openpad provides a clean chat interface for interacting with Claude Code through
 - ✅ Create chat sessions automatically or manually per project
 - ✅ Send text messages with proper project context
 - ✅ Display streaming responses in real-time
-- ✅ Plain text message rendering
-- ✅ Session management (create, delete, rename, branch, revert)
+- ✅ Rich text rendering (markdown, code blocks, syntax highlighting)
+- ✅ Session management (create, delete, rename, branch, revert, share)
 - ✅ Project-aware sidebar with sessions grouped by project
+- ✅ Permission approval system (inline UI)
+- ✅ Error handling with actionable guidance
+- ✅ Token usage and cost tracking
+- ✅ Diff visualization with colored rendering
+- ✅ Terminal integration (PTY-based shell)
 
 ## Prerequisites
 
@@ -79,12 +84,14 @@ See [docs/plans/2026-01-29-openpad-mvp-design.md](docs/plans/2026-01-29-openpad-
 
 - ~~Session sidebar~~ ✅ Implemented
 - ~~Permission approval UI~~ ✅ Implemented
-- Markdown rendering
-- Syntax highlighting
+- ~~Markdown rendering~~ ✅ Implemented
+- ~~Syntax highlighting~~ ✅ Implemented
 - ~~Terminal integration~~ ✅ Implemented
-- Code diff visualization
+- ~~Code diff visualization~~ ✅ Implemented
 - Session search and filtering
+- Model/Agent selection UI
 - Project-specific settings
+- File navigation and search
 
 ## License
 
