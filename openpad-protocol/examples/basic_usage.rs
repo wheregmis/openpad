@@ -127,6 +127,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 match part {
                                     Part::Text { text, .. } => println!("      Text: {}...", text.chars().take(50).collect::<String>()),
                                     Part::File { .. } => println!("      File part updated"),
+                                    Part::StepStart { .. } => println!("      Step started"),
+                                    Part::StepFinish { reason, cost, .. } => println!("      Step finished: {} (cost: {})", reason, cost),
                                     Part::Unknown => println!("      Unknown part type"),
                                 }
                             }
