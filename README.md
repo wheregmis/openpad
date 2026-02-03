@@ -88,10 +88,16 @@ See [docs/plans/2026-01-29-openpad-mvp-design.md](docs/plans/2026-01-29-openpad-
 - ~~Syntax highlighting~~ ✅ Implemented
 - ~~Terminal integration~~ ✅ Implemented
 - ~~Code diff visualization~~ ✅ Implemented
+- ~~Model/Agent selection UI~~ ✅ Implemented
+- ~~API key management~~ ✅ Implemented
+- ~~Configuration display~~ ✅ Implemented
 - Session search and filtering
-- Model/Agent selection UI
-- Project-specific settings
+- Theme switching UI
+- Keyboard shortcuts
 - File navigation and search
+- Terminal multi-tab support
+- Command execution in chat
+- Toast notifications
 
 ## License
 

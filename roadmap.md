@@ -108,20 +108,20 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 
 #### Model Selection
 - [x] Fetch available providers and models (`get_providers()`)
-- [ ] Model picker UI (dropdown or dialog)
-- [ ] Send prompts with specific `ModelSpec`
-- [ ] Show current model in header or session context
+- [x] Model picker UI (dropdown or dialog)
+- [x] Send prompts with specific `ModelSpec`
+- [x] Show current model in header or session context
 - [ ] Model variant support (e.g., "extended" thinking)
 
 #### Auth & Configuration
 - [x] API key management (`set_auth()`) — Settings panel: provider dropdown, API key input, Update Key button
 - [x] Configuration display (`get_config()`) — Current Configuration section in Settings panel
-- [ ] Provider status indicators
+- [x] Provider status indicators
 
 #### Agent Selection
-- [ ] Fetch available agents (`agents()`)
-- [ ] Agent picker for message sending
-- [ ] Display agent used per message
+- [x] Fetch available agents (`agents()`)
+- [x] Agent picker for message sending
+- [x] Display agent used per message
 
 ### Phase 4: File & Code Integration
 
@@ -147,9 +147,9 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Prompt detection and filtering
 - [x] Backspace handling in shell echo
 - [x] Terminal component integrated in app
-- [ ] Clear terminal output (Ctrl+L or clear command)
-- [ ] Terminal resize support (dynamic rows/cols)
-- [ ] Command history (up/down arrow keys)
+- [x] Clear terminal output (Ctrl+L or clear command)
+- [x] Terminal resize support (dynamic rows/cols)
+- [x] Command history (up/down arrow keys)
 - [ ] Multiple terminal tabs
 - [ ] Proper thread cleanup on widget drop
 
@@ -178,8 +178,8 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 - [x] Handle `PermissionRequested` events
 - [x] Handle `PermissionResponded` events
 - [x] Handle `PermissionDismissed` events
-- [ ] Handle `MessageRemoved` events
-- [ ] Handle `PartRemoved` events
+- [x] Handle `MessageRemoved` events
+- [x] Handle `PartRemoved` events
 - [ ] Reconnect SSE on stream disconnect
 
 ---
@@ -208,14 +208,14 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 | `POST /session/:id/shell` | ✅ | ❌ |
 | `POST /session/:id/revert` | ✅ | ✅ |
 | `POST /session/:id/unrevert` | ✅ | ✅ |
-| `POST /session/:id/permissions/:pid` | ✅ | ❌ |
+| `POST /session/:id/permissions/:pid` | ✅ | ✅ |
 | `POST /permission/:pid/reply` | ✅ | ✅ |
 | `GET /project` | ✅ | ✅ |
 | `GET /project/current` | ✅ | ✅ |
-| `GET /config` | ✅ | ❌ |
-| `GET /config/providers` | ✅ | ❌ |
-| `POST /auth/:provider` | ✅ | ❌ |
-| `GET /app/agents` | ✅ | ❌ |
+| `GET /config` | ✅ | ✅ |
+| `GET /config/providers` | ✅ | ✅ |
+| `POST /auth/:provider` | ✅ | ✅ |
+| `GET /app/agents` | ✅ | ✅ |
 | `POST /app/log` | ✅ | ❌ |
 | `GET /find/text` | ✅ | ❌ |
 | `GET /find/files` | ✅ | ❌ |
@@ -226,7 +226,7 @@ Native GUI client for OpenCode (Claude Code server) built with Makepad + Rust.
 | TUI APIs (7 endpoints) | ✅ | ❌ |
 
 **Protocol coverage:** 100% of OpenCode API  
-**App integration:** ~40% of available API endpoints (up from ~25%)
+**App integration:** ~55% of available API endpoints (up from ~52%)
 
 ---
 
