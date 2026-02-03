@@ -1,6 +1,6 @@
 [package]
 name = "openpad-app"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 
 [[bin]]
@@ -8,8 +8,8 @@ name = "openpad"
 path = "src/main.rs"
 
 [dependencies]
-makepad-widgets = { path = "/Users/wheregmis/Documents/GitHub/makepad/widgets" }
-makepad-code-editor = { path = "/Users/wheregmis/Documents/GitHub/makepad/code_editor" }
+makepad-widgets = { git = "https://github.com/wheregmis/makepad.git", branch = "pasteboard_image" }
+makepad-code-editor = { git = "https://github.com/wheregmis/makepad.git", branch = "pasteboard_image" }
 openpad-widgets = { path = "../openpad-widgets" }
 openpad-protocol = { path = "../openpad-protocol" }
 tokio = { workspace = true }

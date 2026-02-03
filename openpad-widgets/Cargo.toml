@@ -4,4 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-makepad-widgets = { path = "/Users/wheregmis/Documents/GitHub/makepad/widgets" }
+makepad-widgets = { git = "https://github.com/wheregmis/makepad.git", branch = "pasteboard_image" }
