@@ -64,7 +64,7 @@ jobs:
       - name: Install packager tooling
         run: |
           cargo install --locked cargo-packager
-          cargo install --locked --version 0.2.0 --git https://github.com/tyreseluo/robius-packaging-commands.git --branch feat/workspace-target-dir robius-packaging-commands
+          cargo install --locked --git https://github.com/tyreseluo/robius-packaging-commands.git --branch feat/workspace-target-dir robius-packaging-commands
 
       - name: Build macOS package
         run: |
