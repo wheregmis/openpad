@@ -229,6 +229,7 @@ impl UpDropDown {
                     }
 
                     let menu_height = cx.turtle().used_height();
+                    popup_menu.set_content_height(menu_height);
 
                     let mut desired_visible_height = menu_height.min(max_height);
                     let mut desired_scroll_max = 0.0;
@@ -281,6 +282,7 @@ impl UpDropDown {
                     }
 
                     let menu_height = cx.turtle().used_height();
+                    popup_menu.set_content_height(menu_height);
 
                     let mut desired_visible_height = menu_height.min(max_height);
                     let mut desired_scroll_max = 0.0;
@@ -333,6 +335,7 @@ impl UpDropDown {
                     }
 
                     let menu_height = cx.turtle().used_height();
+                    popup_menu.set_content_height(menu_height);
 
                     let mut desired_visible_height = menu_height.min(max_height);
                     let mut desired_scroll_max = 0.0;

@@ -258,6 +258,19 @@ live_design! {
             border_color: (THEME_COLOR_BEVEL_OUTSET_1)
             border_color_2: (THEME_COLOR_BEVEL_OUTSET_2)
         }
+        draw_scrollbar: {
+            color: #5a5f68
+            border_radius: 2.0
+            fn pixel(self) -> vec4 {
+                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, self.border_radius);
+                sdf.fill(self.color);
+                return sdf.result;
+            }
+        }
+        scrollbar_width: 3.0
+        scrollbar_inset: 2.0
+        scrollbar_min_height: 16.0
     }
 }
 
@@ -284,6 +297,7 @@ pub struct ScrollablePopupMenu {
     #[live] menu_item: Option<LivePtr>,
 
     #[live] draw_bg: DrawQuad,
+    #[live] draw_scrollbar: DrawQuad,
     #[layout] layout: Layout,
     #[walk] walk: Walk,
     #[live] items: Vec<String>,
@@ -294,6 +308,11 @@ pub struct ScrollablePopupMenu {
     #[rust] count: usize,
     #[rust] max_height: f64,
     #[rust] menu_scroll: f64,
+    #[rust] content_height: f64,
+
+    #[live] scrollbar_width: f64,
+    #[live] scrollbar_inset: f64,
+    #[live] scrollbar_min_height: f64,
 }
 
 impl LiveHook for ScrollablePopupMenu {
@@ -384,6 +403,10 @@ impl ScrollablePopupMenu {
         self.menu_scroll = scroll;
     }
 
+    pub fn set_content_height(&mut self, height: f64) {
+        self.content_height = height;
+    }
+
     pub fn begin(&mut self, cx: &mut Cx2d) {
         self.draw_list.begin_overlay_reuse(cx);
 
@@ -404,6 +427,7 @@ impl ScrollablePopupMenu {
 
     pub fn end(&mut self, cx: &mut Cx2d, shift_area: Area, shift: Vec2d) {
         self.draw_bg.end(cx);
+        self.draw_scrollbar_if_needed(cx);
         cx.end_pass_sized_turtle_with_shift(shift_area, shift);
         self.draw_list.end(cx);
         self.menu_items.retain_visible();
@@ -476,5 +500,48 @@ impl ScrollablePopupMenu {
                 _ => (),
             }
         }
+    }
+
+    fn draw_scrollbar_if_needed(&mut self, cx: &mut Cx2d) {
+        let rect = self.draw_bg.area().rect(cx);
+        let visible_height = if self.max_height > 0.0 {
+            self.max_height.min(self.content_height.max(0.0))
+        } else {
+            self.content_height.max(0.0)
+        };
+        if self.content_height <= visible_height || visible_height <= 0.0 {
+            return;
+        }
+
+        let inset = self.scrollbar_inset.max(0.0);
+        let width = self.scrollbar_width.max(1.0);
+        let track_height = (visible_height - inset * 2.0).max(0.0);
+        if track_height <= 0.0 {
+            return;
+        }
+
+        let mut handle_height = visible_height * (visible_height / self.content_height);
+        if handle_height < self.scrollbar_min_height {
+            handle_height = self.scrollbar_min_height;
+        }
+        if handle_height > track_height {
+            handle_height = track_height;
+        }
+
+        let max_scroll = (self.content_height - visible_height).max(0.0);
+        let scroll_ratio = if max_scroll > 0.0 {
+            (self.menu_scroll / max_scroll).clamp(0.0, 1.0)
+        } else {
+            0.0
+        };
+        let max_handle_offset = (track_height - handle_height).max(0.0);
+        let handle_offset = max_handle_offset * scroll_ratio;
+
+        let pos = dvec2(
+            rect.pos.x + rect.size.x - inset - width,
+            rect.pos.y + inset + handle_offset,
+        );
+        let size = dvec2(width, handle_height);
+        self.draw_scrollbar.draw_abs(cx, Rect { pos, size });
     }
 }
