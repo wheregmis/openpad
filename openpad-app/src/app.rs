@@ -198,6 +198,7 @@ live_design! {
                 width: Fill, height: Fit
                 padding: { left: 32, right: 32, top: 12, bottom: 20 }
                 flow: Down, spacing: 8
+                clip_y: false
 
                 // Attachments preview area
                 attachments_preview = <RoundedView> {
