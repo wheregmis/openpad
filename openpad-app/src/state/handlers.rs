@@ -2,15 +2,17 @@ use crate::async_runtime::tasks;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::message_list::PendingPermissionDisplay;
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
+use crate::components::settings_dialog::SettingsDialogWidgetRefExt;
 use crate::constants::*;
 use crate::state::actions::AppAction;
 use crate::ui::state_updates;
 use makepad_widgets::*;
-use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_protocol::{
-    Agent, AssistantMessage, AssistantError, Event as OcEvent, Message, MessageTime, MessageWithParts,
-    ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider, Session, Skill,
+    Agent, AssistantError, AssistantMessage, Event as OcEvent, Message, MessageTime,
+    MessageWithParts, ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider,
+    Session, Skill,
 };
+use openpad_widgets::UpDropDownWidgetRefExt;
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -79,11 +81,19 @@ pub struct AppState {
     pub providers: Vec<Provider>,
     pub agents: Vec<Agent>,
     pub skills: Vec<Skill>,
-    pub model_entries: Vec<ModelDropdownEntry>,
-    pub selected_model_entry: usize,
+    /// Selected provider index (0 = Default/All providers)
+    pub selected_provider_idx: usize,
+    /// Available provider labels for the provider dropdown
+    pub provider_labels: Vec<String>,
+    /// Currently filtered model labels based on selected provider
+    pub model_labels: Vec<String>,
+    /// Maps model dropdown index to (provider_id, model_id)
+    pub model_entries: Vec<(String, String)>,
+    pub selected_model_idx: usize,
     pub selected_agent_idx: Option<usize>,
     pub selected_skill_idx: Option<usize>,
     pub attached_files: Vec<AttachedFile>,
+    pub config: Option<openpad_protocol::Config>,
 }
 
 impl AppState {
@@ -108,18 +118,53 @@ impl AppState {
     /// Get the currently selected ModelSpec, if any
     pub fn selected_model_spec(&self) -> Option<ModelSpec> {
         self.model_entries
-            .get(self.selected_model_entry)
-            .and_then(|entry| {
-                if !entry.selectable {
-                    return None;
-                }
-                entry.provider_id.as_ref().and_then(|provider_id| {
-                    entry.model_id.as_ref().map(|model_id| ModelSpec {
-                        provider_id: provider_id.clone(),
-                        model_id: model_id.clone(),
-                    })
-                })
+            .get(self.selected_model_idx)
+            .map(|(provider_id, model_id)| ModelSpec {
+                provider_id: provider_id.clone(),
+                model_id: model_id.clone(),
             })
+    }
+
+    /// Get models for the currently selected provider
+    pub fn get_models_for_selected_provider(&self) -> Vec<(String, String, String)> {
+        let mut models = Vec::new();
+
+        if self.selected_provider_idx == 0 {
+            // "Default" selected - show all models from all providers
+            for provider in &self.providers {
+                if let Some(provider_models) = provider.models.as_ref() {
+                    for (_key, model) in provider_models {
+                        let model_label = model.name.as_deref().unwrap_or(&model.id).to_string();
+                        models.push((provider.id.clone(), model.id.clone(), model_label));
+                    }
+                }
+            }
+        } else if let Some(provider) = self.providers.get(self.selected_provider_idx - 1) {
+            // Specific provider selected
+            if let Some(provider_models) = provider.models.as_ref() {
+                for (_key, model) in provider_models {
+                    let model_label = model.name.as_deref().unwrap_or(&model.id).to_string();
+                    models.push((provider.id.clone(), model.id.clone(), model_label));
+                }
+            }
+        }
+
+        // Sort by label
+        models.sort_by(|a, b| a.2.cmp(&b.2));
+        models
+    }
+
+    /// Update model list based on selected provider
+    pub fn update_model_list_for_provider(&mut self) {
+        let models = self.get_models_for_selected_provider();
+        self.model_labels = models.iter().map(|(_, _, label)| label.clone()).collect();
+        self.model_entries = models
+            .iter()
+            .map(|(pid, mid, _)| (pid.clone(), mid.clone()))
+            .collect();
+
+        // Reset model selection to first item (or 0 if empty)
+        self.selected_model_idx = 0;
     }
 
     pub fn selected_agent_name(&self) -> Option<String> {
@@ -369,14 +414,15 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::SessionDiffLoaded { session_id, diffs } => {
             if let Some(existing) = state.find_session_mut(session_id) {
-                let summary = existing.summary.get_or_insert_with(|| {
-                    openpad_protocol::SessionSummary {
-                        additions: 0,
-                        deletions: 0,
-                        files: diffs.len() as i64,
-                        diffs: Vec::new(),
-                    }
-                });
+                let summary =
+                    existing
+                        .summary
+                        .get_or_insert_with(|| openpad_protocol::SessionSummary {
+                            additions: 0,
+                            deletions: 0,
+                            files: diffs.len() as i64,
+                            diffs: Vec::new(),
+                        });
                 summary.diffs = diffs.clone();
             }
             state.update_session_meta_ui(ui, cx);
@@ -389,8 +435,26 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::MessagesLoaded(messages) => {
             state.messages_data = messages.clone();
-            ui.message_list(&[id!(message_list)])
-                .set_messages(cx, &state.messages_data, state.current_revert_message_id());
+            ui.message_list(&[id!(message_list)]).set_messages(
+                cx,
+                &state.messages_data,
+                state.current_revert_message_id(),
+            );
+            // Request session diff so file changes show on the last assistant message
+            if let Some(session_id) = state.current_session_id.clone() {
+                let message_id = state
+                    .messages_data
+                    .iter()
+                    .rev()
+                    .find_map(|mwp| match &mwp.info {
+                        openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
+                        _ => None,
+                    });
+                cx.action(AppAction::RequestSessionDiff {
+                    session_id,
+                    message_id,
+                });
+            }
         }
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
@@ -409,16 +473,54 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 providers_response.providers.len()
             );
             state.providers = providers_response.providers.clone();
-            state.model_entries = build_model_entries(&state.providers);
-            state.selected_model_entry = 0;
-            let labels: Vec<String> = state
-                .model_entries
-                .iter()
-                .map(|entry| entry.label.clone())
-                .collect();
-            ui.up_drop_down(&[id!(model_dropdown)]).set_labels(cx, labels);
-            ui.up_drop_down(&[id!(model_dropdown)])
-                .set_selected_item(cx, 0);
+
+            // Build provider dropdown labels (Default + provider names)
+            let mut provider_labels = vec!["Default".to_string()];
+            provider_labels.extend(
+                state
+                    .providers
+                    .iter()
+                    .map(|p| p.name.as_deref().unwrap_or(&p.id).to_string()),
+            );
+            state.provider_labels = provider_labels.clone();
+            state.selected_provider_idx = 0;
+
+            log!("Providers count: {}", state.providers.len());
+            log!("Provider labels count: {}", provider_labels.len());
+            log!("Provider labels: {:?}", provider_labels);
+
+            // Initialize model list based on Default (all models)
+            state.update_model_list_for_provider();
+
+            // Set provider dropdown
+            log!(
+                "Setting provider dropdown with {} labels",
+                state.provider_labels.len()
+            );
+            let provider_dd = ui.up_drop_down(&[id!(input_bar_toolbar), id!(provider_dropdown)]);
+            provider_dd.set_labels(cx, state.provider_labels.clone());
+            provider_dd.set_selected_item(cx, 0);
+            log!(
+                "Provider dropdown labels set to: {:?}",
+                state.provider_labels
+            );
+
+            // Set model dropdown
+            log!(
+                "Setting model dropdown with {} labels",
+                state.model_labels.len()
+            );
+            let model_dd = ui.up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)]);
+            model_dd.set_labels(cx, state.model_labels.clone());
+            model_dd.set_selected_item(cx, 0);
+
+            // Force redraw of the input bar area to ensure dropdowns are updated
+            ui.redraw(cx);
+            log!("Provider labels set: {:?}", state.provider_labels);
+
+            ui.settings_dialog(&[id!(side_panel), id!(settings_panel)])
+                .set_providers(cx, state.providers.clone());
+
             cx.redraw_all();
         }
         AppAction::AgentsLoaded(agents) => {
@@ -426,8 +528,9 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.agents = agents.clone();
             let mut labels: Vec<String> = vec!["Default".to_string()];
             labels.extend(state.agents.iter().map(|a| a.name.clone()));
-            ui.up_drop_down(&[id!(agent_dropdown)]).set_labels(cx, labels);
-            ui.up_drop_down(&[id!(agent_dropdown)])
+            ui.up_drop_down(&[id!(input_bar_toolbar), id!(agent_dropdown)])
+                .set_labels(cx, labels);
+            ui.up_drop_down(&[id!(input_bar_toolbar), id!(agent_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_agent_idx = None;
             cx.redraw_all();
@@ -437,11 +540,26 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.skills = skills.clone();
             let mut labels: Vec<String> = vec!["Skill".to_string()];
             labels.extend(state.skills.iter().map(|s| s.name.clone()));
-            ui.up_drop_down(&[id!(skill_dropdown)]).set_labels(cx, labels);
-            ui.up_drop_down(&[id!(skill_dropdown)])
+            ui.up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
+                .set_labels(cx, labels);
+            ui.up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_skill_idx = None;
             cx.redraw_all();
+        }
+        AppAction::ConfigLoaded(config) => {
+            state.config = Some(config.clone());
+            ui.settings_dialog(&[id!(side_panel), id!(settings_panel)])
+                .set_config(cx, &config);
+            cx.redraw_all();
+        }
+        AppAction::AuthSet {
+            provider_id: _,
+            success,
+        } => {
+            if *success {
+                // visual feedback handled by ProvidersLoaded which follows
+            }
         }
         _ => {}
     }
@@ -550,8 +668,11 @@ fn handle_message_updated(
         });
     }
 
-    ui.message_list(&[id!(message_list)])
-        .set_messages(cx, &state.messages_data, state.current_revert_message_id());
+    ui.message_list(&[id!(message_list)]).set_messages(
+        cx,
+        &state.messages_data,
+        state.current_revert_message_id(),
+    );
 }
 
 /// Handles part update events
@@ -561,28 +682,40 @@ fn handle_part_updated(
     cx: &mut Cx,
     part: &openpad_protocol::Part,
 ) {
-    if let (Some(_), Some(msg_id)) = (part.text_content(), part.message_id()) {
-        let mut should_update_work = false;
-        let mut work_session_id: Option<String> = None;
-        if let Some(mwp) = state
-            .messages_data
-            .iter_mut()
-            .find(|m| m.info.id() == msg_id)
-        {
-            if matches!(mwp.info, openpad_protocol::Message::Assistant(_)) {
-                should_update_work = true;
-                work_session_id = Some(mwp.info.session_id().to_string());
-            }
-            let part_id = match &part {
-                openpad_protocol::Part::Text { id, .. } => id.as_str(),
-                _ => "",
-            };
+    // Get message_id from the part - handle both text and non-text parts (tools, steps)
+    let msg_id = part.message_id();
+    if msg_id.is_none() {
+        return;
+    }
+    let msg_id = msg_id.unwrap();
 
-            if !part_id.is_empty() {
+    // Only process parts for the current session
+    let current_sid = state.current_session_id.as_deref().unwrap_or("");
+
+    let mut should_update_work = false;
+    let mut work_session_id: Option<String> = None;
+    if let Some(mwp) = state
+        .messages_data
+        .iter_mut()
+        .find(|m| m.info.id() == msg_id)
+    {
+        // Check if this part belongs to the current session
+        if mwp.info.session_id() != current_sid {
+            return;
+        }
+
+        if matches!(mwp.info, openpad_protocol::Message::Assistant(_)) {
+            should_update_work = true;
+            work_session_id = Some(mwp.info.session_id().to_string());
+        }
+
+        // Handle text parts with IDs (for deduplication)
+        if let openpad_protocol::Part::Text { id, .. } = &part {
+            if !id.is_empty() {
                 if let Some(existing) = mwp
                     .parts
                     .iter_mut()
-                    .find(|p| matches!(p, openpad_protocol::Part::Text { id, .. } if id == part_id))
+                    .find(|p| matches!(p, openpad_protocol::Part::Text { id: existing_id, .. } if existing_id == id))
                 {
                     *existing = part.clone();
                 } else {
@@ -591,16 +724,23 @@ fn handle_part_updated(
             } else {
                 mwp.parts.push(part.clone());
             }
-
-            ui.message_list(&[id!(message_list)])
-                .set_messages(cx, &state.messages_data, state.current_revert_message_id());
+        } else {
+            // For non-text parts (StepStart, Tool, StepFinish), always append
+            // These are incremental updates during streaming
+            mwp.parts.push(part.clone());
         }
 
-        if should_update_work {
-            update_work_indicator(state, ui, cx, true);
-            if let Some(session_id) = work_session_id {
-                set_session_working(state, ui, cx, &session_id, true);
-            }
+        ui.message_list(&[id!(message_list)]).set_messages(
+            cx,
+            &state.messages_data,
+            state.current_revert_message_id(),
+        );
+    }
+
+    if should_update_work {
+        update_work_indicator(state, ui, cx, true);
+        if let Some(session_id) = work_session_id {
+            set_session_working(state, ui, cx, &session_id, true);
         }
     }
 }
@@ -625,9 +765,13 @@ fn set_session_working(
         return;
     }
     if working {
-        state.working_by_session.insert(session_id.to_string(), true);
+        state
+            .working_by_session
+            .insert(session_id.to_string(), true);
     } else {
-        state.working_by_session.insert(session_id.to_string(), false);
+        state
+            .working_by_session
+            .insert(session_id.to_string(), false);
     }
     state.update_projects_panel(ui, cx);
 }
@@ -718,6 +862,9 @@ fn push_session_error_message(
         parts: vec![part],
     });
 
-    ui.message_list(&[id!(message_list)])
-        .set_messages(cx, &state.messages_data, state.current_revert_message_id());
+    ui.message_list(&[id!(message_list)]).set_messages(
+        cx,
+        &state.messages_data,
+        state.current_revert_message_id(),
+    );
 }

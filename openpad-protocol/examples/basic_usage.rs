@@ -127,6 +127,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 match part {
                                     Part::Text { text, .. } => println!("      Text: {}...", text.chars().take(50).collect::<String>()),
                                     Part::File { .. } => println!("      File part updated"),
+                                    Part::StepStart { .. } => println!("      Step started"),
+                                    Part::StepFinish { reason, cost, .. } => println!("      Step finished: {} (cost: {})", reason, cost),
+                                    Part::Tool { .. } => {
+                                        if let Some((tool, input_summary, result)) = part.tool_display() {
+                                            let result_preview: String = result.chars().take(60).collect();
+                                            println!("      Tool {} {} → {}...", tool, input_summary, result_preview);
+                                        }
+                                    }
                                     Part::Unknown => println!("      Unknown part type"),
                                 }
                             }

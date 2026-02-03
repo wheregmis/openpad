@@ -21,6 +21,10 @@ pub enum AppAction {
         session_id: String,
         diffs: Vec<FileDiff>,
     },
+    RequestSessionDiff {
+        session_id: String,
+        message_id: Option<String>,
+    },
     MessagesLoaded(Vec<MessageWithParts>),
     MessageReceived(Message),
     PartReceived {
@@ -57,6 +61,11 @@ pub enum AppAction {
     ProvidersLoaded(ProvidersResponse),
     AgentsLoaded(Vec<Agent>),
     SkillsLoaded(Vec<Skill>),
+    ConfigLoaded(openpad_protocol::Config),
+    AuthSet {
+        provider_id: String,
+        success: bool,
+    },
 }
 
 #[derive(Clone, Debug, DefaultNone)]

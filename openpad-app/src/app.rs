@@ -2,6 +2,7 @@ use crate::async_runtime;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_card::PermissionCardAction;
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
+use crate::components::terminal_panel::TerminalPanelWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use base64::engine::general_purpose::STANDARD;
@@ -13,6 +14,13 @@ use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction};
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
+
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
+enum SidebarMode {
+    #[default]
+    Projects,
+    Settings,
+}
 
 // Lazy-initialized regex for detecting image data URLs
 static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -79,6 +87,8 @@ live_design! {
     use crate::components::message_list::MessageList;
     use crate::components::diff_view::DiffView;
     use crate::components::terminal::Terminal;
+    use crate::components::terminal_panel::TerminalPanel;
+    use crate::components::settings_dialog::SettingsDialog;
 
     ChatPanel = <View> {
         width: Fill, height: Fill
@@ -190,6 +200,7 @@ live_design! {
                 width: Fill, height: Fit
                 padding: { left: 32, right: 32, top: 12, bottom: 20 }
                 flow: Down, spacing: 8
+                clip_y: false
 
                 // Attachments preview area
                 attachments_preview = <RoundedView> {
@@ -264,18 +275,22 @@ live_design! {
                 <InputBar> {
                     width: Fill
                     input_box = <InputField> {}
-                    <InputBarToolbar> {
+                    input_bar_toolbar = <InputBarToolbar> {
                         agent_dropdown = <InputBarDropDown> {
-                            labels: ["Agent"]
-                        }
-                        skill_dropdown = <InputBarDropDown> {
-                            width: 150
-                            labels: ["Skill"]
-                        }
-                        model_dropdown = <InputBarDropDown> {
-                            width: 150
-                            labels: ["Model"]
-                        }
+                             labels: ["Agent"]
+                         }
+                         skill_dropdown = <InputBarDropDown> {
+                             width: 120
+                             labels: ["Skill"]
+                         }
+                         provider_dropdown = <InputBarDropDown> {
+                             width: 120
+                             labels: ["Provider"]
+                         }
+                         model_dropdown = <InputBarDropDown> {
+                             width: 150
+                             labels: ["Model"]
+                         }
                         <View> { width: Fill }
                         send_button = <SendButton> {
                             margin: { left: 0 }
@@ -286,20 +301,7 @@ live_design! {
         }
     }
 
-    TerminalPanelWrap = <View> {
-        width: Fill, height: 250
-        flow: Down
-        show_bg: true
-        draw_bg: { color: (THEME_COLOR_BG_APP) }
-
-        // Separator line
-        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } }
-
-        terminal_panel = <Terminal> {
-            width: Fill
-            height: Fill
-        }
-    }
+    TerminalPanelWrap = <TerminalPanel> {}
 
     App = {{App}} {
         ui: <Window> {
@@ -335,9 +337,57 @@ live_design! {
                                 border_radius: 0.0
                                 border_size: 1.0
                             }
+
+                            <View> { width: Fill }
+
+                            sidebar_tabs = <View> {
+                                width: Fit, height: Fill
+                                flow: Right
+                                spacing: 4
+                                align: { y: 0.5 }
+
+                                projects_tab = <Button> {
+                                    width: Fit, height: 24
+                                    padding: { left: 8, right: 8, top: 4, bottom: 4 }
+                                    text: "Projects"
+                                    draw_bg: {
+                                        color: (THEME_COLOR_TRANSPARENT)
+                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                        border_radius: 4.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text: {
+                                        color: (THEME_COLOR_TEXT_MUTED)
+                                        text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                                    }
+                                }
+
+                                settings_tab = <Button> {
+                                    width: Fit, height: 24
+                                    padding: { left: 8, right: 8, top: 4, bottom: 4 }
+                                    text: "Settings"
+                                    draw_bg: {
+                                        color: (THEME_COLOR_TRANSPARENT)
+                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                        border_radius: 4.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text: {
+                                        color: (THEME_COLOR_TEXT_MUTED)
+                                        text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                                    }
+                                }
+                            }
                         }
 
-                        projects_panel = <ProjectsPanel> {}
+                        projects_panel = <ProjectsPanel> {
+                            visible: true
+                        }
+
+                        settings_panel = <SettingsDialog> {
+                            visible: false
+                            width: Fill, height: Fill
+                        }
                     }
                     sidebar_resize_handle = <View> {
                         width: 6, height: Fill
@@ -535,6 +585,8 @@ pub struct App {
     #[rust]
     sidebar_drag_start: Option<(f64, f32)>,
     #[rust]
+    sidebar_mode: SidebarMode,
+    #[rust]
     terminal_open: bool,
     #[rust]
     client: Option<Arc<OpenCodeClient>>,
@@ -556,6 +608,8 @@ impl LiveRegister for App {
         crate::components::permission_dialog::live_design(cx);
         crate::components::diff_view::live_design(cx);
         crate::components::terminal::live_design(cx);
+        crate::components::terminal_panel::live_design(cx);
+        crate::components::settings_dialog::live_design(cx);
     }
 }
 
@@ -655,6 +709,7 @@ impl App {
             .side_panel(&[id!(traffic_light_spacer)])
             .set_open(cx, !self.sidebar_open);
         self.update_sidebar_handle_visibility(cx);
+        self.update_sidebar_panel_visibility(cx);
 
         if self.sidebar_open {
             self.ui
@@ -667,11 +722,64 @@ impl App {
         }
     }
 
+    fn update_sidebar_panel_visibility(&mut self, cx: &mut Cx) {
+        let show_projects = self.sidebar_mode == SidebarMode::Projects;
+        let show_settings = self.sidebar_mode == SidebarMode::Settings;
+
+        // Use widget() for custom widgets (ProjectsPanel, SettingsDialog).
+        self.ui
+            .widget(&[id!(side_panel), id!(projects_panel)])
+            .set_visible(cx, show_projects);
+        self.ui
+            .widget(&[id!(side_panel), id!(settings_panel)])
+            .set_visible(cx, show_settings);
+
+        // Update tab button styling to show active state
+        // Use hex colors directly since theme constants aren't available in Rust code
+        let projects_color = if show_projects {
+            vec4(0.9, 0.91, 0.93, 1.0) // THEME_COLOR_TEXT_PRIMARY equivalent
+        } else {
+            vec4(0.53, 0.53, 0.53, 1.0) // THEME_COLOR_TEXT_MUTED equivalent (#888)
+        };
+
+        let settings_color = if show_settings {
+            vec4(0.9, 0.91, 0.93, 1.0) // THEME_COLOR_TEXT_PRIMARY equivalent
+        } else {
+            vec4(0.53, 0.53, 0.53, 1.0) // THEME_COLOR_TEXT_MUTED equivalent (#888)
+        };
+
+        self.ui
+            .button(&[id!(side_panel), id!(sidebar_tabs), id!(projects_tab)])
+            .apply_over(
+                cx,
+                live! {
+                    draw_text: {
+                        color: (projects_color)
+                    }
+                },
+            );
+
+        self.ui
+            .button(&[id!(side_panel), id!(sidebar_tabs), id!(settings_tab)])
+            .apply_over(
+                cx,
+                live! {
+                    draw_text: {
+                        color: (settings_color)
+                    }
+                },
+            );
+
+        // Force redraw of the side panel to ensure visibility changes take effect
+        self.ui.view(&[id!(side_panel)]).redraw(cx);
+        self.ui.redraw(cx);
+    }
+
     fn toggle_terminal(&mut self, cx: &mut Cx) {
         self.terminal_open = !self.terminal_open;
         self.ui
-            .view(&[id!(terminal_panel_wrap)])
-            .set_visible(cx, self.terminal_open);
+            .terminal_panel(&[id!(terminal_panel_wrap)])
+            .set_open(cx, self.terminal_open);
     }
 
     fn handle_sidebar_resize(&mut self, cx: &mut Cx, event: &Event) {
@@ -867,6 +975,12 @@ impl App {
                     AppAction::UnrevertSession(session_id) => {
                         self.unrevert_session(cx, session_id.clone());
                     }
+                    AppAction::RequestSessionDiff {
+                        session_id,
+                        message_id,
+                    } => {
+                        self.load_session_diff(cx, session_id.clone(), message_id.clone());
+                    }
                     AppAction::DialogConfirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
@@ -895,7 +1009,8 @@ impl App {
         };
         async_runtime::spawn_providers_loader(runtime, client.clone());
         async_runtime::spawn_agents_loader(runtime, client.clone());
-        async_runtime::spawn_skills_loader(runtime, client);
+        async_runtime::spawn_skills_loader(runtime, client.clone());
+        async_runtime::spawn_config_loader(runtime, client);
     }
 
     fn load_pending_permissions(&mut self) {
@@ -1233,6 +1348,9 @@ impl App {
                     );
                 }
             }
+            "set_auth" => {
+                async_runtime::spawn_auth_setter(runtime, client, data.to_string(), value);
+            }
             _ => {}
         }
     }
@@ -1251,9 +1369,13 @@ impl AppMain for App {
                 // Initialize terminal
                 self.ui.terminal(&[id!(terminal_panel)]).init_pty(cx);
 
-                // Initialize sidebar and terminal to open
+                // Initialize sidebar open, terminal collapsed by default
                 self.sidebar_open = true;
-                self.terminal_open = true;
+                self.sidebar_mode = SidebarMode::Projects;
+                self.terminal_open = false;
+                self.ui
+                    .terminal_panel(&[id!(terminal_panel_wrap)])
+                    .set_open(cx, false);
                 self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
                 self.set_sidebar_width(cx, self.sidebar_width);
                 self.ui.side_panel(&[id!(side_panel)]).set_open(cx, true);
@@ -1264,6 +1386,7 @@ impl AppMain for App {
                     .view(&[id!(hamburger_button)])
                     .animator_play(cx, &[id!(open), id!(on)]);
                 self.update_sidebar_handle_visibility(cx);
+                self.update_sidebar_panel_visibility(cx);
             }
             Event::ImageInput(image) => {
                 self.handle_image_input(cx, image);
@@ -1576,6 +1699,27 @@ impl AppMain for App {
             self.toggle_sidebar(cx);
         }
 
+        if self
+            .ui
+            .button(&[id!(side_panel), id!(sidebar_tabs), id!(projects_tab)])
+            .clicked(&actions)
+        {
+            self.sidebar_mode = SidebarMode::Projects;
+            self.update_sidebar_panel_visibility(cx);
+        }
+
+        if self
+            .ui
+            .button(&[id!(side_panel), id!(sidebar_tabs), id!(settings_tab)])
+            .clicked(&actions)
+        {
+            self.sidebar_mode = SidebarMode::Settings;
+            if !self.sidebar_open {
+                self.toggle_sidebar(cx);
+            }
+            self.update_sidebar_panel_visibility(cx);
+        }
+
         if self.ui.button(&[id!(send_button)]).clicked(&actions) {
             let text = self.ui.text_input(&[id!(input_box)]).text();
             if !text.is_empty() {
@@ -1598,37 +1742,46 @@ impl AppMain for App {
         if self.ui.button(&[id!(clear_skill_button)]).clicked(&actions) {
             self.state.selected_skill_idx = None;
             self.ui
-                .up_drop_down(&[id!(skill_dropdown)])
+                .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
             self.update_skill_ui(cx);
         }
 
-        // Handle dropdown selections
+        // Handle dropdown selections (main input bar only)
+        // Provider selection changed - update model list
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(model_dropdown)])
+            .up_drop_down(&[id!(input_bar_toolbar), id!(provider_dropdown)])
             .changed(&actions)
         {
-            if let Some(entry) = self.state.model_entries.get(idx) {
-                if entry.selectable {
-                    self.state.selected_model_entry = idx;
-                } else if self.state.model_entries.len() > self.state.selected_model_entry {
-                    self.ui
-                        .up_drop_down(&[id!(model_dropdown)])
-                        .set_selected_item(cx, self.state.selected_model_entry);
-                }
-            }
+            self.state.selected_provider_idx = idx;
+            self.state.update_model_list_for_provider();
+            self.ui
+                .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+                .set_labels(cx, self.state.model_labels.clone());
+            self.ui
+                .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+                .set_selected_item(cx, 0);
+        }
+
+        // Model selection changed
+        if let Some(idx) = self
+            .ui
+            .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+            .changed(&actions)
+        {
+            self.state.selected_model_idx = idx;
         }
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(agent_dropdown)])
+            .up_drop_down(&[id!(input_bar_toolbar), id!(agent_dropdown)])
             .changed(&actions)
         {
             self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
         }
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(skill_dropdown)])
+            .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
             .changed(&actions)
         {
             self.state.selected_skill_idx = if idx > 0 { Some(idx - 1) } else { None };

@@ -8,6 +8,7 @@ pub mod input_field;
 pub mod send_button;
 pub mod side_panel;
 pub mod simple_dialog;
+pub mod scrollable_popup_menu;
 pub mod status_dot;
 pub mod theme;
 pub mod upward_dropdown;
@@ -24,6 +25,7 @@ pub fn live_design(cx: &mut Cx) {
     crate::app_bg::live_design(cx);
     crate::theme::live_design(cx);
     crate::simple_dialog::live_design(cx);
+    crate::scrollable_popup_menu::live_design(cx);
     crate::upward_dropdown::live_design(cx);
     crate::openpad::live_design(cx);
 }
@@ -224,6 +226,7 @@ pub mod openpad {
             spacing: 12
             padding: { left: 10, right: 8, top: 4, bottom: 4 }
             align: { y: 0.5 }
+            clip_y: false
             show_bg: false
         }
 

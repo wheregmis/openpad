@@ -93,6 +93,8 @@ pub struct DiffView {
     diff_text_content: String,
     #[rust]
     summary_text: String,
+    #[rust]
+    summary_header_clicked: bool,
 }
 
 impl Widget for DiffView {
@@ -103,11 +105,7 @@ impl Widget for DiffView {
             let header = self.view.view(&[id!(summary_header)]);
             let header_rect = header.area().rect(cx);
             if header_rect.contains(mouse.abs) {
-                self.expanded = !self.expanded;
-                self.view
-                    .view(&[id!(diff_content)])
-                    .set_visible(cx, self.expanded);
-                self.redraw(cx);
+                self.summary_header_clicked = true;
             }
         }
     }
@@ -172,6 +170,7 @@ impl DiffView {
 
         self.expanded = false;
         self.view.view(&[id!(diff_content)]).set_visible(cx, false);
+        self.view.view(&[id!(summary_header)]).set_visible(cx, true);
         self.view.set_visible(cx, true);
         self.redraw(cx);
     }
@@ -196,8 +195,17 @@ impl DiffView {
             .set_text(cx, "");
         self.view.label(&[id!(summary_add_label)]).set_text(cx, "");
         self.view.label(&[id!(summary_del_label)]).set_text(cx, "");
+        self.view
+            .view(&[id!(summary_header)])
+            .set_visible(cx, false);
         self.view.set_visible(cx, false);
         self.redraw(cx);
+    }
+
+    pub fn summary_header_clicked(&mut self) -> bool {
+        let clicked = self.summary_header_clicked;
+        self.summary_header_clicked = false;
+        clicked
     }
 }
 
@@ -205,6 +213,7 @@ pub trait DiffViewApi {
     fn set_diffs(&self, cx: &mut Cx, diffs: &[openpad_protocol::FileDiff]);
     fn clear_diffs(&self, cx: &mut Cx);
     fn set_expanded(&self, cx: &mut Cx, expanded: bool);
+    fn summary_header_clicked(&self, cx: &mut Cx) -> bool;
 }
 
 impl DiffViewApi for DiffViewRef {
@@ -223,6 +232,14 @@ impl DiffViewApi for DiffViewRef {
     fn set_expanded(&self, cx: &mut Cx, expanded: bool) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.set_expanded(cx, expanded);
+        }
+    }
+
+    fn summary_header_clicked(&self, _cx: &mut Cx) -> bool {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.summary_header_clicked()
+        } else {
+            false
         }
     }
 }

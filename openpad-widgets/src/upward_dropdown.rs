@@ -2,9 +2,9 @@ use {
     makepad_widgets::{
         makepad_derive_widget::*,
         makepad_draw::*,
-        popup_menu::{PopupMenu, PopupMenuAction},
         widget::*,
     },
+    crate::scrollable_popup_menu::{ScrollablePopupMenu, ScrollablePopupMenuAction},
     std::cell::RefCell,
     std::rc::Rc,
 };
@@ -23,12 +23,13 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
+    use crate::scrollable_popup_menu::ScrollablePopupMenu;
 
     pub UpDrawLabelText = {{UpDrawLabelText}} {}
     pub UpDropDownBase = {{UpDropDown}} {}
 
     pub UpDropDown = <UpDropDownBase> {
-        popup_menu: <PopupMenu> {}
+        popup_menu: <ScrollablePopupMenu> {}
     }
 }
 
@@ -70,11 +71,18 @@ pub struct UpDropDown {
 
     #[layout]
     layout: Layout,
+
+    #[rust]
+    menu_scroll: f64,
+    #[rust]
+    menu_scroll_max: f64,
+    #[rust]
+    menu_visible_height: f64,
 }
 
 #[derive(Default, Clone)]
 struct PopupMenuGlobal {
-    map: Rc<RefCell<ComponentMap<LivePtr, PopupMenu>>>,
+    map: Rc<RefCell<ComponentMap<LivePtr, ScrollablePopupMenu>>>,
 }
 
 #[derive(Live, LiveHook, LiveRegister)]
@@ -101,7 +109,7 @@ impl LiveHook for UpDropDown {
 
         let list_box = self.popup_menu.unwrap();
         map.get_or_insert(cx, list_box, |cx| {
-            PopupMenu::new_from_ptr(cx, Some(list_box))
+            ScrollablePopupMenu::new_from_ptr(cx, Some(list_box))
         });
     }
 }
@@ -114,6 +122,9 @@ pub enum UpDropDownAction {
 impl UpDropDown {
     pub fn set_active(&mut self, cx: &mut Cx) {
         self.is_active = true;
+        self.menu_scroll = 0.0;
+        self.menu_scroll_max = 0.0;
+        self.menu_visible_height = 0.0;
         self.draw_bg.apply_over(cx, live! {active: 1.0});
         self.draw_bg.redraw(cx);
         let global = cx.global::<PopupMenuGlobal>().clone();
@@ -126,6 +137,9 @@ impl UpDropDown {
 
     pub fn set_closed(&mut self, cx: &mut Cx) {
         self.is_active = false;
+        self.menu_scroll = 0.0;
+        self.menu_scroll_max = 0.0;
+        self.menu_visible_height = 0.0;
         self.draw_bg.apply_over(cx, live! {active: 0.0});
         self.draw_bg.redraw(cx);
         cx.sweep_unlock(self.draw_bg.area());
@@ -165,8 +179,42 @@ impl UpDropDown {
             let global = cx.global::<PopupMenuGlobal>().clone();
             let mut map = global.map.borrow_mut();
             let popup_menu = map.get_mut(&self.popup_menu.unwrap()).unwrap();
+            let window_size = cx.current_pass_size();
+            let anchor = self.draw_bg.area().rect(cx);
+
+            // Guard against invalid geometry on the first frame after open.
+            if window_size.y <= 1.0 || anchor.size.y <= 1.0 {
+                cx.new_next_frame();
+                return;
+            }
 
             // we kinda need to draw it twice.
+            let padding = 4.0;
+            let window_top = padding;
+            let window_bottom = (window_size.y - padding).max(padding);
+            let available_above = (anchor.pos.y - padding).max(0.0);
+            let available_below =
+                (window_size.y - (anchor.pos.y + anchor.size.y) - padding).max(0.0);
+            let max_height = match self.popup_menu_position {
+                PopupMenuPosition::AboveInput => {
+                    if available_above > 0.0 {
+                        available_above
+                    } else {
+                        available_below
+                    }
+                }
+                PopupMenuPosition::BelowInput => {
+                    if available_below > 0.0 {
+                        available_below
+                    } else {
+                        available_above
+                    }
+                }
+                PopupMenuPosition::OnSelected => available_above.max(available_below),
+            }
+            .max(1.0);
+            popup_menu.set_max_height(max_height);
+            popup_menu.set_scroll(self.menu_scroll);
             popup_menu.begin(cx);
 
             match self.popup_menu_position {
@@ -180,12 +228,51 @@ impl UpDropDown {
                         popup_menu.draw_item(cx, node_id, &item);
                     }
 
+                    let menu_height = cx.turtle().used_height();
+
+                    let mut desired_visible_height = menu_height.min(max_height);
+                    let mut desired_scroll_max = 0.0;
+                    if menu_height > max_height {
+                        desired_scroll_max = menu_height - max_height;
+                    }
+
+                    let mut needs_redraw = false;
+                    if (self.menu_visible_height - desired_visible_height).abs() > 0.5
+                        || (self.menu_scroll_max - desired_scroll_max).abs() > 0.5
+                    {
+                        self.menu_visible_height = if desired_scroll_max > 0.0 {
+                            desired_visible_height
+                        } else {
+                            0.0
+                        };
+                        self.menu_scroll_max = desired_scroll_max;
+                        self.menu_scroll = self.menu_scroll.clamp(0.0, self.menu_scroll_max);
+                        needs_redraw = true;
+                    } else if self.menu_scroll > self.menu_scroll_max {
+                        self.menu_scroll = self.menu_scroll_max;
+                        needs_redraw = true;
+                    }
+
+                    if needs_redraw {
+                        popup_menu.redraw(cx);
+                    }
+
+                    let drawn_height = menu_height.min(max_height);
+
                     // ok we shift the entire menu. however we shouldnt go outside the screen area
-                    popup_menu.end(
-                        cx,
-                        self.draw_bg.area(),
-                        -item_pos.unwrap_or(dvec2(0.0, 0.0)),
-                    );
+                    let mut shift = -item_pos.unwrap_or(dvec2(0.0, 0.0));
+                    let mut shift_y = shift.y;
+                    let mut top = anchor.pos.y + shift_y;
+                    if top < window_top {
+                        shift_y += window_top - top;
+                        top = window_top;
+                    }
+                    let bottom = top + drawn_height;
+                    if bottom > window_bottom {
+                        shift_y -= bottom - window_bottom;
+                    }
+                    shift.y = shift_y;
+                    popup_menu.end(cx, self.draw_bg.area(), shift);
                 }
                 PopupMenuPosition::AboveInput => {
                     for (i, item) in self.labels.iter().enumerate() {
@@ -194,11 +281,47 @@ impl UpDropDown {
                     }
 
                     let menu_height = cx.turtle().used_height();
-                    let area = self.draw_bg.area().rect(cx);
-                    let mut shift_y = -menu_height;
-                    if area.pos.y + shift_y < 0.0 {
-                        shift_y = -area.pos.y * 0.8;
+
+                    let mut desired_visible_height = menu_height.min(max_height);
+                    let mut desired_scroll_max = 0.0;
+                    if menu_height > max_height {
+                        desired_scroll_max = menu_height - max_height;
                     }
+
+                    let mut needs_redraw = false;
+                    if (self.menu_visible_height - desired_visible_height).abs() > 0.5
+                        || (self.menu_scroll_max - desired_scroll_max).abs() > 0.5
+                    {
+                        self.menu_visible_height = if desired_scroll_max > 0.0 {
+                            desired_visible_height
+                        } else {
+                            0.0
+                        };
+                        self.menu_scroll_max = desired_scroll_max;
+                        self.menu_scroll = self.menu_scroll.clamp(0.0, self.menu_scroll_max);
+                        needs_redraw = true;
+                    } else if self.menu_scroll > self.menu_scroll_max {
+                        self.menu_scroll = self.menu_scroll_max;
+                        needs_redraw = true;
+                    }
+
+                    if needs_redraw {
+                        popup_menu.redraw(cx);
+                    }
+
+                    let drawn_height = menu_height.min(max_height);
+
+                    let mut shift_y = -drawn_height;
+                    let mut top = anchor.pos.y + shift_y;
+                    if top < window_top {
+                        shift_y += window_top - top;
+                        top = window_top;
+                    }
+                    let bottom = top + drawn_height;
+                    if bottom > window_bottom {
+                        shift_y -= bottom - window_bottom;
+                    }
+
                     let shift = DVec2 { x: 0.0, y: shift_y };
 
                     popup_menu.end(cx, self.draw_bg.area(), shift);
@@ -209,11 +332,49 @@ impl UpDropDown {
                         popup_menu.draw_item(cx, node_id, &item);
                     }
 
-                    let area = self.draw_bg.area().rect(cx);
-                    let shift = DVec2 {
-                        x: 0.0,
-                        y: area.size.y,
-                    };
+                    let menu_height = cx.turtle().used_height();
+
+                    let mut desired_visible_height = menu_height.min(max_height);
+                    let mut desired_scroll_max = 0.0;
+                    if menu_height > max_height {
+                        desired_scroll_max = menu_height - max_height;
+                    }
+
+                    let mut needs_redraw = false;
+                    if (self.menu_visible_height - desired_visible_height).abs() > 0.5
+                        || (self.menu_scroll_max - desired_scroll_max).abs() > 0.5
+                    {
+                        self.menu_visible_height = if desired_scroll_max > 0.0 {
+                            desired_visible_height
+                        } else {
+                            0.0
+                        };
+                        self.menu_scroll_max = desired_scroll_max;
+                        self.menu_scroll = self.menu_scroll.clamp(0.0, self.menu_scroll_max);
+                        needs_redraw = true;
+                    } else if self.menu_scroll > self.menu_scroll_max {
+                        self.menu_scroll = self.menu_scroll_max;
+                        needs_redraw = true;
+                    }
+
+                    if needs_redraw {
+                        popup_menu.redraw(cx);
+                    }
+
+                    let drawn_height = menu_height.min(max_height);
+
+                    let mut shift_y = anchor.size.y;
+                    let mut top = anchor.pos.y + shift_y;
+                    if top < window_top {
+                        shift_y += window_top - top;
+                        top = window_top;
+                    }
+                    let bottom = top + drawn_height;
+                    if bottom > window_bottom {
+                        shift_y -= bottom - window_bottom;
+                    }
+
+                    let shift = DVec2 { x: 0.0, y: shift_y };
 
                     popup_menu.end(cx, self.draw_bg.area(), shift);
                 }
@@ -276,12 +437,27 @@ impl Widget for UpDropDown {
             let mut map = global.map.borrow_mut();
             let menu = map.get_mut(&self.popup_menu.unwrap()).unwrap();
             let mut close = false;
+
+            if self.menu_scroll_max > 0.0 {
+                if let Event::Scroll(e) = event {
+                    if menu.menu_contains_pos(cx, e.abs) && !e.handled_y.get() {
+                        let next_scroll = (self.menu_scroll + e.scroll.y)
+                            .clamp(0.0, self.menu_scroll_max);
+                        if (next_scroll - self.menu_scroll).abs() > 0.1 {
+                            self.menu_scroll = next_scroll;
+                            e.handled_y.set(true);
+                            menu.redraw(cx);
+                        }
+                    }
+                }
+            }
+
             menu.handle_event_with(cx, event, self.draw_bg.area(), &mut |cx, action| {
                 match action {
-                    PopupMenuAction::WasSweeped(_node_id) => {
+                    ScrollablePopupMenuAction::WasSweeped(_node_id) => {
                         //dispatch_action(cx, PopupMenuAction::WasSweeped(node_id));
                     }
-                    PopupMenuAction::WasSelected(node_id) => {
+                    ScrollablePopupMenuAction::WasSelected(node_id) => {
                         //dispatch_action(cx, PopupMenuAction::WasSelected(node_id));
                         self.selected_item = node_id.0 .0 as usize;
                         cx.widget_action(
