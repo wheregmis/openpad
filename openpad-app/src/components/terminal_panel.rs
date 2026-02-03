@@ -1,0 +1,126 @@
+//! TerminalPanel widget - Animated slide panel for the terminal area.
+//!
+//! Mirrors SidePanel animation behavior with open/close height lerp.
+
+use makepad_widgets::*;
+
+live_design! {
+    use link::theme::*;
+    use link::shaders::*;
+    use link::widgets::*;
+    use openpad_widgets::openpad::*;
+    use openpad_widgets::theme::*;
+    use crate::components::terminal::Terminal;
+
+    pub TerminalPanelBase = {{TerminalPanel}} {}
+    pub TerminalPanel = <TerminalPanelBase> {
+        width: Fill, height: Fit
+        flow: Down
+        show_bg: true
+        open_size: 250.0
+        close_size: 0.0
+
+        draw_bg: { color: (THEME_COLOR_BG_APP) }
+
+        // Separator line
+        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } }
+
+        terminal_panel = <Terminal> {
+            width: Fill
+            height: Fill
+        }
+
+        animator: {
+            open = {
+                default: off,
+                off = {
+                    redraw: true
+                    from: {all: Forward {duration: 0.4}}
+                    ease: ExpDecay {d1: 0.80, d2: 0.97}
+                    apply: {animator_panel_progress: 0.0}
+                }
+                on = {
+                    redraw: true
+                    from: {all: Forward {duration: 0.4}}
+                    ease: ExpDecay {d1: 0.80, d2: 0.97}
+                    apply: {animator_panel_progress: 1.0}
+                }
+            }
+        }
+    }
+}
+
+#[derive(Live, Widget)]
+pub struct TerminalPanel {
+    #[deref]
+    view: View,
+
+    #[live]
+    animator_panel_progress: f32,
+
+    #[live(250.0)]
+    open_size: f32,
+
+    #[live(0.0)]
+    close_size: f32,
+
+    #[animator]
+    animator: Animator,
+}
+
+impl LiveHook for TerminalPanel {
+    fn after_new_from_doc(&mut self, cx: &mut Cx) {
+        if self.is_open(cx) {
+            self.animator_panel_progress = 1.0;
+        } else {
+            self.animator_panel_progress = 0.0;
+        }
+    }
+}
+
+impl Widget for TerminalPanel {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        if self.animator_handle_event(cx, event).must_redraw() {
+            self.redraw(cx);
+        }
+        self.view.handle_event(cx, event, scope);
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        let mut walk = walk;
+        let size_range = self.open_size - self.close_size;
+        let size = self.close_size + size_range * self.animator_panel_progress;
+        walk.height = Size::Fixed(size.into());
+        self.view.draw_walk(cx, scope, walk)
+    }
+}
+
+impl TerminalPanel {
+    pub fn is_open(&self, cx: &Cx) -> bool {
+        self.animator_in_state(cx, &[id!(open), id!(on)])
+    }
+
+    pub fn set_open(&mut self, cx: &mut Cx, open: bool) {
+        if open {
+            self.animator_play(cx, &[id!(open), id!(on)]);
+        } else {
+            self.animator_play(cx, &[id!(open), id!(off)]);
+        }
+    }
+}
+
+impl TerminalPanelRef {
+    pub fn is_open(&self, cx: &Cx) -> bool {
+        if let Some(inner) = self.borrow() {
+            inner.is_open(cx)
+        } else {
+            false
+        }
+    }
+
+    pub fn set_open(&self, cx: &mut Cx, open: bool) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.set_open(cx, open);
+        }
+    }
+}

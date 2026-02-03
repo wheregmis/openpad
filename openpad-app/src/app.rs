@@ -2,6 +2,7 @@ use crate::async_runtime;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_card::PermissionCardAction;
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
+use crate::components::terminal_panel::TerminalPanelWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use base64::engine::general_purpose::STANDARD;
@@ -86,6 +87,7 @@ live_design! {
     use crate::components::message_list::MessageList;
     use crate::components::diff_view::DiffView;
     use crate::components::terminal::Terminal;
+    use crate::components::terminal_panel::TerminalPanel;
     use crate::components::settings_dialog::SettingsDialog;
 
     ChatPanel = <View> {
@@ -299,20 +301,7 @@ live_design! {
         }
     }
 
-    TerminalPanelWrap = <View> {
-        width: Fill, height: 250
-        flow: Down
-        show_bg: true
-        draw_bg: { color: (THEME_COLOR_BG_APP) }
-
-        // Separator line
-        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } }
-
-        terminal_panel = <Terminal> {
-            width: Fill
-            height: Fill
-        }
-    }
+    TerminalPanelWrap = <TerminalPanel> {}
 
     App = {{App}} {
         ui: <Window> {
@@ -619,6 +608,7 @@ impl LiveRegister for App {
         crate::components::permission_dialog::live_design(cx);
         crate::components::diff_view::live_design(cx);
         crate::components::terminal::live_design(cx);
+        crate::components::terminal_panel::live_design(cx);
         crate::components::settings_dialog::live_design(cx);
     }
 }
@@ -788,8 +778,8 @@ impl App {
     fn toggle_terminal(&mut self, cx: &mut Cx) {
         self.terminal_open = !self.terminal_open;
         self.ui
-            .view(&[id!(terminal_panel_wrap)])
-            .set_visible(cx, self.terminal_open);
+            .terminal_panel(&[id!(terminal_panel_wrap)])
+            .set_open(cx, self.terminal_open);
     }
 
     fn handle_sidebar_resize(&mut self, cx: &mut Cx, event: &Event) {
@@ -1384,8 +1374,8 @@ impl AppMain for App {
                 self.sidebar_mode = SidebarMode::Projects;
                 self.terminal_open = false;
                 self.ui
-                    .view(&[id!(terminal_panel_wrap)])
-                    .set_visible(cx, false);
+                    .terminal_panel(&[id!(terminal_panel_wrap)])
+                    .set_open(cx, false);
                 self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
                 self.set_sidebar_width(cx, self.sidebar_width);
                 self.ui.side_panel(&[id!(side_panel)]).set_open(cx, true);

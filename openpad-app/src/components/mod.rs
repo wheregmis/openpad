@@ -11,6 +11,7 @@ pub mod permission_dialog;
 pub mod projects_panel;
 pub mod settings_dialog;
 pub mod terminal;
+pub mod terminal_panel;
 pub mod user_bubble;
 
 // Re-export the widget types that have Rust implementations
@@ -21,4 +22,5 @@ pub use permission_card::{PermissionCard, PermissionCardAction, PermissionCardAp
 pub use permission_dialog::{PermissionDialog, PermissionDialogRef};
 pub use projects_panel::{PanelItemKind, ProjectsPanel, ProjectsPanelRef};
 pub use terminal::{Terminal, TerminalAction, TerminalWidgetRefExt};
+pub use terminal_panel::{TerminalPanel, TerminalPanelRef, TerminalPanelWidgetRefExt};
 pub use settings_dialog::{SettingsDialog, SettingsDialogRef};
