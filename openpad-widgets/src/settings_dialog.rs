@@ -1,15 +1,15 @@
-use crate::state::actions::AppAction;
+
 use makepad_widgets::*;
 use openpad_protocol::{Config, Provider};
-use openpad_widgets::upward_dropdown::UpDropDownWidgetExt;
-use openpad_widgets::UpDropDownWidgetRefExt;
+use crate::upward_dropdown::UpDropDownWidgetExt;
+use crate::UpDropDownWidgetRefExt;
 
 live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
+    use crate::openpad::*;
+    use crate::theme::*;
 
     pub SettingsDialog = {{SettingsDialog}} {
         width: Fill, height: Fill
@@ -199,6 +199,15 @@ live_design! {
 }
 
 #[derive(Live, LiveHook, Widget)]
+#[derive(Clone, Debug, DefaultNone)]
+pub enum SettingsDialogAction {
+    None,
+    UpdateKey {
+        provider_id: String,
+        key: String,
+    },
+}
+
 pub struct SettingsDialog {
     #[deref]
     view: View,
@@ -238,9 +247,9 @@ impl Widget for SettingsDialog {
                 if let Some(provider) = self.providers.get(idx) {
                     let key = self.view.text_input(&[id!(content), id!(key_input)]).text();
                     if !key.is_empty() {
-                        cx.action(AppAction::DialogConfirmed {
-                            dialog_type: format!("set_auth:{}", provider.id),
-                            value: key,
+                        cx.action(SettingsDialogAction::UpdateKey {
+                            provider_id: provider.id.clone(),
+                            key,
                         });
                     }
                 }
@@ -312,4 +321,9 @@ impl SettingsDialogRef {
             inner.set_config(cx, config);
         }
     }
+}
+
+pub fn live_design(cx: &mut Cx) {
+    makepad_widgets::live_design(cx);
+    crate::upward_dropdown::live_design(cx);
 }

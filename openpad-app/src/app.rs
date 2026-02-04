@@ -1,8 +1,8 @@
 use crate::async_runtime;
-use crate::components::message_list::MessageListWidgetRefExt;
-use crate::components::permission_card::PermissionCardAction;
-use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
-use crate::components::terminal_panel::TerminalPanelWidgetRefExt;
+use openpad_widgets::message_list::MessageListWidgetRefExt;
+use openpad_widgets::permission_card::PermissionCardAction;
+use openpad_widgets::terminal::{TerminalAction, TerminalWidgetRefExt};
+use openpad_widgets::terminal_panel::TerminalPanelWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use base64::engine::general_purpose::STANDARD;
@@ -11,7 +11,7 @@ use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
-use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction};
+use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction, PermissionDialogAction, SettingsDialogAction, MessageListAction as WidgetMessageListAction};
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
 
@@ -79,16 +79,16 @@ live_design! {
     use makepad_code_editor::code_view::CodeView;
 
     // Import component DSL definitions
-    use crate::components::user_bubble::UserBubble;
-    use crate::components::assistant_bubble::AssistantBubble;
+    use openpad_widgets::user_bubble::UserBubble;
+    use openpad_widgets::assistant_bubble::AssistantBubble;
     use crate::components::projects_panel::ProjectsPanel;
-    use crate::components::permission_card::PermissionCard;
-    use crate::components::permission_dialog::PermissionDialog;
-    use crate::components::message_list::MessageList;
-    use crate::components::diff_view::DiffView;
-    use crate::components::terminal::Terminal;
-    use crate::components::terminal_panel::TerminalPanel;
-    use crate::components::settings_dialog::SettingsDialog;
+    use openpad_widgets::permission_card::PermissionCard;
+    use openpad_widgets::permission_dialog::PermissionDialog;
+    use openpad_widgets::message_list::MessageList;
+    use openpad_widgets::diff_view::DiffView;
+    use openpad_widgets::terminal::Terminal;
+    use openpad_widgets::terminal_panel::TerminalPanel;
+    use openpad_widgets::settings_dialog::SettingsDialog;
 
     ChatPanel = <View> {
         width: Fill, height: Fill
@@ -599,17 +599,7 @@ impl LiveRegister for App {
         openpad_widgets::live_design(cx);
         makepad_code_editor::code_editor::live_design(cx);
         makepad_code_editor::code_view::live_design(cx);
-        crate::components::user_bubble::live_design(cx);
-        crate::components::assistant_bubble::live_design(cx);
         crate::components::projects_panel::live_design(cx);
-        crate::components::permission_card::live_design(cx);
-        crate::components::colored_diff_text::live_design(cx);
-        crate::components::message_list::live_design(cx);
-        crate::components::permission_dialog::live_design(cx);
-        crate::components::diff_view::live_design(cx);
-        crate::components::terminal::live_design(cx);
-        crate::components::terminal_panel::live_design(cx);
-        crate::components::settings_dialog::live_design(cx);
     }
 }
 
@@ -1467,11 +1457,10 @@ impl AppMain for App {
 
             // Handle MessageListAction
             if let Some(msg_action) =
-                action.downcast_ref::<crate::state::actions::MessageListAction>()
+                action.downcast_ref::<WidgetMessageListAction>()
             {
-                use crate::state::actions::MessageListAction;
                 match msg_action {
-                    MessageListAction::RevertToMessage(message_id) => {
+                    WidgetMessageListAction::RevertToMessage(message_id) => {
                         if let Some(session_id) = &self.state.current_session_id {
                             self.revert_to_message(cx, session_id.clone(), message_id.clone());
                         }
@@ -1592,6 +1581,27 @@ impl AppMain for App {
                                 &request_id,
                             );
                         }
+                    }
+                    _ => {}
+                }
+            }
+
+                        // Handle PermissionDialogAction
+            if let Some(action) = action.downcast_ref::<PermissionDialogAction>() {
+                match action {
+                    PermissionDialogAction::Responded { session_id, request_id, reply } => {
+                        state::handle_permission_responded(&mut self.state, &self.ui, cx, request_id);
+                        self.respond_to_permission(cx, session_id.clone(), request_id.clone(), reply.clone());
+                    }
+                    _ => {}
+                }
+            }
+
+            // Handle SettingsDialogAction
+            if let Some(action) = action.downcast_ref::<SettingsDialogAction>() {
+                match action {
+                    SettingsDialogAction::UpdateKey { provider_id, key } => {
+                         self.handle_dialog_confirmed(cx, format!("set_auth:{}", provider_id), key.clone());
                     }
                     _ => {}
                 }

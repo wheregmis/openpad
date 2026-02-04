@@ -78,9 +78,3 @@ pub enum ProjectsPanelAction {
     AbortSession(String),
     BranchSession(String),
 }
-
-#[derive(Clone, Debug, DefaultNone)]
-pub enum MessageListAction {
-    None,
-    RevertToMessage(String),
-}

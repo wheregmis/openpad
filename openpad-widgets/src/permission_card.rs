@@ -4,8 +4,8 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
+    use crate::openpad::*;
+    use crate::theme::*;
 
     pub PermissionCard = {{PermissionCard}} {
         width: Fill, height: Fit
@@ -265,4 +265,8 @@ impl PermissionCardApi for PermissionCardRef {
             inner.mark_resolved_inner(cx, status);
         }
     }
+}
+
+pub fn live_design(cx: &mut Cx) {
+    makepad_widgets::live_design(cx);
 }

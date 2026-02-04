@@ -1,4 +1,4 @@
-use crate::components::message_list::MessageListWidgetRefExt;
+use openpad_widgets::message_list::MessageListWidgetRefExt;
 use crate::constants::*;
 use crate::utils::path_utils::normalize_worktree;
 use makepad_widgets::*;

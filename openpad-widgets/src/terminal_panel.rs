@@ -8,9 +8,9 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
-    use crate::components::terminal::Terminal;
+    use crate::openpad::*;
+    use crate::theme::*;
+    use crate::terminal::Terminal;
 
     pub TerminalPanelBase = {{TerminalPanel}} {}
     pub TerminalPanel = <TerminalPanelBase> {
@@ -123,4 +123,9 @@ impl TerminalPanelRef {
             inner.set_open(cx, open);
         }
     }
+}
+
+pub fn live_design(cx: &mut Cx) {
+    makepad_widgets::live_design(cx);
+    crate::terminal::live_design(cx);
 }
