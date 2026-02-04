@@ -94,7 +94,6 @@ pub struct AppState {
     pub selected_skill_indices: Vec<usize>,
     pub attached_files: Vec<AttachedFile>,
     pub config: Option<openpad_protocol::Config>,
-    pub run_commands: HashMap<String, String>,
 }
 
 impl AppState {
@@ -574,14 +573,6 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             ui.settings_dialog(&[id!(side_panel), id!(settings_panel)])
                 .set_config(cx, &config);
             cx.redraw_all();
-        }
-        AppAction::RunCommandSaved {
-            project_dir,
-            command,
-        } => {
-            state
-                .run_commands
-                .insert(project_dir.clone(), command.clone());
         }
         AppAction::AuthSet {
             provider_id: _,

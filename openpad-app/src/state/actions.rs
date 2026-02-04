@@ -66,10 +66,6 @@ pub enum AppAction {
         provider_id: String,
         success: bool,
     },
-    RunCommandSaved {
-        project_dir: String,
-        command: String,
-    },
 }
 
 #[derive(Clone, Debug, DefaultNone)]
