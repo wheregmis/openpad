@@ -1,23 +1,23 @@
 # Openpad
 
-A native GUI client for OpenCode (Claude Code server) built with Makepad.
+Open-source Codex client for OpenCode (Claude Code server) built with Makepad.
 
 ## Overview
 
-Openpad provides a clean chat interface for interacting with Claude Code through the OpenCode server. This is an MVP focused on core functionality: connecting to OpenCode, sending messages, and displaying streaming responses.
+Openpad is a desktop Codex-style client that connects to the OpenCode server for chat and streaming responses. This is an MVP focused on core functionality: connecting to OpenCode, sending messages, and displaying streaming responses.
 
 ## Features
 
-- ✅ Connect to OpenCode server on startup
+- ✅ Connects to OpenCode on startup
 - ✅ Multi-project support with automatic project detection
 - ✅ Multiple concurrent sessions per project
-- ✅ Create chat sessions automatically or manually per project
-- ✅ Send text messages with proper project context
-- ✅ Display streaming responses in real-time
+- ✅ Create sessions automatically or manually per project
+- ✅ Send messages with proper project context
+- ✅ Streaming responses in real time
 - ✅ Rich text rendering (markdown, code blocks, syntax highlighting)
 - ✅ Session management (create, delete, rename, branch, revert, share)
 - ✅ Project-aware sidebar with sessions grouped by project
-- ✅ Permission approval system (inline UI)
+- ✅ Permission approvals inline
 - ✅ Error handling with actionable guidance
 - ✅ Token usage and cost tracking
 - ✅ Diff visualization with colored rendering
@@ -26,22 +26,29 @@ Openpad provides a clean chat interface for interacting with Claude Code through
 ## Prerequisites
 
 - Rust 1.70+
+- OpenCode installed (Homebrew)
 - OpenCode server running (default: localhost:4096)
 
 ## Installation
 
-```bash
-git clone <repository>
-cd openpad
-cargo build --release
-```
+1. Install OpenCode:
+   ```bash
+   brew install opencode
+   ```
+
+2. Install Openpad:
+   ```bash
+   git clone <repository>
+   cd openpad
+   cargo build --release
+   ```
 
 ## Usage
 
 1. Start OpenCode server in your project directory:
    ```bash
    cd /path/to/your/project
-   opencode
+   opencode serve --port 4096
    ```
 
 2. Run Openpad:
@@ -53,7 +60,7 @@ cargo build --release
 
 ### Multi-Project Workflow
 
-Openpad supports working with multiple projects simultaneously:
+Openpad supports multiple projects simultaneously:
 
 1. OpenCode server tracks all projects you work with
 2. Sessions are automatically associated with their project directory
