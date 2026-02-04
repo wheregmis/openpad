@@ -19,7 +19,3 @@ live_design! {
         }
     }
 }
-
-pub fn live_design(cx: &mut Cx) {
-    makepad_widgets::live_design(cx);
-}

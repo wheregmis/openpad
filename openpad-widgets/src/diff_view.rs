@@ -419,8 +419,3 @@ fn simple_diff<'a>(old: &[&'a str], new: &[&'a str]) -> Vec<DiffOp<'a>> {
 
     ops
 }
-
-pub fn live_design(cx: &mut Cx) {
-    makepad_widgets::live_design(cx);
-    crate::colored_diff_text::live_design(cx);
-}

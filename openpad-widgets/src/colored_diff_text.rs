@@ -142,7 +142,3 @@ impl ColoredDiffTextApi for ColoredDiffTextRef {
         }
     }
 }
-
-pub fn live_design(cx: &mut Cx) {
-    makepad_widgets::live_design(cx);
-}

@@ -1,5 +1,5 @@
 use openpad_protocol::{Message, MessageWithParts, Part, TokenUsage, FileDiff};
-use crate::utils::formatters;
+
 
 #[derive(Clone, Debug)]
 pub struct StepDetail {

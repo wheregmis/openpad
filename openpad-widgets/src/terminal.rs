@@ -1,7 +1,3 @@
-//! Terminal widget - A simple terminal emulator widget.
-//!
-//! This component provides a basic terminal interface using portable-pty.
-
 use makepad_widgets::text_input::TextInputAction;
 use makepad_widgets::*;
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
@@ -98,12 +94,7 @@ impl Default for TerminalBackend {
         Self {
             output_lines: Vec::new(),
             partial_spans: Vec::new(),
-            current_color: Vec4 {
-                x: 0.8,
-                y: 0.8,
-                z: 0.8,
-                w: 1.0,
-            },
+            current_color: Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 },
             prompt_string: Self::build_prompt_string(&std::path::PathBuf::from(".")),
             pty_writer: None,
         }
@@ -112,37 +103,31 @@ impl Default for TerminalBackend {
 
 impl TerminalBackend {
     pub fn build_prompt_string(cwd: &std::path::Path) -> String {
-        let user = std::env::var("USER").unwrap_or_else(|_| "user".into());
-        let host = hostname::get()
-            .ok()
-            .and_then(|h| h.into_string().ok())
-            .unwrap_or_else(|| "localhost".into());
-        let dir_name = cwd
-            .file_name()
-            .map(|n| n.to_string_lossy().into_owned())
-            .unwrap_or_else(|| ".".into());
-        format!("{}@{} {} % ", user, host, dir_name)
+        let user = std::env::var(\"USER\").unwrap_or_else(|_| \"user\".into());
+        let host = hostname::get().ok().and_then(|h| h.into_string().ok()).unwrap_or_else(|| \"localhost\".into());
+        let dir_name = cwd.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| \".\".into());
+        format!(\"{}@{} {} % \", user, host, dir_name)
     }
 
     pub fn color_from_ansi(code: u8) -> Vec4 {
         match code {
-            0 => Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 }, // Reset/Gray
-            30 => Vec4 { x: 0.0, y: 0.0, z: 0.0, w: 1.0 }, // Black
-            31 => Vec4 { x: 0.9, y: 0.3, z: 0.3, w: 1.0 }, // Red
-            32 => Vec4 { x: 0.3, y: 0.8, z: 0.3, w: 1.0 }, // Green
-            33 => Vec4 { x: 0.8, y: 0.8, z: 0.2, w: 1.0 }, // Yellow
-            34 => Vec4 { x: 0.3, y: 0.3, z: 0.9, w: 1.0 }, // Blue
-            35 => Vec4 { x: 0.8, y: 0.3, z: 0.8, w: 1.0 }, // Magenta
-            36 => Vec4 { x: 0.3, y: 0.8, z: 0.8, w: 1.0 }, // Cyan
-            37 => Vec4 { x: 0.9, y: 0.9, z: 0.9, w: 1.0 }, // White
-            90 => Vec4 { x: 0.5, y: 0.5, z: 0.5, w: 1.0 }, // Bright Black
-            91 => Vec4 { x: 1.0, y: 0.4, z: 0.4, w: 1.0 }, // Bright Red
-            92 => Vec4 { x: 0.4, y: 1.0, z: 0.4, w: 1.0 }, // Bright Green
-            93 => Vec4 { x: 1.0, y: 1.0, z: 0.4, w: 1.0 }, // Bright Yellow
-            94 => Vec4 { x: 0.5, y: 0.5, z: 1.0, w: 1.0 }, // Bright Blue
-            95 => Vec4 { x: 1.0, y: 0.5, z: 1.0, w: 1.0 }, // Bright Magenta
-            96 => Vec4 { x: 0.5, y: 1.0, z: 1.0, w: 1.0 }, // Bright Cyan
-            97 => Vec4 { x: 1.0, y: 1.0, z: 1.0, w: 1.0 }, // Bright White
+            0 => Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 },
+            30 => Vec4 { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
+            31 => Vec4 { x: 0.9, y: 0.3, z: 0.3, w: 1.0 },
+            32 => Vec4 { x: 0.3, y: 0.8, z: 0.3, w: 1.0 },
+            33 => Vec4 { x: 0.8, y: 0.8, z: 0.2, w: 1.0 },
+            34 => Vec4 { x: 0.3, y: 0.3, z: 0.9, w: 1.0 },
+            35 => Vec4 { x: 0.8, y: 0.3, z: 0.8, w: 1.0 },
+            36 => Vec4 { x: 0.3, y: 0.8, z: 0.8, w: 1.0 },
+            37 => Vec4 { x: 0.9, y: 0.9, z: 0.9, w: 1.0 },
+            90 => Vec4 { x: 0.5, y: 0.5, z: 0.5, w: 1.0 },
+            91 => Vec4 { x: 1.0, y: 0.4, z: 0.4, w: 1.0 },
+            92 => Vec4 { x: 0.4, y: 1.0, z: 0.4, w: 1.0 },
+            93 => Vec4 { x: 1.0, y: 1.0, z: 0.4, w: 1.0 },
+            94 => Vec4 { x: 0.5, y: 0.5, z: 1.0, w: 1.0 },
+            95 => Vec4 { x: 1.0, y: 0.5, z: 1.0, w: 1.0 },
+            96 => Vec4 { x: 0.5, y: 1.0, z: 1.0, w: 1.0 },
+            97 => Vec4 { x: 1.0, y: 1.0, z: 1.0, w: 1.0 },
             _ => Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 },
         }
     }
@@ -156,9 +141,7 @@ impl TerminalBackend {
                     chars.next();
                     while let Some(&next) = chars.peek() {
                         chars.next();
-                        if next.is_ascii_alphabetic() || next == '~' {
-                            break;
-                        }
+                        if next.is_ascii_alphabetic() || next == '~' { break; }
                     }
                 }
             } else if !ch.is_control() || ch == '\n' {
@@ -173,8 +156,8 @@ impl TerminalBackend {
         if t.is_empty() { return true; }
         let our_trimmed = our_prompt.trim();
         if t == our_trimmed { return true; }
-        if t.ends_with('%') || t.ends_with("% ") || t.ends_with('$') || t.ends_with("$ ") || t.ends_with('#') || t.ends_with("# ") {
-            if (t.contains('@') && t.len() < our_trimmed.len() + 5) || t == "%" || t == "$" || t == "#" {
+        if t.ends_with('%') || t.ends_with(\"% \") || t.ends_with('$') || t.ends_with(\"$ \") || t.ends_with('#') || t.ends_with(\"# \") {
+            if (t.contains('@') && t.len() < our_trimmed.len() + 5) || t == \"%\" || t == \"$\" || t == \"#\" {
                 return true;
             }
         }
@@ -184,7 +167,6 @@ impl TerminalBackend {
     pub fn append_output(&mut self, text: &str) {
         let mut chars = text.chars().peekable();
         let mut current_text = String::new();
-
         while let Some(ch) = chars.next() {
             match ch {
                 '\x1b' => {
@@ -235,16 +217,14 @@ impl TerminalBackend {
                         if last_span.text.is_empty() { self.partial_spans.pop(); }
                     }
                 }
-                '\t' => { current_text.push_str("    "); }
+                '\t' => { current_text.push_str(\"    \"); }
                 ch if ch.is_control() => {}
                 _ => { current_text.push(ch); }
             }
         }
-
         if !current_text.is_empty() {
             self.partial_spans.push(TerminalSpan { text: current_text, color: self.current_color });
         }
-
         const MAX_LINES: usize = 2000;
         if self.output_lines.len() > MAX_LINES {
             let remove_count = self.output_lines.len() - MAX_LINES;
@@ -254,28 +234,22 @@ impl TerminalBackend {
 
     pub fn send_command(&mut self, command: &str) -> Result<(), std::io::Error> {
         if let Some(writer) = &self.pty_writer {
-            let mut w = writer.lock().map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Lock failed"))?;
-            writeln!(w, "{}", command)?;
+            let mut w = writer.lock().map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, \"Lock failed\"))?;
+            writeln!(w, \"{}\", command)?;
             Ok(())
         } else {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "PTY not initialized"))
+            Err(std::io::Error::new(std::io::ErrorKind::Other, \"PTY not initialized\"))
         }
     }
 }
 
-#[derive(Live, Widget)]
+#[derive(Live, LiveHook, Widget)]
 pub struct Terminal {
     #[deref]
     view: View,
 
     #[rust]
     backend: TerminalBackend,
-}
-
-impl LiveHook for Terminal {
-    fn after_new_from_doc(&mut self, _cx: &mut Cx) {
-        self.backend = TerminalBackend::default();
-    }
 }
 
 impl Widget for Terminal {
@@ -289,9 +263,9 @@ impl Widget for Terminal {
         {
             if !input.is_empty() {
                 if let Err(e) = self.backend.send_command(&input) {
-                    self.backend.append_output(&format!("Error: {}\n", e));
+                    self.backend.append_output(&format!(\"Error: {}\n\", e));
                 }
-                self.view.text_input(&[id!(input_field)]).set_text(cx, "");
+                self.view.text_input(&[id!(input_field)]).set_text(cx, \"\");
             }
         }
     }
@@ -337,26 +311,26 @@ impl Terminal {
         let pair = match pty_system.openpty(pty_size) {
             Ok(pair) => pair,
             Err(e) => {
-                self.backend.append_output(&format!("Failed to create PTY: {}\n", e));
+                self.backend.append_output(&format!(\"Failed to create PTY: {}\n\", e));
                 self.redraw(cx);
                 return;
             }
         };
 
-        #[cfg(target_os = "windows")]
-        let shell = "powershell.exe";
-        #[cfg(not(target_os = "windows"))]
-        let shell_path = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(target_os = \"windows\")]
+        let shell = \"powershell.exe\";
+        #[cfg(not(target_os = \"windows\"))]
+        let shell_path = std::env::var(\"SHELL\").unwrap_or_else(|_| \"/bin/sh\".to_string());
+        #[cfg(not(target_os = \"windows\"))]
         let shell = shell_path.as_str();
 
         let mut cmd = CommandBuilder::new(shell);
-        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(\".\"));
         cmd.cwd(&cwd);
         self.backend.prompt_string = TerminalBackend::build_prompt_string(&cwd);
 
         if let Err(e) = pair.slave.spawn_command(cmd) {
-            self.backend.append_output(&format!("Failed to spawn shell: {}\n", e));
+            self.backend.append_output(&format!(\"Failed to spawn shell: {}\n\", e));
             self.redraw(cx);
             return;
         }
@@ -364,7 +338,7 @@ impl Terminal {
         let writer = match pair.master.take_writer() {
             Ok(w) => Arc::new(Mutex::new(w)),
             Err(e) => {
-                self.backend.append_output(&format!("Failed to get PTY writer: {}\n", e));
+                self.backend.append_output(&format!(\"Failed to get PTY writer: {}\n\", e));
                 self.redraw(cx);
                 return;
             }
@@ -374,7 +348,7 @@ impl Terminal {
         let reader = match pair.master.try_clone_reader() {
             Ok(r) => r,
             Err(e) => {
-                self.backend.append_output(&format!("Failed to get PTY reader: {}\n", e));
+                self.backend.append_output(&format!(\"Failed to get PTY reader: {}\n\", e));
                 self.redraw(cx);
                 return;
             }
@@ -395,7 +369,7 @@ impl Terminal {
             }
         });
 
-        self.backend.append_output(&format!("Terminal initialized with shell: {}\n", shell));
+        self.backend.append_output(&format!(\"Terminal initialized with shell: {}\n\", shell));
         self.redraw(cx);
     }
 
@@ -432,8 +406,4 @@ impl TerminalRef {
     pub fn handle_action(&self, cx: &mut Cx, action: &TerminalAction) {
         if let Some(mut inner) = self.borrow_mut() { inner.handle_action(cx, action); }
     }
-}
-
-pub fn live_design(cx: &mut Cx) {
-    makepad_widgets::live_design(cx);
 }

@@ -1,5 +1,5 @@
 use crate::diff_view::{DiffViewApi, DiffViewWidgetRefExt};
-use crate::permission_card::PermissionCardWidgetRefExt;
+use crate::permission_card::{PermissionCardApi, PermissionCardWidgetRefExt};
 use crate::message_logic::{DisplayMessage, DisplayStep, MessageProcessor};
 use makepad_widgets::*;
 
@@ -31,7 +31,6 @@ live_design! {
                     flow: Down,
                     align: { x: 1.0 }
 
-                    // Metadata row
                     <View> {
                         width: Fit, height: Fit
                         flow: Right,
@@ -876,10 +875,4 @@ pub enum MessageListAction {
     RevertToMessage(String),
 }
 
-pub fn live_design(cx: &mut Cx) {
-    makepad_widgets::live_design(cx);
-    crate::user_bubble::live_design(cx);
-    crate::assistant_bubble::live_design(cx);
-    crate::diff_view::live_design(cx);
-    crate::permission_card::live_design(cx);
-}
+#[derive(Clone, Debug, DefaultNone)]

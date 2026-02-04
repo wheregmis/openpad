@@ -266,7 +266,3 @@ impl PermissionCardApi for PermissionCardRef {
         }
     }
 }
-
-pub fn live_design(cx: &mut Cx) {
-    makepad_widgets::live_design(cx);
-}

@@ -1,9 +1,12 @@
 use openpad_protocol::{AssistantError, TokenUsage};
 use std::time::{SystemTime, UNIX_EPOCH};
+use makepad_widgets::*;
 
 pub const SECONDS_PER_MINUTE: i64 = 60;
 pub const SECONDS_PER_HOUR: i64 = 3600;
 pub const SECONDS_PER_DAY: i64 = 86400;
+
+pub fn live_design(_cx: &mut Cx) {}
 
 pub fn format_timestamp(timestamp_ms: i64) -> String {
     let now = SystemTime::now()

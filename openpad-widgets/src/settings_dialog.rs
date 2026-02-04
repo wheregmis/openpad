@@ -1,8 +1,6 @@
-
 use makepad_widgets::*;
 use openpad_protocol::{Config, Provider};
 use crate::upward_dropdown::UpDropDownWidgetExt;
-use crate::UpDropDownWidgetRefExt;
 
 live_design! {
     use link::theme::*;
@@ -10,6 +8,7 @@ live_design! {
     use link::widgets::*;
     use crate::openpad::*;
     use crate::theme::*;
+    use crate::upward_dropdown::UpDropDown;
 
     pub SettingsDialog = {{SettingsDialog}} {
         width: Fill, height: Fill
@@ -29,7 +28,6 @@ live_design! {
                 spacing: 12
                 padding: { left: 16, right: 16, top: 16, bottom: 16 }
 
-        // Provider Selection
         <View> {
             width: Fill, height: Fit
             flow: Down
@@ -109,7 +107,6 @@ live_design! {
             }
         }
 
-        // API Key Input
         <View> {
             width: Fill, height: Fit
             flow: Down
@@ -140,7 +137,6 @@ live_design! {
             }
         }
 
-        // Save Button
         <View> {
             width: Fill, height: Fit
             align: { x: 1.0 }
@@ -169,7 +165,6 @@ live_design! {
             draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) }
         }
 
-        // Config Display
         <View> {
             width: Fill, height: Fit
             flow: Down
@@ -198,7 +193,6 @@ live_design! {
     }
 }
 
-#[derive(Live, LiveHook, Widget)]
 #[derive(Clone, Debug, DefaultNone)]
 pub enum SettingsDialogAction {
     None,
@@ -208,6 +202,7 @@ pub enum SettingsDialogAction {
     },
 }
 
+#[derive(Live, LiveHook, Widget)]
 pub struct SettingsDialog {
     #[deref]
     view: View,
@@ -224,8 +219,6 @@ impl Widget for SettingsDialog {
         let actions = cx.capture_actions(|cx| {
             self.view.handle_event(cx, event, scope);
         });
-
-        // Panel is controlled by sidebar tabs - no close button needed
 
         if let Some(idx) = self
             .view
@@ -273,12 +266,9 @@ impl SettingsDialog {
         self.redraw(cx);
     }
 
-    // Keep these methods for compatibility, but they're now controlled by parent visibility
-
     pub fn set_providers(&mut self, cx: &mut Cx, providers: Vec<Provider>) {
         self.providers = providers;
 
-        // Populate dropdown
         let items: Vec<String> = self
             .providers
             .iter()
@@ -290,7 +280,7 @@ impl SettingsDialog {
     }
 
     pub fn set_config(&mut self, cx: &mut Cx, config: &Config) {
-        let display = format!("{:#?}", config); // Simple debug print for now
+        let display = format!(\"{:#?}\", config);
         self.view
             .label(&[id!(content), id!(config_display)])
             .set_text(cx, &display);
@@ -321,9 +311,4 @@ impl SettingsDialogRef {
             inner.set_config(cx, config);
         }
     }
-}
-
-pub fn live_design(cx: &mut Cx) {
-    makepad_widgets::live_design(cx);
-    crate::upward_dropdown::live_design(cx);
 }

@@ -1,11 +1,56 @@
-//! SidePanel widget - Animated slide-out panel with open/close functionality.
-//!
-//! This module contains the Rust implementation for the SidePanel widget.
-//! The DSL definition is in lib.rs.
-
 use makepad_widgets::*;
 
-#[derive(Live, Widget)]
+live_design! {
+    use link::theme::*;
+    use link::shaders::*;
+    use link::widgets::*;
+
+    pub SidePanelBase = {{SidePanel}} {}
+    pub SidePanel = <SidePanelBase> {
+        width: 280.0, height: Fill
+        flow: Down,
+        padding: 0,
+        spacing: 0,
+        clip_x: true
+        show_bg: true
+        open_size: 280.0
+        close_size: 0.0
+        draw_bg: {
+            color: #1e1e1e
+            uniform border_color: #333
+            uniform border_size: 1.0
+            fn pixel(self) -> vec4 {
+                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                sdf.rect(0.0, 0.0, self.rect_size.x, self.rect_size.y);
+                sdf.fill_keep(self.color);
+                // Draw only right border
+                sdf.move_to(self.rect_size.x - 1.0, 0.0);
+                sdf.line_to(self.rect_size.x - 1.0, self.rect_size.y);
+                sdf.stroke(self.border_color, self.border_size);
+                return sdf.result;
+            }
+        }
+        animator: {
+            open = {
+                default: off,
+                off = {
+                    redraw: true
+                    from: {all: Forward {duration: 0.4}}
+                    ease: ExpDecay {d1: 0.80, d2: 0.97}
+                    apply: {animator_panel_progress: 0.0}
+                }
+                on = {
+                    redraw: true
+                    from: {all: Forward {duration: 0.4}}
+                    ease: ExpDecay {d1: 0.80, d2: 0.97}
+                    apply: {animator_panel_progress: 1.0}
+                }
+            }
+        }
+    }
+}
+
+#[derive(Live, LiveHook, Widget)]
 pub struct SidePanel {
     #[deref]
     view: View,
@@ -21,16 +66,6 @@ pub struct SidePanel {
 
     #[animator]
     animator: Animator,
-}
-
-impl LiveHook for SidePanel {
-    fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        if self.is_open(cx) {
-            self.animator_panel_progress = 1.0;
-        } else {
-            self.animator_panel_progress = 0.0;
-        }
-    }
 }
 
 impl Widget for SidePanel {

@@ -40,10 +40,19 @@ pub use settings_dialog::{SettingsDialog, SettingsDialogRef, SettingsDialogActio
 
 pub fn live_design(cx: &mut Cx) {
     makepad_widgets::live_design(cx);
-    crate::app_bg::live_design(cx);
     crate::theme::live_design(cx);
+    crate::utils::formatters::live_design(cx);
+
+    crate::app_bg::live_design(cx);
+    crate::hamburger_button::live_design(cx);
+    crate::header_bar::live_design(cx);
+    crate::input_bar::live_design(cx);
+    crate::input_field::live_design(cx);
+    crate::send_button::live_design(cx);
+    crate::side_panel::live_design(cx);
     crate::simple_dialog::live_design(cx);
     crate::scrollable_popup_menu::live_design(cx);
+    crate::status_dot::live_design(cx);
     crate::upward_dropdown::live_design(cx);
     crate::openpad::live_design(cx);
 
