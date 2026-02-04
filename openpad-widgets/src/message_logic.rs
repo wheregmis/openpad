@@ -1,6 +1,5 @@
 use openpad_protocol::{Message, MessageWithParts, Part, TokenUsage, FileDiff};
 
-
 #[derive(Clone, Debug)]
 pub struct StepDetail {
     pub tool: String,

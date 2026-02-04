@@ -1,6 +1,6 @@
 use crate::diff_view::{DiffViewApi, DiffViewWidgetRefExt};
 use crate::permission_card::{PermissionCardApi, PermissionCardWidgetRefExt};
-use crate::message_logic::{DisplayMessage, DisplayStep, MessageProcessor};
+use crate::message_logic::{DisplayMessage, MessageProcessor};
 use makepad_widgets::*;
 
 live_design! {
@@ -874,5 +874,3 @@ pub enum MessageListAction {
     None,
     RevertToMessage(String),
 }
-
-#[derive(Clone, Debug, DefaultNone)]

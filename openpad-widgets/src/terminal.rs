@@ -103,10 +103,10 @@ impl Default for TerminalBackend {
 
 impl TerminalBackend {
     pub fn build_prompt_string(cwd: &std::path::Path) -> String {
-        let user = std::env::var(\"USER\").unwrap_or_else(|_| \"user\".into());
-        let host = hostname::get().ok().and_then(|h| h.into_string().ok()).unwrap_or_else(|| \"localhost\".into());
-        let dir_name = cwd.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| \".\".into());
-        format!(\"{}@{} {} % \", user, host, dir_name)
+        let user = std::env::var("USER").unwrap_or_else(|_| "user".into());
+        let host = hostname::get().ok().and_then(|h| h.into_string().ok()).unwrap_or_else(|| "localhost".into());
+        let dir_name = cwd.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| ".".into());
+        format!("{}@{} {} % ", user, host, dir_name)
     }
 
     pub fn color_from_ansi(code: u8) -> Vec4 {
@@ -156,8 +156,8 @@ impl TerminalBackend {
         if t.is_empty() { return true; }
         let our_trimmed = our_prompt.trim();
         if t == our_trimmed { return true; }
-        if t.ends_with('%') || t.ends_with(\"% \") || t.ends_with('$') || t.ends_with(\"$ \") || t.ends_with('#') || t.ends_with(\"# \") {
-            if (t.contains('@') && t.len() < our_trimmed.len() + 5) || t == \"%\" || t == \"$\" || t == \"#\" {
+        if t.ends_with('%') || t.ends_with("% ") || t.ends_with('$') || t.ends_with("$ ") || t.ends_with('#') || t.ends_with("# ") {
+            if (t.contains('@') && t.len() < our_trimmed.len() + 5) || t == "%" || t == "$" || t == "#" {
                 return true;
             }
         }
@@ -217,7 +217,7 @@ impl TerminalBackend {
                         if last_span.text.is_empty() { self.partial_spans.pop(); }
                     }
                 }
-                '\t' => { current_text.push_str(\"    \"); }
+                '\t' => { current_text.push_str("    "); }
                 ch if ch.is_control() => {}
                 _ => { current_text.push(ch); }
             }
@@ -234,11 +234,11 @@ impl TerminalBackend {
 
     pub fn send_command(&mut self, command: &str) -> Result<(), std::io::Error> {
         if let Some(writer) = &self.pty_writer {
-            let mut w = writer.lock().map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, \"Lock failed\"))?;
-            writeln!(w, \"{}\", command)?;
+            let mut w = writer.lock().map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Lock failed"))?;
+            writeln!(w, "{}", command)?;
             Ok(())
         } else {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, \"PTY not initialized\"))
+            Err(std::io::Error::new(std::io::ErrorKind::Other, "PTY not initialized"))
         }
     }
 }
@@ -263,9 +263,9 @@ impl Widget for Terminal {
         {
             if !input.is_empty() {
                 if let Err(e) = self.backend.send_command(&input) {
-                    self.backend.append_output(&format!(\"Error: {}\n\", e));
+                    self.backend.append_output(&format!("Error: {}\n", e));
                 }
-                self.view.text_input(&[id!(input_field)]).set_text(cx, \"\");
+                self.view.text_input(&[id!(input_field)]).set_text(cx, "");
             }
         }
     }
@@ -311,26 +311,26 @@ impl Terminal {
         let pair = match pty_system.openpty(pty_size) {
             Ok(pair) => pair,
             Err(e) => {
-                self.backend.append_output(&format!(\"Failed to create PTY: {}\n\", e));
+                self.backend.append_output(&format!("Failed to create PTY: {}\n", e));
                 self.redraw(cx);
                 return;
             }
         };
 
-        #[cfg(target_os = \"windows\")]
-        let shell = \"powershell.exe\";
-        #[cfg(not(target_os = \"windows\"))]
-        let shell_path = std::env::var(\"SHELL\").unwrap_or_else(|_| \"/bin/sh\".to_string());
-        #[cfg(not(target_os = \"windows\"))]
+        #[cfg(target_os = "windows")]
+        let shell = "powershell.exe";
+        #[cfg(not(target_os = "windows"))]
+        let shell_path = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".to_string());
+        #[cfg(not(target_os = "windows"))]
         let shell = shell_path.as_str();
 
         let mut cmd = CommandBuilder::new(shell);
-        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from(\".\"));
+        let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
         cmd.cwd(&cwd);
         self.backend.prompt_string = TerminalBackend::build_prompt_string(&cwd);
 
         if let Err(e) = pair.slave.spawn_command(cmd) {
-            self.backend.append_output(&format!(\"Failed to spawn shell: {}\n\", e));
+            self.backend.append_output(&format!("Failed to spawn shell: {}\n", e));
             self.redraw(cx);
             return;
         }
@@ -338,7 +338,7 @@ impl Terminal {
         let writer = match pair.master.take_writer() {
             Ok(w) => Arc::new(Mutex::new(w)),
             Err(e) => {
-                self.backend.append_output(&format!(\"Failed to get PTY writer: {}\n\", e));
+                self.backend.append_output(&format!("Failed to get PTY writer: {}\n", e));
                 self.redraw(cx);
                 return;
             }
@@ -348,7 +348,7 @@ impl Terminal {
         let reader = match pair.master.try_clone_reader() {
             Ok(r) => r,
             Err(e) => {
-                self.backend.append_output(&format!(\"Failed to get PTY reader: {}\n\", e));
+                self.backend.append_output(&format!("Failed to get PTY reader: {}\n", e));
                 self.redraw(cx);
                 return;
             }
@@ -369,7 +369,7 @@ impl Terminal {
             }
         });
 
-        self.backend.append_output(&format!(\"Terminal initialized with shell: {}\n\", shell));
+        self.backend.append_output(&format!("Terminal initialized with shell: {}\n", shell));
         self.redraw(cx);
     }
 

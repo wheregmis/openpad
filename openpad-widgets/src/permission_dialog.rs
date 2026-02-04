@@ -245,7 +245,7 @@ impl PermissionDialog {
         self.permission_id = Some(permission_id);
 
         let description = format!(
-            \"This session is requesting {} access:\",
+            "This session is requesting {} access:",
             permission.to_uppercase()
         );
 
@@ -256,9 +256,9 @@ impl PermissionDialog {
             .label(&[id!(permission_type)])
             .set_text(cx, &permission.to_uppercase());
         let patterns_text = if patterns.is_empty() {
-            \"Patterns: (none)\".to_string()
+            "Patterns: (none)".to_string()
         } else {
-            format!(\"Patterns:\n{}\", patterns.join(\"\n\"))
+            format!("Patterns:\n{}", patterns.join("\n"))
         };
         self.view
             .label(&[id!(pattern)])
@@ -266,10 +266,10 @@ impl PermissionDialog {
         if let Some(context_text) = context.filter(|text| !text.trim().is_empty()) {
             self.view
                 .label(&[id!(context)])
-                .set_text(cx, &format!(\"Context:\n{}\", context_text));
+                .set_text(cx, &format!("Context:\n{}", context_text));
             self.view.widget(&[id!(context)]).set_visible(cx, true);
         } else {
-            self.view.label(&[id!(context)]).set_text(cx, \"\");
+            self.view.label(&[id!(context)]).set_text(cx, "");
             self.view.widget(&[id!(context)]).set_visible(cx, false);
         }
 

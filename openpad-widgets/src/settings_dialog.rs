@@ -167,7 +167,7 @@ live_design! {
 
         <View> {
             width: Fill, height: Fit
-            flow: Down
+            flow: Down,
             spacing: 5
 
             <Label> {
@@ -280,7 +280,7 @@ impl SettingsDialog {
     }
 
     pub fn set_config(&mut self, cx: &mut Cx, config: &Config) {
-        let display = format!(\"{:#?}\", config);
+        let display = format!("{:#?}", config);
         self.view
             .label(&[id!(content), id!(config_display)])
             .set_text(cx, &display);
