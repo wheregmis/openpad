@@ -1,6 +1,9 @@
 use crate::async_runtime;
 use crate::components::message_list::MessageListWidgetRefExt;
 use crate::components::permission_card::PermissionCardAction;
+use crate::components::run_command_dialog::{
+    RunCommandDialogAction, RunCommandDialogWidgetRefExt,
+};
 use crate::components::terminal::{TerminalAction, TerminalWidgetRefExt};
 use crate::components::terminal_panel::TerminalPanelWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
@@ -14,6 +17,7 @@ use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction};
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
+use crate::utils::run_command_store::RunCommandStore;
 
 #[derive(Clone, Copy, Debug, PartialEq, Default)]
 enum SidebarMode {
@@ -88,6 +92,7 @@ live_design! {
     use crate::components::diff_view::DiffView;
     use crate::components::terminal::Terminal;
     use crate::components::terminal_panel::TerminalPanel;
+    use crate::components::run_command_dialog::RunCommandDialog;
     use crate::components::settings_dialog::SettingsDialog;
 
     ChatPanel = <View> {
@@ -542,6 +547,18 @@ live_design! {
                                 draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                             }
 
+                            run_button = <Button> {
+                                width: 24, height: 24
+                                text: ">"
+                                draw_bg: {
+                                    color: (THEME_COLOR_TRANSPARENT)
+                                    color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                    border_radius: 6.0
+                                    border_size: 0.0
+                                }
+                                draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 12 } }
+                            }
+
                             revert_indicator = <View> {
                                 visible: false
                                 revert_indicator_label = <Label> {
@@ -566,6 +583,7 @@ live_design! {
 
                 // Simple dialog for confirmations and inputs (shown as overlay)
                 simple_dialog = <SimpleDialog> {}
+                run_command_dialog = <RunCommandDialog> {}
             }
         }
     }
@@ -592,6 +610,8 @@ pub struct App {
     client: Option<Arc<OpenCodeClient>>,
     #[rust]
     _runtime: Option<tokio::runtime::Runtime>,
+    #[rust]
+    pending_run_project_dir: Option<String>,
 }
 
 impl LiveRegister for App {
@@ -609,11 +629,69 @@ impl LiveRegister for App {
         crate::components::diff_view::live_design(cx);
         crate::components::terminal::live_design(cx);
         crate::components::terminal_panel::live_design(cx);
+        crate::components::run_command_dialog::live_design(cx);
         crate::components::settings_dialog::live_design(cx);
     }
 }
 
 impl App {
+    fn load_run_commands(&mut self) {
+        let store = RunCommandStore::load();
+        self.state.run_commands = store.commands;
+    }
+
+    fn save_run_commands(&self) {
+        let store = RunCommandStore {
+            version: 1,
+            commands: self.state.run_commands.clone(),
+        };
+        store.save();
+    }
+
+    fn current_project_directory(&self) -> Option<String> {
+        let project = self
+            .state
+            .current_project
+            .as_ref()
+            .or_else(|| self.state.project_for_current_session());
+        project.map(|p| App::normalize_project_directory(&p.worktree))
+    }
+
+    fn open_run_dialog(&mut self, cx: &mut Cx, project_dir: String) {
+        let default_value = self
+            .state
+            .run_commands
+            .get(&project_dir)
+            .cloned()
+            .unwrap_or_default();
+        self.pending_run_project_dir = Some(project_dir);
+        self.ui
+            .run_command_dialog(&[id!(run_command_dialog)])
+            .show(cx, &default_value);
+    }
+
+    fn run_saved_command(&mut self, cx: &mut Cx, project_dir: String, command: String) {
+        self.ui
+            .terminal_panel(&[id!(terminal_panel_wrap)])
+            .set_open(cx, true);
+        self.terminal_open = true;
+        self.ui.terminal(&[id!(terminal_panel)]).init_pty(cx);
+
+        self.ui
+            .terminal(&[id!(terminal_panel)])
+            .send_command(cx, &format!("cd \"{}\"", project_dir));
+
+        for line in command.lines() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            self.ui
+                .terminal(&[id!(terminal_panel)])
+                .send_command(cx, trimmed);
+        }
+    }
+
     fn normalize_project_directory(worktree: &str) -> String {
         if worktree == "." {
             if let Ok(current_dir) = std::env::current_dir() {
@@ -657,19 +735,21 @@ impl App {
     }
 
     fn update_skill_ui(&self, cx: &mut Cx) {
-        let selected = self.state.selected_skill();
-        let has_skill = selected.is_some();
+        let selected = self.state.selected_skills();
+        let has_skill = !selected.is_empty();
         self.ui
             .view(&[id!(skill_preview)])
             .set_visible(cx, has_skill);
 
-        if let Some(skill) = selected {
+        if has_skill {
+            let names: Vec<String> = selected.iter().map(|skill| skill.name.clone()).collect();
+            let label = "Skills";
             self.ui
                 .label(&[id!(skill_name_label)])
-                .set_text(cx, &skill.name);
+                .set_text(cx, label);
             self.ui
                 .label(&[id!(skill_desc_label)])
-                .set_text(cx, &skill.description);
+                .set_text(cx, &names.join(", "));
         }
         self.ui.redraw(cx);
     }
@@ -1360,6 +1440,7 @@ impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         match event {
             Event::Startup => {
+                self.load_run_commands();
                 self.connect_to_opencode(cx);
                 if !cx.in_makepad_studio() {
                     if let Some(mut window) = self.ui.borrow_mut::<Window>() {
@@ -1609,6 +1690,44 @@ impl AppMain for App {
                     SimpleDialogAction::None => {}
                 }
             }
+
+            if let Some(dialog_action) = action.downcast_ref::<RunCommandDialogAction>() {
+                match dialog_action {
+                    RunCommandDialogAction::Confirmed { command } => {
+                        let Some(project_dir) = self.pending_run_project_dir.clone() else {
+                            self.ui
+                                .run_command_dialog(&[id!(run_command_dialog)])
+                                .show_error(cx, "No project selected.");
+                            continue;
+                        };
+                        let trimmed = command.trim();
+                        if trimmed.is_empty() {
+                            self.ui
+                                .run_command_dialog(&[id!(run_command_dialog)])
+                                .show_error(cx, "Command cannot be empty.");
+                            continue;
+                        }
+                        log!("Run command saved for {}", project_dir);
+                        self.state
+                            .run_commands
+                            .insert(project_dir.clone(), trimmed.to_string());
+                        self.save_run_commands();
+                        self.pending_run_project_dir = None;
+                        self.ui
+                            .run_command_dialog(&[id!(run_command_dialog)])
+                            .hide(cx);
+                        log!("Running command: {}", trimmed);
+                        self.run_saved_command(cx, project_dir, trimmed.to_string());
+                    }
+                    RunCommandDialogAction::Cancelled => {
+                        self.pending_run_project_dir = None;
+                        self.ui
+                            .run_command_dialog(&[id!(run_command_dialog)])
+                            .hide(cx);
+                    }
+                    RunCommandDialogAction::None => {}
+                }
+            }
         }
 
         // Detect pasted images (data URLs) and long text on input change,
@@ -1695,6 +1814,16 @@ impl AppMain for App {
             }
         }
 
+        if self.ui.button(&[id!(run_button)]).clicked(&actions) {
+            if let Some(project_dir) = self.current_project_directory() {
+                if let Some(command) = self.state.run_commands.get(&project_dir).cloned() {
+                    self.run_saved_command(cx, project_dir, command);
+                } else {
+                    self.open_run_dialog(cx, project_dir);
+                }
+            }
+        }
+
         if self.ui.button(&[id!(hamburger_button)]).clicked(&actions) {
             self.toggle_sidebar(cx);
         }
@@ -1740,7 +1869,7 @@ impl AppMain for App {
         }
 
         if self.ui.button(&[id!(clear_skill_button)]).clicked(&actions) {
-            self.state.selected_skill_idx = None;
+            self.state.selected_skill_indices.clear();
             self.ui
                 .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
@@ -1784,8 +1913,23 @@ impl AppMain for App {
             .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
             .changed(&actions)
         {
-            self.state.selected_skill_idx = if idx > 0 { Some(idx - 1) } else { None };
-            self.update_skill_ui(cx);
+            if idx > 0 {
+                let skill_idx = idx - 1;
+                if let Some(pos) = self
+                    .state
+                    .selected_skill_indices
+                    .iter()
+                    .position(|&existing| existing == skill_idx)
+                {
+                    self.state.selected_skill_indices.remove(pos);
+                } else {
+                    self.state.selected_skill_indices.push(skill_idx);
+                }
+                self.ui
+                    .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
+                    .set_selected_item(cx, 0);
+                self.update_skill_ui(cx);
+            }
         }
     }
 }

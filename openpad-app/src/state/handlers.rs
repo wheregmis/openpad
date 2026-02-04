@@ -91,9 +91,10 @@ pub struct AppState {
     pub model_entries: Vec<(String, String)>,
     pub selected_model_idx: usize,
     pub selected_agent_idx: Option<usize>,
-    pub selected_skill_idx: Option<usize>,
+    pub selected_skill_indices: Vec<usize>,
     pub attached_files: Vec<AttachedFile>,
     pub config: Option<openpad_protocol::Config>,
+    pub run_commands: HashMap<String, String>,
 }
 
 impl AppState {
@@ -179,13 +180,26 @@ impl AppState {
             .and_then(|agent| agent.permission.clone())
     }
 
-    pub fn selected_skill(&self) -> Option<&Skill> {
-        self.selected_skill_idx.and_then(|idx| self.skills.get(idx))
+    pub fn selected_skills(&self) -> Vec<&Skill> {
+        let mut selected = Vec::new();
+        for idx in &self.selected_skill_indices {
+            if let Some(skill) = self.skills.get(*idx) {
+                selected.push(skill);
+            }
+        }
+        selected
     }
 
     pub fn selected_skill_prompt(&self) -> Option<String> {
-        self.selected_skill()
-            .map(|skill| format!("Use skill: {}", skill.name))
+        let selected = self.selected_skills();
+        if selected.is_empty() {
+            return None;
+        }
+        let mut lines: Vec<String> = Vec::with_capacity(selected.len());
+        for skill in selected {
+            lines.push(format!("Use skill: {}", skill.name));
+        }
+        Some(lines.join("\n"))
     }
 }
 
@@ -283,7 +297,7 @@ impl AppState {
         })
     }
 
-    fn project_for_current_session(&self) -> Option<&Project> {
+    pub fn project_for_current_session(&self) -> Option<&Project> {
         let session_project_id = self.current_session_id.as_ref().and_then(|session_id| {
             self.find_session(session_id)
                 .map(|session| &session.project_id)
@@ -537,6 +551,11 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::SkillsLoaded(skills) => {
             log!("SkillsLoaded: {} skills", skills.len());
+            let selected_names: Vec<String> = state
+                .selected_skill_indices
+                .iter()
+                .filter_map(|idx| state.skills.get(*idx).map(|s| s.name.clone()))
+                .collect();
             state.skills = skills.clone();
             let mut labels: Vec<String> = vec!["Skill".to_string()];
             labels.extend(state.skills.iter().map(|s| s.name.clone()));
@@ -544,7 +563,10 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 .set_labels(cx, labels);
             ui.up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
-            state.selected_skill_idx = None;
+            state.selected_skill_indices = selected_names
+                .iter()
+                .filter_map(|name| state.skills.iter().position(|s| s.name == *name))
+                .collect();
             cx.redraw_all();
         }
         AppAction::ConfigLoaded(config) => {
@@ -552,6 +574,14 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             ui.settings_dialog(&[id!(side_panel), id!(settings_panel)])
                 .set_config(cx, &config);
             cx.redraw_all();
+        }
+        AppAction::RunCommandSaved {
+            project_dir,
+            command,
+        } => {
+            state
+                .run_commands
+                .insert(project_dir.clone(), command.clone());
         }
         AppAction::AuthSet {
             provider_id: _,

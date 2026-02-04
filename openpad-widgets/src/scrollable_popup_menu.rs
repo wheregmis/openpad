@@ -259,8 +259,8 @@ live_design! {
             border_color_2: (THEME_COLOR_BEVEL_OUTSET_2)
         }
         draw_scrollbar: {
-            color: #5a5f68
-            border_radius: 2.0
+            uniform color: #5a5f68
+            uniform border_radius: 2.0
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
                 sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, self.border_radius);

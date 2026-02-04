@@ -2,7 +2,6 @@ use crate::state::actions::AppAction;
 use makepad_widgets::*;
 use openpad_protocol::{Config, Provider};
 use openpad_widgets::upward_dropdown::UpDropDownWidgetExt;
-use openpad_widgets::UpDropDownWidgetRefExt;
 
 live_design! {
     use link::theme::*;

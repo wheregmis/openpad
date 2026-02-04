@@ -379,10 +379,10 @@ impl Terminal {
             }
         });
 
-        self.append_output(cx, &format!("Terminal initialized with shell: {}\n", shell));
+        // Successful init: stay quiet. Errors are already printed above.
     }
 
-    fn send_command(&mut self, cx: &mut Cx, command: &str) {
+    pub fn send_command(&mut self, cx: &mut Cx, command: &str) {
         // Do not echo the command here: the PTY/shell already echoes user input.
         // Echoing ourselves caused duplicate first character (e.g. "ls" -> "lls").
         if let Some(writer) = &self.pty_writer {
@@ -620,6 +620,12 @@ impl TerminalRef {
     pub fn init_pty(&self, cx: &mut Cx) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.init_pty(cx);
+        }
+    }
+
+    pub fn send_command(&self, cx: &mut Cx, command: &str) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.send_command(cx, command);
         }
     }
 

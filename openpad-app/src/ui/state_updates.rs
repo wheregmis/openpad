@@ -183,4 +183,7 @@ pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&P
             draw_bg: { color: (badge_color) }
         },
     );
+
+    ui.button(&[id!(run_button)])
+        .set_enabled(cx, project.is_some());
 }
