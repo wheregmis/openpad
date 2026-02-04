@@ -1,15 +1,14 @@
-use crate::state::actions::AppAction;
+use crate::upward_dropdown::UpDropDownWidgetExt;
 use makepad_widgets::*;
 use openpad_protocol::{Config, Provider};
-use openpad_widgets::upward_dropdown::UpDropDownWidgetExt;
-use openpad_widgets::UpDropDownWidgetRefExt;
 
 live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
+    use crate::openpad::*;
+    use crate::theme::*;
+    use crate::upward_dropdown::UpDropDown;
 
     pub SettingsDialog = {{SettingsDialog}} {
         width: Fill, height: Fill
@@ -29,7 +28,6 @@ live_design! {
                 spacing: 12
                 padding: { left: 16, right: 16, top: 16, bottom: 16 }
 
-        // Provider Selection
         <View> {
             width: Fill, height: Fit
             flow: Down
@@ -109,7 +107,6 @@ live_design! {
             }
         }
 
-        // API Key Input
         <View> {
             width: Fill, height: Fit
             flow: Down
@@ -140,7 +137,6 @@ live_design! {
             }
         }
 
-        // Save Button
         <View> {
             width: Fill, height: Fit
             align: { x: 1.0 }
@@ -169,10 +165,9 @@ live_design! {
             draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) }
         }
 
-        // Config Display
         <View> {
             width: Fill, height: Fit
-            flow: Down
+            flow: Down,
             spacing: 5
 
             <Label> {
@@ -198,6 +193,12 @@ live_design! {
     }
 }
 
+#[derive(Clone, Debug, DefaultNone)]
+pub enum SettingsDialogAction {
+    None,
+    UpdateKey { provider_id: String, key: String },
+}
+
 #[derive(Live, LiveHook, Widget)]
 pub struct SettingsDialog {
     #[deref]
@@ -215,8 +216,6 @@ impl Widget for SettingsDialog {
         let actions = cx.capture_actions(|cx| {
             self.view.handle_event(cx, event, scope);
         });
-
-        // Panel is controlled by sidebar tabs - no close button needed
 
         if let Some(idx) = self
             .view
@@ -238,9 +237,9 @@ impl Widget for SettingsDialog {
                 if let Some(provider) = self.providers.get(idx) {
                     let key = self.view.text_input(&[id!(content), id!(key_input)]).text();
                     if !key.is_empty() {
-                        cx.action(AppAction::DialogConfirmed {
-                            dialog_type: format!("set_auth:{}", provider.id),
-                            value: key,
+                        cx.action(SettingsDialogAction::UpdateKey {
+                            provider_id: provider.id.clone(),
+                            key,
                         });
                     }
                 }
@@ -264,12 +263,9 @@ impl SettingsDialog {
         self.redraw(cx);
     }
 
-    // Keep these methods for compatibility, but they're now controlled by parent visibility
-
     pub fn set_providers(&mut self, cx: &mut Cx, providers: Vec<Provider>) {
         self.providers = providers;
 
-        // Populate dropdown
         let items: Vec<String> = self
             .providers
             .iter()
@@ -281,7 +277,7 @@ impl SettingsDialog {
     }
 
     pub fn set_config(&mut self, cx: &mut Cx, config: &Config) {
-        let display = format!("{:#?}", config); // Simple debug print for now
+        let display = format!("{:#?}", config);
         self.view
             .label(&[id!(content), id!(config_display)])
             .set_text(cx, &display);

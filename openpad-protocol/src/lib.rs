@@ -269,10 +269,7 @@ mod tests {
                 .and_then(|v| v.as_array())
                 .expect("Session schema missing required fields");
 
-            let required_fields: Vec<&str> = required
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect();
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
 
             // Validate serialization includes all required fields
             validate_serialization(&session, &required_fields);
@@ -281,7 +278,8 @@ mod tests {
         #[test]
         fn test_assistant_message_matches_openapi() {
             let spec = load_openapi_spec();
-            let schema = get_schema(&spec, "AssistantMessage").expect("AssistantMessage schema not found");
+            let schema =
+                get_schema(&spec, "AssistantMessage").expect("AssistantMessage schema not found");
 
             // Create a full Message enum (which includes the role field)
             let msg = Message::Assistant(AssistantMessage {
@@ -317,10 +315,7 @@ mod tests {
                 .and_then(|v| v.as_array())
                 .expect("AssistantMessage schema missing required fields");
 
-            let required_fields: Vec<&str> = required
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect();
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
 
             validate_serialization(&msg, &required_fields);
         }
@@ -354,10 +349,7 @@ mod tests {
                 .and_then(|v| v.as_array())
                 .expect("UserMessage schema missing required fields");
 
-            let required_fields: Vec<&str> = required
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect();
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
 
             validate_serialization(&msg, &required_fields);
         }
@@ -365,8 +357,8 @@ mod tests {
         #[test]
         fn test_permission_request_matches_openapi() {
             let spec = load_openapi_spec();
-            let schema = get_schema(&spec, "PermissionRequest")
-                .expect("PermissionRequest schema not found");
+            let schema =
+                get_schema(&spec, "PermissionRequest").expect("PermissionRequest schema not found");
 
             let req = PermissionRequest {
                 id: "per_123".to_string(),
@@ -383,10 +375,7 @@ mod tests {
                 .and_then(|v| v.as_array())
                 .expect("PermissionRequest schema missing required fields");
 
-            let required_fields: Vec<&str> = required
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect();
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
 
             validate_serialization(&req, &required_fields);
         }
@@ -438,7 +427,10 @@ mod tests {
 
             for error in errors {
                 let json = serde_json::to_value(&error).expect("Failed to serialize error");
-                assert!(json.get("name").is_some(), "Error should have a 'name' field");
+                assert!(
+                    json.get("name").is_some(),
+                    "Error should have a 'name' field"
+                );
             }
         }
 
@@ -452,7 +444,10 @@ mod tests {
 
             for action in actions {
                 let json = serde_json::to_value(&action).expect("Failed to serialize");
-                assert!(json.is_string(), "PermissionAction should serialize as string");
+                assert!(
+                    json.is_string(),
+                    "PermissionAction should serialize as string"
+                );
             }
         }
 
@@ -525,8 +520,8 @@ mod tests {
             let spec = load_openapi_spec();
 
             // List of key schemas that exist as standalone definitions in the OpenAPI spec
-            // Note: Many types like SessionTime, MessageTime, TokenUsage, CacheUsage, 
-            // ModelSpec, SessionSummary, and PermissionReply are defined inline in the 
+            // Note: Many types like SessionTime, MessageTime, TokenUsage, CacheUsage,
+            // ModelSpec, SessionSummary, and PermissionReply are defined inline in the
             // OpenAPI spec rather than as standalone schemas
             let expected_schemas = vec![
                 "Session",
@@ -554,7 +549,7 @@ mod tests {
         fn test_inline_time_structures() {
             // Validate that our SessionTime and MessageTime types serialize correctly
             // even though they're defined inline in the OpenAPI spec
-            
+
             let session_time = SessionTime {
                 created: 1234567890000,
                 updated: 1234567890000,
@@ -673,10 +668,7 @@ mod tests {
                 .and_then(|v| v.as_array())
                 .expect("FileDiff schema missing required fields");
 
-            let required_fields: Vec<&str> = required
-                .iter()
-                .filter_map(|v| v.as_str())
-                .collect();
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
 
             validate_serialization(&diff, &required_fields);
         }
@@ -684,10 +676,11 @@ mod tests {
         #[test]
         fn test_provider_and_model_structure() {
             let spec = load_openapi_spec();
-            
+
             // See module documentation for details on why these types are simplified
-            
-            let _provider_schema = get_schema(&spec, "Provider").expect("Provider schema not found");
+
+            let _provider_schema =
+                get_schema(&spec, "Provider").expect("Provider schema not found");
             let provider = Provider {
                 id: "anthropic".to_string(),
                 name: Some("Anthropic".to_string()),

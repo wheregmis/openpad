@@ -1,10 +1,6 @@
 use {
-    makepad_widgets::{
-        makepad_derive_widget::*,
-        makepad_draw::*,
-        widget::*,
-    },
     crate::scrollable_popup_menu::{ScrollablePopupMenu, ScrollablePopupMenuAction},
+    makepad_widgets::{makepad_derive_widget::*, makepad_draw::*, widget::*},
     std::cell::RefCell,
     std::rc::Rc,
 };
@@ -444,8 +440,8 @@ impl Widget for UpDropDown {
             if self.menu_scroll_max > 0.0 {
                 if let Event::Scroll(e) = event {
                     if menu.menu_contains_pos(cx, e.abs) && !e.handled_y.get() {
-                        let next_scroll = (self.menu_scroll + e.scroll.y)
-                            .clamp(0.0, self.menu_scroll_max);
+                        let next_scroll =
+                            (self.menu_scroll + e.scroll.y).clamp(0.0, self.menu_scroll_max);
                         if (next_scroll - self.menu_scroll).abs() > 0.1 {
                             self.menu_scroll = next_scroll;
                             e.handled_y.set(true);

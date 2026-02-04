@@ -1335,7 +1335,10 @@ dependencies = [
 name = "openpad-widgets"
 version = "0.1.0"
 dependencies = [
+ "hostname",
  "makepad-widgets",
+ "openpad-protocol",
+ "portable-pty",
 ]
 
 [[package]]

@@ -1,8 +1,8 @@
-use crate::components::message_list::MessageListWidgetRefExt;
 use crate::constants::*;
 use crate::utils::path_utils::normalize_worktree;
 use makepad_widgets::*;
 use openpad_protocol::{Project, SessionSummary};
+use openpad_widgets::message_list::MessageListWidgetRefExt;
 use std::path::Path;
 
 /// Updates the status indicator UI (dot color and label text)

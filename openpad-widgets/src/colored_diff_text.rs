@@ -10,7 +10,7 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::theme::*;
+    use crate::theme::*;
 
     // ColoredDiffText widget: Renders diff text with per-line coloring
     // - Green for additions (+)

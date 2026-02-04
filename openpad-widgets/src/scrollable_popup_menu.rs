@@ -1,9 +1,4 @@
-use {
-    makepad_widgets::{
-        makepad_draw::*,
-        widget::*,
-    },
-};
+use makepad_widgets::{makepad_draw::*, widget::*};
 
 live_design! {
     link widgets;
@@ -259,11 +254,10 @@ live_design! {
             border_color_2: (THEME_COLOR_BEVEL_OUTSET_2)
         }
         draw_scrollbar: {
-            color: #5a5f68
-            border_radius: 2.0
+            uniform color: #5a5f68
             fn pixel(self) -> vec4 {
                 let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, self.border_radius);
+                sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, 2.0);
                 sdf.fill(self.color);
                 return sdf.result;
             }
@@ -276,43 +270,70 @@ live_design! {
 
 #[derive(Live, LiveHook, LiveRegister)]
 pub struct ScrollablePopupMenuItem {
-    #[live] draw_bg: DrawQuad,
-    #[live] draw_text: DrawText,
+    #[live]
+    draw_bg: DrawQuad,
+    #[live]
+    draw_text: DrawText,
 
-    #[layout] layout: Layout,
-    #[animator] animator: Animator,
-    #[walk] walk: Walk,
+    #[layout]
+    layout: Layout,
+    #[animator]
+    animator: Animator,
+    #[walk]
+    walk: Walk,
 
-    #[live] indent_width: f32,
-    #[live] icon_walk: Walk,
+    #[live]
+    indent_width: f32,
+    #[live]
+    icon_walk: Walk,
 
-    #[live] opened: f32,
-    #[live] hover: f32,
-    #[live] active: f32,
+    #[live]
+    opened: f32,
+    #[live]
+    hover: f32,
+    #[live]
+    active: f32,
 }
 
 #[derive(Live, LiveRegister)]
 pub struct ScrollablePopupMenu {
-    #[live] draw_list: DrawList2d,
-    #[live] menu_item: Option<LivePtr>,
+    #[live]
+    draw_list: DrawList2d,
+    #[live]
+    menu_item: Option<LivePtr>,
 
-    #[live] draw_bg: DrawQuad,
-    #[live] draw_scrollbar: DrawQuad,
-    #[layout] layout: Layout,
-    #[walk] walk: Walk,
-    #[live] items: Vec<String>,
-    #[rust] first_tap: bool,
-    #[rust] menu_items: ComponentMap<ScrollablePopupMenuItemId, ScrollablePopupMenuItem>,
-    #[rust] init_select_item: Option<ScrollablePopupMenuItemId>,
+    #[live]
+    draw_bg: DrawQuad,
+    #[live]
+    draw_scrollbar: DrawQuad,
+    #[layout]
+    layout: Layout,
+    #[walk]
+    walk: Walk,
+    #[live]
+    items: Vec<String>,
+    #[rust]
+    first_tap: bool,
+    #[rust]
+    menu_items: ComponentMap<ScrollablePopupMenuItemId, ScrollablePopupMenuItem>,
+    #[rust]
+    init_select_item: Option<ScrollablePopupMenuItemId>,
 
-    #[rust] count: usize,
-    #[rust] max_height: f64,
-    #[rust] menu_scroll: f64,
-    #[rust] content_height: f64,
+    #[rust]
+    count: usize,
+    #[rust]
+    max_height: f64,
+    #[rust]
+    menu_scroll: f64,
+    #[rust]
+    content_height: f64,
 
-    #[live] scrollbar_width: f64,
-    #[live] scrollbar_inset: f64,
-    #[live] scrollbar_min_height: f64,
+    #[live]
+    scrollbar_width: f64,
+    #[live]
+    scrollbar_inset: f64,
+    #[live]
+    scrollbar_min_height: f64,
 }
 
 impl LiveHook for ScrollablePopupMenu {
@@ -346,7 +367,8 @@ pub struct ScrollablePopupMenuItemId(pub LiveId);
 impl ScrollablePopupMenuItem {
     pub fn draw_item(&mut self, cx: &mut Cx2d, label: &str) {
         self.draw_bg.begin(cx, self.walk, self.layout);
-        self.draw_text.draw_walk(cx, Walk::fit(), Align::default(), label);
+        self.draw_text
+            .draw_walk(cx, Walk::fit(), Align::default(), label);
         self.draw_bg.end(cx);
     }
 
@@ -476,7 +498,9 @@ impl ScrollablePopupMenu {
     ) {
         let mut actions = Vec::new();
         for (item_id, node) in self.menu_items.iter_mut() {
-            node.handle_event_with(cx, event, sweep_area, &mut |_, e| actions.push((*item_id, e)));
+            node.handle_event_with(cx, event, sweep_area, &mut |_, e| {
+                actions.push((*item_id, e))
+            });
         }
 
         for (node_id, action) in actions {

@@ -1,8 +1,5 @@
 use crate::async_runtime::tasks;
-use crate::components::message_list::MessageListWidgetRefExt;
-use crate::components::message_list::PendingPermissionDisplay;
 use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
-use crate::components::settings_dialog::SettingsDialogWidgetRefExt;
 use crate::constants::*;
 use crate::state::actions::AppAction;
 use crate::ui::state_updates;
@@ -12,6 +9,9 @@ use openpad_protocol::{
     MessageWithParts, ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider,
     Session, Skill,
 };
+use openpad_widgets::message_list::MessageListWidgetRefExt;
+use openpad_widgets::message_list::PendingPermissionDisplay;
+use openpad_widgets::settings_dialog::SettingsDialogWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
 use std::collections::HashMap;
 

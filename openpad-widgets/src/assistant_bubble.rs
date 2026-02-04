@@ -4,8 +4,8 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
+    use crate::openpad::*;
+    use crate::theme::*;
 
     pub AssistantBubble = <RoundedView> {
         width: Fit, height: Fit

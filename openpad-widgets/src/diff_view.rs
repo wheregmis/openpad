@@ -1,13 +1,13 @@
-use crate::components::colored_diff_text::{ColoredDiffTextApi, ColoredDiffTextWidgetExt};
+use crate::colored_diff_text::{ColoredDiffTextApi, ColoredDiffTextWidgetExt};
 use makepad_widgets::*;
 
 live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
-    use crate::components::colored_diff_text::ColoredDiffText;
+    use crate::openpad::*;
+    use crate::theme::*;
+    use crate::colored_diff_text::ColoredDiffText;
 
     pub DiffView = {{DiffView}} {
         width: Fill, height: Fit

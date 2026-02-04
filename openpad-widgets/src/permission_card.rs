@@ -4,8 +4,8 @@ live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
+    use crate::openpad::*;
+    use crate::theme::*;
 
     pub PermissionCard = {{PermissionCard}} {
         width: Fill, height: Fit
@@ -196,15 +196,9 @@ impl Widget for PermissionCard {
 impl PermissionCard {
     fn mark_resolved_inner(&mut self, cx: &mut Cx, status: &str) {
         self.resolved = true;
-        self.view
-            .view(&[id!(buttons_row)])
-            .set_visible(cx, false);
-        self.view
-            .label(&[id!(status_label)])
-            .set_text(cx, status);
-        self.view
-            .widget(&[id!(status_label)])
-            .set_visible(cx, true);
+        self.view.view(&[id!(buttons_row)]).set_visible(cx, false);
+        self.view.label(&[id!(status_label)]).set_text(cx, status);
+        self.view.widget(&[id!(status_label)]).set_visible(cx, true);
         self.redraw(cx);
     }
 }

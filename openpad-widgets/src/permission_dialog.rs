@@ -1,12 +1,11 @@
-use crate::state::actions::AppAction;
 use makepad_widgets::*;
 
 live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
+    use crate::openpad::*;
+    use crate::theme::*;
 
     pub PermissionDialog = {{PermissionDialog}} {
         width: Fill, height: Fit
@@ -160,6 +159,16 @@ live_design! {
     }
 }
 
+#[derive(Clone, Debug, DefaultNone)]
+pub enum PermissionDialogAction {
+    None,
+    Responded {
+        session_id: String,
+        request_id: String,
+        reply: openpad_protocol::PermissionReply,
+    },
+}
+
 #[derive(Live, LiveHook, Widget)]
 pub struct PermissionDialog {
     #[deref]
@@ -181,7 +190,7 @@ impl Widget for PermissionDialog {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
-                cx.action(AppAction::PermissionResponded {
+                cx.action(PermissionDialogAction::Responded {
                     session_id,
                     request_id: permission_id,
                     reply: openpad_protocol::PermissionReply::Once,
@@ -194,7 +203,7 @@ impl Widget for PermissionDialog {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
-                cx.action(AppAction::PermissionResponded {
+                cx.action(PermissionDialogAction::Responded {
                     session_id,
                     request_id: permission_id,
                     reply: openpad_protocol::PermissionReply::Reject,
@@ -207,7 +216,7 @@ impl Widget for PermissionDialog {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
-                cx.action(AppAction::PermissionResponded {
+                cx.action(PermissionDialogAction::Responded {
                     session_id,
                     request_id: permission_id,
                     reply: openpad_protocol::PermissionReply::Always,

@@ -1,16 +1,12 @@
-//! TerminalPanel widget - Animated slide panel for the terminal area.
-//!
-//! Mirrors SidePanel animation behavior with open/close height lerp.
-
 use makepad_widgets::*;
 
 live_design! {
     use link::theme::*;
     use link::shaders::*;
     use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
-    use crate::components::terminal::Terminal;
+    use crate::openpad::*;
+    use crate::theme::*;
+    use crate::terminal::Terminal;
 
     pub TerminalPanelBase = {{TerminalPanel}} {}
     pub TerminalPanel = <TerminalPanelBase> {
@@ -50,7 +46,7 @@ live_design! {
     }
 }
 
-#[derive(Live, Widget)]
+#[derive(Live, LiveHook, Widget)]
 pub struct TerminalPanel {
     #[deref]
     view: View,
@@ -66,16 +62,6 @@ pub struct TerminalPanel {
 
     #[animator]
     animator: Animator,
-}
-
-impl LiveHook for TerminalPanel {
-    fn after_new_from_doc(&mut self, cx: &mut Cx) {
-        if self.is_open(cx) {
-            self.animator_panel_progress = 1.0;
-        } else {
-            self.animator_panel_progress = 0.0;
-        }
-    }
 }
 
 impl Widget for TerminalPanel {
