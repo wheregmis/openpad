@@ -1,4 +1,4 @@
-use openpad_protocol::{Message, MessageWithParts, Part, TokenUsage, FileDiff};
+use openpad_protocol::{FileDiff, Message, MessageWithParts, Part, TokenUsage};
 
 #[derive(Clone, Debug)]
 pub struct StepDetail {
@@ -64,8 +64,15 @@ impl MessageProcessor {
                         } else {
                             None
                         };
-                        let error_text = msg.error.as_ref().map(crate::utils::formatters::format_assistant_error);
-                        let duration_ms = msg.time.completed.map(|completed| completed - msg.time.created).filter(|d| *d >= 0);
+                        let error_text = msg
+                            .error
+                            .as_ref()
+                            .map(crate::utils::formatters::format_assistant_error);
+                        let duration_ms = msg
+                            .time
+                            .completed
+                            .map(|completed| completed - msg.time.created)
+                            .filter(|d| *d >= 0);
                         (
                             "assistant",
                             Some(msg.time.created),
@@ -110,8 +117,12 @@ impl MessageProcessor {
                     };
                     if let Some(last) = steps.last_mut() {
                         last.details.push(detail);
-                        if has_error { last.has_error = true; }
-                        if is_running { last.has_running = true; }
+                        if has_error {
+                            last.has_error = true;
+                        }
+                        if is_running {
+                            last.has_running = true;
+                        }
                     } else {
                         steps.push(DisplayStep {
                             reason: String::new(),
@@ -148,7 +159,9 @@ impl MessageProcessor {
                 text = "Assistant error".to_string();
             }
             let has_content = !text.is_empty() || (role == "assistant" && !steps.is_empty());
-            if !has_content { continue; }
+            if !has_content {
+                continue;
+            }
 
             let mut diffs = Vec::new();
             match &mwp.info {
@@ -166,7 +179,8 @@ impl MessageProcessor {
                 }
             }
 
-            let steps_only = role == "assistant" && text.is_empty() && !steps.is_empty() && !is_error;
+            let steps_only =
+                role == "assistant" && text.is_empty() && !steps.is_empty() && !is_error;
 
             if steps_only {
                 if let Some(ref mut pending) = pending_steps_only {
@@ -260,9 +274,15 @@ impl MessageProcessor {
         }
 
         let tool_names: Vec<&str> = step.details.iter().map(|d| d.tool.as_str()).collect();
-        let has_read = tool_names.iter().any(|t| t.contains("read") || t.contains("grep") || t.contains("search"));
-        let has_write = tool_names.iter().any(|t| t.contains("write") || t.contains("patch") || t.contains("apply"));
-        let has_execute = tool_names.iter().any(|t| t.contains("execute") || t.contains("run") || t.contains("shell"));
+        let has_read = tool_names
+            .iter()
+            .any(|t| t.contains("read") || t.contains("grep") || t.contains("search"));
+        let has_write = tool_names
+            .iter()
+            .any(|t| t.contains("write") || t.contains("patch") || t.contains("apply"));
+        let has_execute = tool_names
+            .iter()
+            .any(|t| t.contains("execute") || t.contains("run") || t.contains("shell"));
 
         let description = if has_write && has_read {
             "Reading and modifying files".to_string()
@@ -299,7 +319,9 @@ impl MessageProcessor {
             let rest = &input[start + 5..];
             let end = rest.find(' ').unwrap_or(rest.len());
             let path = &rest[..end];
-            if !path.is_empty() { return Some(path.to_string()); }
+            if !path.is_empty() {
+                return Some(path.to_string());
+            }
         }
         None
     }
@@ -323,7 +345,8 @@ impl MessageProcessor {
             "list" | "ls" => "Listing directory",
             "cat" => "Viewing file",
             _ => tool,
-        }.to_string()
+        }
+        .to_string()
     }
 
     pub fn get_tool_icon(tool: &str) -> &'static str {
@@ -339,7 +362,9 @@ impl MessageProcessor {
     }
 
     pub fn format_tool_input(input: &str) -> String {
-        if input.is_empty() { return String::new(); }
+        if input.is_empty() {
+            return String::new();
+        }
         let mut formatted_parts = Vec::new();
         if let Some(path) = Self::extract_path(input) {
             formatted_parts.push(Self::format_path(&path));
@@ -350,14 +375,24 @@ impl MessageProcessor {
                 let end = rest.find(' ').unwrap_or(rest.len());
                 let value = &rest[..end];
                 if !value.is_empty() && value.len() < 50 {
-                    if key == &"offset" { formatted_parts.push(format!("@ {}", value)); }
-                    else if key == &"limit" { if value != "50" && value != "100" { formatted_parts.push(format!("limit {}", value)); } }
-                    else { formatted_parts.push(format!("{}: {}", label, value)); }
+                    if key == &"offset" {
+                        formatted_parts.push(format!("@ {}", value));
+                    } else if key == &"limit" {
+                        if value != "50" && value != "100" {
+                            formatted_parts.push(format!("limit {}", value));
+                        }
+                    } else {
+                        formatted_parts.push(format!("{}: {}", label, value));
+                    }
                 }
             }
         }
         if formatted_parts.is_empty() {
-            if input.len() > 50 { format!("{}...", &input[..47]) } else { input.to_string() }
+            if input.len() > 50 {
+                format!("{}...", &input[..47])
+            } else {
+                input.to_string()
+            }
         } else {
             formatted_parts.join(" ")
         }
@@ -366,13 +401,20 @@ impl MessageProcessor {
     pub fn format_step_body(step: &DisplayStep) -> String {
         let mut lines: Vec<String> = Vec::new();
         for d in &step.details {
-            let icon = if d.is_running { "⏳" } else { Self::get_tool_icon(&d.tool) };
+            let icon = if d.is_running {
+                "⏳"
+            } else {
+                Self::get_tool_icon(&d.tool)
+            };
             let tool_name = Self::format_tool_name(&d.tool);
             let input = Self::format_tool_input(&d.input_summary);
 
             let line = if d.is_running {
-                if input.is_empty() { format!("{} {} ...", icon, tool_name) }
-                else { format!("{} {} {} ...", icon, tool_name, input) }
+                if input.is_empty() {
+                    format!("{} {} ...", icon, tool_name)
+                } else {
+                    format!("{} {} {} ...", icon, tool_name, input)
+                }
             } else if input.is_empty() {
                 format!("{} {} → {}", icon, tool_name, d.result)
             } else {
@@ -382,12 +424,22 @@ impl MessageProcessor {
         }
         if step.cost > 0.0 || step.tokens.is_some() {
             let mut stats = Vec::new();
-            if step.cost > 0.0 { stats.push(crate::utils::formatters::format_cost(step.cost)); }
-            if let Some(ref t) = step.tokens { stats.push(crate::utils::formatters::format_token_usage_short(t)); }
-            if !stats.is_empty() { lines.push(stats.join(" · ")); }
+            if step.cost > 0.0 {
+                stats.push(crate::utils::formatters::format_cost(step.cost));
+            }
+            if let Some(ref t) = step.tokens {
+                stats.push(crate::utils::formatters::format_token_usage_short(t));
+            }
+            if !stats.is_empty() {
+                lines.push(stats.join(" · "));
+            }
         }
         if lines.is_empty() {
-            if step.reason.is_empty() { "—".to_string() } else { step.reason.clone() }
+            if step.reason.is_empty() {
+                "—".to_string()
+            } else {
+                step.reason.clone()
+            }
         } else {
             lines.join("\n")
         }

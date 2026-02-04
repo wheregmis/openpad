@@ -1,17 +1,20 @@
 use crate::async_runtime;
-use openpad_widgets::message_list::MessageListWidgetRefExt;
-use openpad_widgets::permission_card::PermissionCardAction;
-use openpad_widgets::terminal::{TerminalAction, TerminalWidgetRefExt};
-use openpad_widgets::terminal_panel::TerminalPanelWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
+use openpad_widgets::message_list::MessageListWidgetRefExt;
+use openpad_widgets::permission_card::PermissionCardAction;
 use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
+use openpad_widgets::terminal::{TerminalAction, TerminalWidgetRefExt};
+use openpad_widgets::terminal_panel::TerminalPanelWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
-use openpad_widgets::{SidePanelWidgetRefExt, SimpleDialogAction, PermissionDialogAction, SettingsDialogAction, MessageListAction as WidgetMessageListAction};
+use openpad_widgets::{
+    MessageListAction as WidgetMessageListAction, PermissionDialogAction, SettingsDialogAction,
+    SidePanelWidgetRefExt, SimpleDialogAction,
+};
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
 
@@ -75,7 +78,16 @@ live_design! {
     use openpad_widgets::openpad::*;
     use openpad_widgets::theme::*;
     use openpad_widgets::app_bg::AppBg;
+    use openpad_widgets::hamburger_button::HamburgerButton;
+    use openpad_widgets::header_bar::HeaderBar;
+    use openpad_widgets::input_bar::InputBar;
+    use openpad_widgets::input_bar::InputBarDropDown;
+    use openpad_widgets::input_bar::InputBarToolbar;
+    use openpad_widgets::input_field::InputField;
+    use openpad_widgets::send_button::SendButton;
+    use openpad_widgets::side_panel::SidePanel;
     use openpad_widgets::simple_dialog::SimpleDialog;
+    use openpad_widgets::status_dot::StatusDot;
     use makepad_code_editor::code_view::CodeView;
 
     // Import component DSL definitions
@@ -592,6 +604,10 @@ pub struct App {
     client: Option<Arc<OpenCodeClient>>,
     #[rust]
     _runtime: Option<tokio::runtime::Runtime>,
+    #[rust]
+    connected_once: bool,
+    #[rust]
+    providers_loaded_once: bool,
 }
 
 impl LiveRegister for App {
@@ -912,6 +928,9 @@ impl App {
     }
 
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
+        if self.client.is_some() || self._runtime.is_some() {
+            return;
+        }
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let client = Arc::new(OpenCodeClient::new(OPENCODE_SERVER_URL));
 
@@ -922,6 +941,7 @@ impl App {
 
         self.client = Some(client);
         self._runtime = Some(runtime);
+        self.connected_once = true;
     }
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
@@ -991,6 +1011,9 @@ impl App {
     }
 
     fn load_providers_and_agents(&mut self) {
+        if self.providers_loaded_once {
+            return;
+        }
         let Some(client) = self.client.clone() else {
             return;
         };
@@ -1001,6 +1024,7 @@ impl App {
         async_runtime::spawn_agents_loader(runtime, client.clone());
         async_runtime::spawn_skills_loader(runtime, client.clone());
         async_runtime::spawn_config_loader(runtime, client);
+        self.providers_loaded_once = true;
     }
 
     fn load_pending_permissions(&mut self) {
@@ -1352,6 +1376,7 @@ impl AppMain for App {
             Event::Startup => {
                 self.connect_to_opencode(cx);
                 if !cx.in_makepad_studio() {
+                    #[cfg(not(target_os = "macos"))]
                     if let Some(mut window) = self.ui.borrow_mut::<Window>() {
                         window.set_fullscreen(cx);
                     }
@@ -1456,9 +1481,7 @@ impl AppMain for App {
             }
 
             // Handle MessageListAction
-            if let Some(msg_action) =
-                action.downcast_ref::<WidgetMessageListAction>()
-            {
+            if let Some(msg_action) = action.downcast_ref::<WidgetMessageListAction>() {
                 match msg_action {
                     WidgetMessageListAction::RevertToMessage(message_id) => {
                         if let Some(session_id) = &self.state.current_session_id {
@@ -1586,12 +1609,26 @@ impl AppMain for App {
                 }
             }
 
-                        // Handle PermissionDialogAction
+            // Handle PermissionDialogAction
             if let Some(action) = action.downcast_ref::<PermissionDialogAction>() {
                 match action {
-                    PermissionDialogAction::Responded { session_id, request_id, reply } => {
-                        state::handle_permission_responded(&mut self.state, &self.ui, cx, request_id);
-                        self.respond_to_permission(cx, session_id.clone(), request_id.clone(), reply.clone());
+                    PermissionDialogAction::Responded {
+                        session_id,
+                        request_id,
+                        reply,
+                    } => {
+                        state::handle_permission_responded(
+                            &mut self.state,
+                            &self.ui,
+                            cx,
+                            request_id,
+                        );
+                        self.respond_to_permission(
+                            cx,
+                            session_id.clone(),
+                            request_id.clone(),
+                            reply.clone(),
+                        );
                     }
                     _ => {}
                 }
@@ -1601,7 +1638,11 @@ impl AppMain for App {
             if let Some(action) = action.downcast_ref::<SettingsDialogAction>() {
                 match action {
                     SettingsDialogAction::UpdateKey { provider_id, key } => {
-                         self.handle_dialog_confirmed(cx, format!("set_auth:{}", provider_id), key.clone());
+                        self.handle_dialog_confirmed(
+                            cx,
+                            format!("set_auth:{}", provider_id),
+                            key.clone(),
+                        );
                     }
                     _ => {}
                 }

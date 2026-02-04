@@ -94,7 +94,12 @@ impl Default for TerminalBackend {
         Self {
             output_lines: Vec::new(),
             partial_spans: Vec::new(),
-            current_color: Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 },
+            current_color: Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            },
             prompt_string: Self::build_prompt_string(&std::path::PathBuf::from(".")),
             pty_writer: None,
         }
@@ -104,31 +109,127 @@ impl Default for TerminalBackend {
 impl TerminalBackend {
     pub fn build_prompt_string(cwd: &std::path::Path) -> String {
         let user = std::env::var("USER").unwrap_or_else(|_| "user".into());
-        let host = hostname::get().ok().and_then(|h| h.into_string().ok()).unwrap_or_else(|| "localhost".into());
-        let dir_name = cwd.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| ".".into());
+        let host = hostname::get()
+            .ok()
+            .and_then(|h| h.into_string().ok())
+            .unwrap_or_else(|| "localhost".into());
+        let dir_name = cwd
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_else(|| ".".into());
         format!("{}@{} {} % ", user, host, dir_name)
     }
 
     pub fn color_from_ansi(code: u8) -> Vec4 {
         match code {
-            0 => Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 },
-            30 => Vec4 { x: 0.0, y: 0.0, z: 0.0, w: 1.0 },
-            31 => Vec4 { x: 0.9, y: 0.3, z: 0.3, w: 1.0 },
-            32 => Vec4 { x: 0.3, y: 0.8, z: 0.3, w: 1.0 },
-            33 => Vec4 { x: 0.8, y: 0.8, z: 0.2, w: 1.0 },
-            34 => Vec4 { x: 0.3, y: 0.3, z: 0.9, w: 1.0 },
-            35 => Vec4 { x: 0.8, y: 0.3, z: 0.8, w: 1.0 },
-            36 => Vec4 { x: 0.3, y: 0.8, z: 0.8, w: 1.0 },
-            37 => Vec4 { x: 0.9, y: 0.9, z: 0.9, w: 1.0 },
-            90 => Vec4 { x: 0.5, y: 0.5, z: 0.5, w: 1.0 },
-            91 => Vec4 { x: 1.0, y: 0.4, z: 0.4, w: 1.0 },
-            92 => Vec4 { x: 0.4, y: 1.0, z: 0.4, w: 1.0 },
-            93 => Vec4 { x: 1.0, y: 1.0, z: 0.4, w: 1.0 },
-            94 => Vec4 { x: 0.5, y: 0.5, z: 1.0, w: 1.0 },
-            95 => Vec4 { x: 1.0, y: 0.5, z: 1.0, w: 1.0 },
-            96 => Vec4 { x: 0.5, y: 1.0, z: 1.0, w: 1.0 },
-            97 => Vec4 { x: 1.0, y: 1.0, z: 1.0, w: 1.0 },
-            _ => Vec4 { x: 0.8, y: 0.8, z: 0.8, w: 1.0 },
+            0 => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            },
+            30 => Vec4 {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+                w: 1.0,
+            },
+            31 => Vec4 {
+                x: 0.9,
+                y: 0.3,
+                z: 0.3,
+                w: 1.0,
+            },
+            32 => Vec4 {
+                x: 0.3,
+                y: 0.8,
+                z: 0.3,
+                w: 1.0,
+            },
+            33 => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.2,
+                w: 1.0,
+            },
+            34 => Vec4 {
+                x: 0.3,
+                y: 0.3,
+                z: 0.9,
+                w: 1.0,
+            },
+            35 => Vec4 {
+                x: 0.8,
+                y: 0.3,
+                z: 0.8,
+                w: 1.0,
+            },
+            36 => Vec4 {
+                x: 0.3,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            },
+            37 => Vec4 {
+                x: 0.9,
+                y: 0.9,
+                z: 0.9,
+                w: 1.0,
+            },
+            90 => Vec4 {
+                x: 0.5,
+                y: 0.5,
+                z: 0.5,
+                w: 1.0,
+            },
+            91 => Vec4 {
+                x: 1.0,
+                y: 0.4,
+                z: 0.4,
+                w: 1.0,
+            },
+            92 => Vec4 {
+                x: 0.4,
+                y: 1.0,
+                z: 0.4,
+                w: 1.0,
+            },
+            93 => Vec4 {
+                x: 1.0,
+                y: 1.0,
+                z: 0.4,
+                w: 1.0,
+            },
+            94 => Vec4 {
+                x: 0.5,
+                y: 0.5,
+                z: 1.0,
+                w: 1.0,
+            },
+            95 => Vec4 {
+                x: 1.0,
+                y: 0.5,
+                z: 1.0,
+                w: 1.0,
+            },
+            96 => Vec4 {
+                x: 0.5,
+                y: 1.0,
+                z: 1.0,
+                w: 1.0,
+            },
+            97 => Vec4 {
+                x: 1.0,
+                y: 1.0,
+                z: 1.0,
+                w: 1.0,
+            },
+            _ => Vec4 {
+                x: 0.8,
+                y: 0.8,
+                z: 0.8,
+                w: 1.0,
+            },
         }
     }
 
@@ -141,7 +242,9 @@ impl TerminalBackend {
                     chars.next();
                     while let Some(&next) = chars.peek() {
                         chars.next();
-                        if next.is_ascii_alphabetic() || next == '~' { break; }
+                        if next.is_ascii_alphabetic() || next == '~' {
+                            break;
+                        }
                     }
                 }
             } else if !ch.is_control() || ch == '\n' {
@@ -153,11 +256,25 @@ impl TerminalBackend {
 
     pub fn is_prompt_only_line(line: &str, our_prompt: &str) -> bool {
         let t = Self::normalize_for_prompt_check(line);
-        if t.is_empty() { return true; }
+        if t.is_empty() {
+            return true;
+        }
         let our_trimmed = our_prompt.trim();
-        if t == our_trimmed { return true; }
-        if t.ends_with('%') || t.ends_with("% ") || t.ends_with('$') || t.ends_with("$ ") || t.ends_with('#') || t.ends_with("# ") {
-            if (t.contains('@') && t.len() < our_trimmed.len() + 5) || t == "%" || t == "$" || t == "#" {
+        if t == our_trimmed {
+            return true;
+        }
+        if t.ends_with('%')
+            || t.ends_with("% ")
+            || t.ends_with('$')
+            || t.ends_with("$ ")
+            || t.ends_with('#')
+            || t.ends_with("# ")
+        {
+            if (t.contains('@') && t.len() < our_trimmed.len() + 5)
+                || t == "%"
+                || t == "$"
+                || t == "#"
+            {
                 return true;
             }
         }
@@ -171,28 +288,44 @@ impl TerminalBackend {
             match ch {
                 '\x1b' => {
                     if !current_text.is_empty() {
-                        self.partial_spans.push(TerminalSpan { text: current_text.clone(), color: self.current_color });
+                        self.partial_spans.push(TerminalSpan {
+                            text: current_text.clone(),
+                            color: self.current_color,
+                        });
                         current_text.clear();
                     }
                     if chars.next() == Some('[') {
                         while let Some(&next) = chars.peek() {
-                            if next == '?' || next == '>' || next == '=' || next == '!' { chars.next(); } else { break; }
+                            if next == '?' || next == '>' || next == '=' || next == '!' {
+                                chars.next();
+                            } else {
+                                break;
+                            }
                         }
                         let mut param = String::new();
                         while let Some(&next) = chars.peek() {
-                            if next.is_ascii_digit() || next == ';' { param.push(chars.next().unwrap()); } else { break; }
+                            if next.is_ascii_digit() || next == ';' {
+                                param.push(chars.next().unwrap());
+                            } else {
+                                break;
+                            }
                         }
                         let command = chars.next();
                         if command == Some('m') {
                             for p in param.split(';') {
-                                if let Ok(code) = p.parse::<u8>() { self.current_color = Self::color_from_ansi(code); }
+                                if let Ok(code) = p.parse::<u8>() {
+                                    self.current_color = Self::color_from_ansi(code);
+                                }
                             }
                         }
                     }
                 }
                 '\n' => {
                     if !current_text.is_empty() {
-                        self.partial_spans.push(TerminalSpan { text: current_text.clone(), color: self.current_color });
+                        self.partial_spans.push(TerminalSpan {
+                            text: current_text.clone(),
+                            color: self.current_color,
+                        });
                         current_text.clear();
                     }
                     let line_spans = std::mem::take(&mut self.partial_spans);
@@ -201,29 +334,37 @@ impl TerminalBackend {
                         self.output_lines.push(line_spans);
                     }
                 }
-                '\r' => {
-                    match chars.peek() {
-                        Some(&'\n') | Some(&'\r') | None => {}
-                        _ => {
-                            self.partial_spans.clear();
-                            current_text.clear();
+                '\r' => match chars.peek() {
+                    Some(&'\n') | Some(&'\r') | None => {}
+                    _ => {
+                        self.partial_spans.clear();
+                        current_text.clear();
+                    }
+                },
+                '\x08' => {
+                    if !current_text.is_empty() {
+                        current_text.pop();
+                    } else if let Some(last_span) = self.partial_spans.last_mut() {
+                        last_span.text.pop();
+                        if last_span.text.is_empty() {
+                            self.partial_spans.pop();
                         }
                     }
                 }
-                '\x08' => {
-                    if !current_text.is_empty() { current_text.pop(); }
-                    else if let Some(last_span) = self.partial_spans.last_mut() {
-                        last_span.text.pop();
-                        if last_span.text.is_empty() { self.partial_spans.pop(); }
-                    }
+                '\t' => {
+                    current_text.push_str("    ");
                 }
-                '\t' => { current_text.push_str("    "); }
                 ch if ch.is_control() => {}
-                _ => { current_text.push(ch); }
+                _ => {
+                    current_text.push(ch);
+                }
             }
         }
         if !current_text.is_empty() {
-            self.partial_spans.push(TerminalSpan { text: current_text, color: self.current_color });
+            self.partial_spans.push(TerminalSpan {
+                text: current_text,
+                color: self.current_color,
+            });
         }
         const MAX_LINES: usize = 2000;
         if self.output_lines.len() > MAX_LINES {
@@ -234,11 +375,16 @@ impl TerminalBackend {
 
     pub fn send_command(&mut self, command: &str) -> Result<(), std::io::Error> {
         if let Some(writer) = &self.pty_writer {
-            let mut w = writer.lock().map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Lock failed"))?;
+            let mut w = writer
+                .lock()
+                .map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "Lock failed"))?;
             writeln!(w, "{}", command)?;
             Ok(())
         } else {
-            Err(std::io::Error::new(std::io::ErrorKind::Other, "PTY not initialized"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "PTY not initialized",
+            ))
         }
     }
 }
@@ -305,13 +451,21 @@ impl Widget for Terminal {
 
 impl Terminal {
     pub fn init_pty(&mut self, cx: &mut Cx) {
-        if self.backend.pty_writer.is_some() { return; }
+        if self.backend.pty_writer.is_some() {
+            return;
+        }
         let pty_system = native_pty_system();
-        let pty_size = PtySize { rows: 24, cols: 80, pixel_width: 0, pixel_height: 0 };
+        let pty_size = PtySize {
+            rows: 24,
+            cols: 80,
+            pixel_width: 0,
+            pixel_height: 0,
+        };
         let pair = match pty_system.openpty(pty_size) {
             Ok(pair) => pair,
             Err(e) => {
-                self.backend.append_output(&format!("Failed to create PTY: {}\n", e));
+                self.backend
+                    .append_output(&format!("Failed to create PTY: {}\n", e));
                 self.redraw(cx);
                 return;
             }
@@ -330,7 +484,8 @@ impl Terminal {
         self.backend.prompt_string = TerminalBackend::build_prompt_string(&cwd);
 
         if let Err(e) = pair.slave.spawn_command(cmd) {
-            self.backend.append_output(&format!("Failed to spawn shell: {}\n", e));
+            self.backend
+                .append_output(&format!("Failed to spawn shell: {}\n", e));
             self.redraw(cx);
             return;
         }
@@ -338,7 +493,8 @@ impl Terminal {
         let writer = match pair.master.take_writer() {
             Ok(w) => Arc::new(Mutex::new(w)),
             Err(e) => {
-                self.backend.append_output(&format!("Failed to get PTY writer: {}\n", e));
+                self.backend
+                    .append_output(&format!("Failed to get PTY writer: {}\n", e));
                 self.redraw(cx);
                 return;
             }
@@ -348,7 +504,8 @@ impl Terminal {
         let reader = match pair.master.try_clone_reader() {
             Ok(r) => r,
             Err(e) => {
-                self.backend.append_output(&format!("Failed to get PTY reader: {}\n", e));
+                self.backend
+                    .append_output(&format!("Failed to get PTY reader: {}\n", e));
                 self.redraw(cx);
                 return;
             }
@@ -369,7 +526,8 @@ impl Terminal {
             }
         });
 
-        self.backend.append_output(&format!("Terminal initialized with shell: {}\n", shell));
+        self.backend
+            .append_output(&format!("Terminal initialized with shell: {}\n", shell));
         self.redraw(cx);
     }
 
@@ -401,9 +559,13 @@ pub enum TerminalAction {
 
 impl TerminalRef {
     pub fn init_pty(&self, cx: &mut Cx) {
-        if let Some(mut inner) = self.borrow_mut() { inner.init_pty(cx); }
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.init_pty(cx);
+        }
     }
     pub fn handle_action(&self, cx: &mut Cx, action: &TerminalAction) {
-        if let Some(mut inner) = self.borrow_mut() { inner.handle_action(cx, action); }
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.handle_action(cx, action);
+        }
     }
 }

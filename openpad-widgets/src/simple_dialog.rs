@@ -129,10 +129,7 @@ pub enum DialogType {
 
 #[derive(Clone, Debug, DefaultNone)]
 pub enum SimpleDialogAction {
-    Confirmed {
-        dialog_type: String,
-        value: String,
-    },
+    Confirmed { dialog_type: String, value: String },
     Cancelled,
     None,
 }

@@ -1,6 +1,6 @@
+use crate::upward_dropdown::UpDropDownWidgetExt;
 use makepad_widgets::*;
 use openpad_protocol::{Config, Provider};
-use crate::upward_dropdown::UpDropDownWidgetExt;
 
 live_design! {
     use link::theme::*;
@@ -196,10 +196,7 @@ live_design! {
 #[derive(Clone, Debug, DefaultNone)]
 pub enum SettingsDialogAction {
     None,
-    UpdateKey {
-        provider_id: String,
-        key: String,
-    },
+    UpdateKey { provider_id: String, key: String },
 }
 
 #[derive(Live, LiveHook, Widget)]

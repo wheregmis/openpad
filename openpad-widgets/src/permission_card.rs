@@ -196,15 +196,9 @@ impl Widget for PermissionCard {
 impl PermissionCard {
     fn mark_resolved_inner(&mut self, cx: &mut Cx, status: &str) {
         self.resolved = true;
-        self.view
-            .view(&[id!(buttons_row)])
-            .set_visible(cx, false);
-        self.view
-            .label(&[id!(status_label)])
-            .set_text(cx, status);
-        self.view
-            .widget(&[id!(status_label)])
-            .set_visible(cx, true);
+        self.view.view(&[id!(buttons_row)]).set_visible(cx, false);
+        self.view.label(&[id!(status_label)]).set_text(cx, status);
+        self.view.widget(&[id!(status_label)]).set_visible(cx, true);
         self.redraw(cx);
     }
 }

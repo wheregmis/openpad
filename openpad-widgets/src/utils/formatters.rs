@@ -1,6 +1,6 @@
+use makepad_widgets::*;
 use openpad_protocol::{AssistantError, TokenUsage};
 use std::time::{SystemTime, UNIX_EPOCH};
-use makepad_widgets::*;
 
 pub const SECONDS_PER_MINUTE: i64 = 60;
 pub const SECONDS_PER_HOUR: i64 = 3600;
@@ -19,10 +19,16 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
     let diff_mins = diff_secs / SECONDS_PER_MINUTE;
     let diff_hours = diff_secs / SECONDS_PER_HOUR;
 
-    if diff_secs < SECONDS_PER_MINUTE { return "just now".to_string(); }
-    if diff_mins < SECONDS_PER_MINUTE { return format!("{} min ago", diff_mins); }
+    if diff_secs < SECONDS_PER_MINUTE {
+        return "just now".to_string();
+    }
+    if diff_mins < SECONDS_PER_MINUTE {
+        return format!("{} min ago", diff_mins);
+    }
     if diff_hours < 24 {
-        if diff_hours == 1 { return "1 hour ago".to_string(); }
+        if diff_hours == 1 {
+            return "1 hour ago".to_string();
+        }
         return format!("{} hours ago", diff_hours);
     }
     let timestamp_secs = timestamp_ms / 1000;
@@ -32,14 +38,22 @@ pub fn format_timestamp(timestamp_ms: i64) -> String {
     let time_str = format!("{:02}:{:02}", hours, minutes);
     let days_ago = diff_hours / 24;
     if days_ago > 0 {
-        format!("{} ({} {} ago)", time_str, days_ago, if days_ago == 1 { "day" } else { "days" })
+        format!(
+            "{} ({} {} ago)",
+            time_str,
+            days_ago,
+            if days_ago == 1 { "day" } else { "days" }
+        )
     } else {
         time_str
     }
 }
 
 pub fn format_token_usage(tokens: &TokenUsage) -> String {
-    format!("Tokens: in {} / out {} / r {} / cache {}r {}w", tokens.input, tokens.output, tokens.reasoning, tokens.cache.read, tokens.cache.write)
+    format!(
+        "Tokens: in {} / out {} / r {} / cache {}r {}w",
+        tokens.input, tokens.output, tokens.reasoning, tokens.cache.read, tokens.cache.write
+    )
 }
 
 pub fn format_token_usage_short(tokens: &TokenUsage) -> String {
@@ -54,7 +68,11 @@ pub fn format_duration_ms(ms: i64) -> String {
     let total_secs = (ms / 1000).max(0) as u64;
     let mins = total_secs / 60;
     let secs = total_secs % 60;
-    if mins > 0 { format!("{}m, {}s", mins, secs) } else { format!("{}s", secs) }
+    if mins > 0 {
+        format!("{}m, {}s", mins, secs)
+    } else {
+        format!("{}s", secs)
+    }
 }
 
 pub fn format_assistant_error(error: &AssistantError) -> String {

@@ -3,8 +3,8 @@ use crate::state::actions::AppAction;
 use crate::utils::path_utils::normalize_worktree_canonical;
 use makepad_widgets::{log, Cx};
 use openpad_protocol::{
-    ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest, PermissionRuleset,
-    Project, PromptRequest, Session, SessionCreateRequest,
+    ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest,
+    PermissionRuleset, Project, PromptRequest, Session, SessionCreateRequest,
 };
 use std::sync::Arc;
 
@@ -494,9 +494,7 @@ pub fn spawn_session_summarizer(
     force: bool,
 ) {
     runtime.spawn(async move {
-        let request = openpad_protocol::SessionSummarizeRequest {
-            force: Some(force),
-        };
+        let request = openpad_protocol::SessionSummarizeRequest { force: Some(force) };
         match client.summarize_session(&session_id, request).await {
             Ok(_) => {}
             Err(e) => {
@@ -519,10 +517,7 @@ pub fn spawn_session_diff_loader(
             .await;
         match diff {
             Ok(diffs) => {
-                Cx::post_action(AppAction::SessionDiffLoaded {
-                    session_id,
-                    diffs,
-                });
+                Cx::post_action(AppAction::SessionDiffLoaded { session_id, diffs });
             }
             Err(e) => {
                 post_error_action("Failed to load session diff", e);
@@ -623,7 +618,7 @@ pub fn spawn_auth_setter(
                 });
                 // Reload providers to update status if server reflects it
                 match client.get_providers().await {
-                     Ok(providers_response) => {
+                    Ok(providers_response) => {
                         Cx::post_action(AppAction::ProvidersLoaded(providers_response));
                     }
                     Err(_) => {}
