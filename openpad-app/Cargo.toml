@@ -1,6 +1,6 @@
 [package]
 name = "openpad-app"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 
 [[bin]]
@@ -28,6 +28,7 @@ Openpad pairs Makepad's declarative UI with custom widgets to craft a literate
 workspace. It is built in Rust, ships with platform resources, and runs everywhere
 desktop Makepad supports.
 """
+icons = ["./resources/image.png"]
 out_dir = "../dist"
 before-packaging-command = """
 set -euo pipefail
