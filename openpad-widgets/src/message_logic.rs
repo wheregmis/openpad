@@ -17,6 +17,8 @@ pub struct DisplayStep {
     pub expanded: bool,
     pub has_error: bool,
     pub has_running: bool,
+    pub cached_description: String,
+    pub cached_body: String,
 }
 
 #[derive(Clone, Debug)]
@@ -35,6 +37,10 @@ pub struct DisplayMessage {
     pub steps: Vec<DisplayStep>,
     pub show_steps: bool,
     pub duration_ms: Option<i64>,
+    pub cached_steps_summary: String,
+    pub cached_needs_markdown: bool,
+    pub cached_thinking_activity: String,
+    pub cached_running_tools: Vec<(String, String, String)>,
 }
 
 pub struct MessageProcessor;
@@ -105,6 +111,8 @@ impl MessageProcessor {
                         expanded: false,
                         has_error: false,
                         has_running: false,
+                        cached_description: String::new(),
+                        cached_body: String::new(),
                     });
                 } else if let Some((tool, input_summary, result)) = p.tool_display() {
                     let has_error = result.starts_with("Error");
@@ -132,6 +140,8 @@ impl MessageProcessor {
                             expanded: false,
                             has_error,
                             has_running: is_running,
+                            cached_description: String::new(),
+                            cached_body: String::new(),
                         });
                     }
                 } else if let Some((reason, cost, tokens)) = p.step_finish_info() {
@@ -149,6 +159,8 @@ impl MessageProcessor {
                             expanded: false,
                             has_error: false,
                             has_running: false,
+                            cached_description: String::new(),
+                            cached_body: String::new(),
                         });
                     }
                 }
@@ -202,6 +214,10 @@ impl MessageProcessor {
                         steps,
                         show_steps: false,
                         duration_ms,
+                        cached_steps_summary: String::new(),
+                        cached_needs_markdown: false,
+                        cached_thinking_activity: String::new(),
+                        cached_running_tools: Vec::new(),
                     });
                 }
                 continue;
@@ -212,7 +228,7 @@ impl MessageProcessor {
                     let mut merged_steps = pending.steps;
                     merged_steps.extend(steps);
                     let merged_duration = duration_ms.or(pending.duration_ms);
-                    display.push(DisplayMessage {
+                    let mut msg = DisplayMessage {
                         role: role.to_string(),
                         text,
                         message_id: Some(message_id),
@@ -227,7 +243,13 @@ impl MessageProcessor {
                         steps: merged_steps,
                         show_steps: false,
                         duration_ms: merged_duration,
-                    });
+                        cached_steps_summary: String::new(),
+                        cached_needs_markdown: false,
+                        cached_thinking_activity: String::new(),
+                        cached_running_tools: Vec::new(),
+                    };
+                    Self::refresh_message_caches(&mut msg);
+                    display.push(msg);
                     continue;
                 }
             }
@@ -238,7 +260,7 @@ impl MessageProcessor {
 
             let show_steps = role == "assistant" && text.is_empty() && !steps.is_empty();
 
-            display.push(DisplayMessage {
+            let mut msg = DisplayMessage {
                 role: role.to_string(),
                 text,
                 message_id: Some(message_id),
@@ -253,12 +275,107 @@ impl MessageProcessor {
                 steps,
                 show_steps,
                 duration_ms,
-            });
+                cached_steps_summary: String::new(),
+                cached_needs_markdown: false,
+                cached_thinking_activity: String::new(),
+                cached_running_tools: Vec::new(),
+            };
+            Self::refresh_message_caches(&mut msg);
+            display.push(msg);
         }
-        if let Some(prev) = pending_steps_only.take() {
+        if let Some(mut prev) = pending_steps_only.take() {
+            Self::refresh_message_caches(&mut prev);
             display.push(prev);
         }
         display
+    }
+
+    pub fn refresh_step_caches(step: &mut DisplayStep) {
+        step.cached_description = Self::get_step_description(step);
+        step.cached_body = Self::format_step_body(step);
+    }
+
+    pub fn refresh_message_caches(msg: &mut DisplayMessage) {
+        for step in &mut msg.steps {
+            Self::refresh_step_caches(step);
+        }
+        msg.cached_steps_summary = Self::compute_steps_summary(msg);
+        msg.cached_needs_markdown = Self::compute_needs_markdown(&msg.text);
+
+        let (activity, tools) = Self::compute_thinking_data(msg);
+        msg.cached_thinking_activity = activity;
+        msg.cached_running_tools = tools;
+    }
+
+    pub fn compute_thinking_data(msg: &DisplayMessage) -> (String, Vec<(String, String, String)>) {
+        if let Some(last_step) = msg.steps.last() {
+            let tools: Vec<(String, String, String)> = last_step
+                .details
+                .iter()
+                .filter(|d| d.is_running)
+                .map(|d| {
+                    (
+                        Self::get_tool_icon(&d.tool).to_string(),
+                        Self::format_tool_name(&d.tool),
+                        Self::format_tool_input(&d.input_summary),
+                    )
+                })
+                .collect();
+            let activity = if !tools.is_empty() {
+                let names: Vec<String> = tools.iter().map(|t| t.1.clone()).take(3).collect();
+                if names.is_empty() {
+                    "Working...".to_string()
+                } else {
+                    format!("Running: {}", names.join(", "))
+                }
+            } else {
+                let desc = &last_step.cached_description;
+                if desc.is_empty() {
+                    "Working...".to_string()
+                } else {
+                    format!("Working on: {}", desc)
+                }
+            };
+            (activity, tools)
+        } else {
+            ("Working...".to_string(), Vec::new())
+        }
+    }
+
+    pub fn compute_needs_markdown(text: &str) -> bool {
+        text.contains("```") || text.contains("`") || text.contains("# ") || text.contains("> ")
+    }
+
+    pub fn compute_steps_summary(msg: &DisplayMessage) -> String {
+        if msg.steps.is_empty() {
+            return String::new();
+        }
+        let has_running = msg.steps.iter().any(|s| s.has_running);
+        let mut labels: Vec<String> = Vec::new();
+        for step in msg.steps.iter() {
+            let desc = &step.cached_description;
+            if !desc.is_empty() {
+                labels.push(desc.clone());
+            }
+            if labels.len() >= 3 {
+                break;
+            }
+        }
+        let summary = if labels.is_empty() {
+            "Steps".to_string()
+        } else {
+            labels.join(", ")
+        };
+        let count = msg.steps.len();
+        let duration = msg
+            .duration_ms
+            .map(crate::utils::formatters::format_duration_ms);
+        let prefix = if has_running { "Running" } else { "Steps" };
+        if let Some(d) = duration {
+            format!("{}: {} • {} • {}", prefix, count, summary, d)
+        } else {
+            format!("{}: {} • {}", prefix, count, summary)
+        }
     }
 }
 
