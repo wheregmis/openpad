@@ -511,38 +511,6 @@ impl MessageList {
             "▸ Details".to_string()
         }
     }
-
-    fn steps_summary_text(&self, msg: &DisplayMessage) -> String {
-        if msg.steps.is_empty() {
-            return String::new();
-        }
-        let has_running = msg.steps.iter().any(|s| s.has_running);
-        let mut labels: Vec<String> = Vec::new();
-        for step in msg.steps.iter() {
-            let desc = MessageProcessor::get_step_description(step);
-            if !desc.is_empty() {
-                labels.push(desc);
-            }
-            if labels.len() >= 3 {
-                break;
-            }
-        }
-        let summary = if labels.is_empty() {
-            "Steps".to_string()
-        } else {
-            labels.join(", ")
-        };
-        let count = msg.steps.len();
-        let duration = msg
-            .duration_ms
-            .map(crate::utils::formatters::format_duration_ms);
-        let prefix = if has_running { "Running" } else { "Steps" };
-        if let Some(d) = duration {
-            format!("{}: {} • {} • {}", prefix, count, summary, d)
-        } else {
-            format!("{}: {} • {}", prefix, count, summary)
-        }
-    }
 }
 
 impl Widget for MessageList {
@@ -691,45 +659,16 @@ impl Widget for MessageList {
                         let mins = elapsed / 60;
                         let secs = elapsed % 60;
 
-                        let (current_activity, running_tools) = if let Some(msg) =
-                            self.messages.last()
-                        {
-                            if let Some(last_step) = msg.steps.last() {
-                                let tools: Vec<(String, String, String)> = last_step
-                                    .details
-                                    .iter()
-                                    .filter(|d| d.is_running)
-                                    .map(|d| {
-                                        (
-                                            MessageProcessor::get_tool_icon(&d.tool).to_string(),
-                                            MessageProcessor::format_tool_name(&d.tool),
-                                            MessageProcessor::format_tool_input(&d.input_summary),
-                                        )
-                                    })
-                                    .collect();
-                                let activity = if !tools.is_empty() {
-                                    let names: Vec<String> =
-                                        tools.iter().map(|t| t.1.clone()).take(3).collect();
-                                    if names.is_empty() {
-                                        "Working...".to_string()
-                                    } else {
-                                        format!("Running: {}", names.join(", "))
-                                    }
-                                } else {
-                                    let desc = MessageProcessor::get_step_description(last_step);
-                                    if desc.is_empty() {
-                                        "Working...".to_string()
-                                    } else {
-                                        format!("Working on: {}", desc)
-                                    }
-                                };
-                                (activity, tools)
-                            } else {
-                                ("Working...".to_string(), Vec::new())
-                            }
-                        } else {
-                            ("Working...".to_string(), Vec::new())
-                        };
+                        let (current_activity, running_tools) = self
+                            .messages
+                            .last()
+                            .map(|msg| {
+                                (
+                                    msg.cached_thinking_activity.clone(),
+                                    msg.cached_running_tools.clone(),
+                                )
+                            })
+                            .unwrap_or_else(|| ("Working...".to_string(), Vec::new()));
 
                         let timer_text = if elapsed > 0 {
                             format!("· {}m, {}s", mins, secs)
@@ -825,11 +764,7 @@ impl Widget for MessageList {
                         if msg.role == "user" {
                             item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
                         } else {
-                            let needs_markdown = msg.text.contains("```")
-                                || msg.text.contains("`")
-                                || msg.text.contains("# ")
-                                || msg.text.contains("> ");
-                            if needs_markdown {
+                            if msg.cached_needs_markdown {
                                 item_widget.view(&[id!(label_view)]).set_visible(cx, false);
                                 item_widget
                                     .view(&[id!(markdown_view)])
@@ -920,7 +855,7 @@ impl Widget for MessageList {
                             if has_steps {
                                 item_widget
                                     .label(&[id!(steps_summary_label)])
-                                    .set_text(cx, &self.steps_summary_text(msg));
+                                    .set_text(cx, &msg.cached_steps_summary);
                                 item_widget
                                     .button(&[id!(steps_button)])
                                     .set_text(cx, &Self::steps_button_label(msg));
@@ -1021,12 +956,10 @@ impl Widget for MessageList {
                                         };
                                     if step_id < msg.steps.len() {
                                         let step = &msg.steps[step_id];
-                                        let description =
-                                            MessageProcessor::get_step_description(step);
                                         let header = format!(
                                             "{} {}",
                                             if step.expanded { "▾" } else { "▸" },
-                                            description
+                                            step.cached_description
                                         );
                                         steps_base.view(&[row_id]).set_visible(cx, true);
                                         let header_button =
@@ -1045,10 +978,10 @@ impl Widget for MessageList {
                                             .view(&[row_id])
                                             .view(&[body_id])
                                             .set_visible(cx, step.expanded);
-                                        steps_base.view(&[row_id]).label(&[content_id]).set_text(
-                                            cx,
-                                            &MessageProcessor::format_step_body(step),
-                                        );
+                                        steps_base
+                                            .view(&[row_id])
+                                            .label(&[content_id])
+                                            .set_text(cx, &step.cached_body);
                                         let (dot_color, line_color) = if step.has_error {
                                             (
                                                 vec4(0.937, 0.267, 0.267, 1.0),
@@ -1147,11 +1080,12 @@ impl MessageListRef {
                     if role == "assistant" && was_empty && !last.steps.is_empty() {
                         last.show_steps = false;
                     }
+                    MessageProcessor::refresh_message_caches(last);
                     inner.redraw(cx);
                     return;
                 }
             }
-            inner.messages.push(DisplayMessage {
+            let mut msg = DisplayMessage {
                 role: role.to_string(),
                 text: text.to_string(),
                 message_id: Some(message_id.to_string()),
@@ -1166,7 +1100,13 @@ impl MessageListRef {
                 steps: Vec::new(),
                 show_steps: false,
                 duration_ms: None,
-            });
+                cached_steps_summary: String::new(),
+                cached_needs_markdown: false,
+                cached_thinking_activity: String::new(),
+                cached_running_tools: Vec::new(),
+            };
+            MessageProcessor::refresh_message_caches(&mut msg);
+            inner.messages.push(msg);
             inner.redraw(cx);
         }
     }
@@ -1177,7 +1117,7 @@ impl MessageListRef {
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
                 .as_millis() as i64;
-            inner.messages.push(DisplayMessage {
+            let mut msg = DisplayMessage {
                 role: "user".to_string(),
                 text: text.to_string(),
                 message_id: None,
@@ -1192,7 +1132,13 @@ impl MessageListRef {
                 steps: Vec::new(),
                 show_steps: false,
                 duration_ms: None,
-            });
+                cached_steps_summary: String::new(),
+                cached_needs_markdown: false,
+                cached_thinking_activity: String::new(),
+                cached_running_tools: Vec::new(),
+            };
+            MessageProcessor::refresh_message_caches(&mut msg);
+            inner.messages.push(msg);
             inner.redraw(cx);
         }
     }
