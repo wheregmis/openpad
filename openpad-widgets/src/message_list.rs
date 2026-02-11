@@ -17,6 +17,30 @@ live_design! {
 
     pub MessageList = {{MessageList}} {
         width: Fill, height: Fill
+        flow: Overlay
+
+        empty_state = <View> {
+            visible: false
+            width: Fill, height: Fill
+            align: { x: 0.5, y: 0.5 }
+            flow: Down, spacing: 10
+
+            <Label> {
+                text: "Openpad"
+                draw_text: {
+                    color: (THEME_COLOR_TEXT_BRIGHT)
+                    text_style: <THEME_FONT_BOLD> { font_size: 16 }
+                }
+            }
+            <Label> {
+                text: "How can I help you today?"
+                draw_text: {
+                    color: (THEME_COLOR_TEXT_DIM)
+                    text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                }
+            }
+        }
+
         list = <PortalList> {
             scroll_bar: <ScrollBar> {}
 
@@ -610,6 +634,12 @@ impl Widget for MessageList {
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        let is_empty =
+            self.messages.is_empty() && self.pending_permissions.is_empty() && !self.is_working;
+        self.view
+            .view(&[id!(empty_state)])
+            .set_visible(cx, is_empty);
+
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
                 let total_items = self.messages.len()
