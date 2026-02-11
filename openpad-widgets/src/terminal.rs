@@ -81,8 +81,14 @@ pub struct TerminalSpan {
     pub color: Vec4,
 }
 
+#[derive(Clone, Debug)]
+pub struct TerminalLine {
+    pub spans: Vec<TerminalSpan>,
+    pub cached_text: String,
+}
+
 pub struct TerminalBackend {
-    pub output_lines: Vec<Vec<TerminalSpan>>,
+    pub output_lines: Vec<TerminalLine>,
     pub partial_spans: Vec<TerminalSpan>,
     pub current_color: Vec4,
     pub prompt_string: String,
@@ -281,19 +287,30 @@ impl TerminalBackend {
         false
     }
 
+    fn push_current_text(&mut self, current_text: &mut String) {
+        if !current_text.is_empty() {
+            if let Some(last) = self.partial_spans.last_mut() {
+                if last.color == self.current_color {
+                    last.text.push_str(current_text);
+                    current_text.clear();
+                    return;
+                }
+            }
+            self.partial_spans.push(TerminalSpan {
+                text: current_text.clone(),
+                color: self.current_color,
+            });
+            current_text.clear();
+        }
+    }
+
     pub fn append_output(&mut self, text: &str) {
         let mut chars = text.chars().peekable();
         let mut current_text = String::new();
         while let Some(ch) = chars.next() {
             match ch {
                 '\x1b' => {
-                    if !current_text.is_empty() {
-                        self.partial_spans.push(TerminalSpan {
-                            text: current_text.clone(),
-                            color: self.current_color,
-                        });
-                        current_text.clear();
-                    }
+                    self.push_current_text(&mut current_text);
                     if chars.next() == Some('[') {
                         while let Some(&next) = chars.peek() {
                             if next == '?' || next == '>' || next == '=' || next == '!' {
@@ -321,17 +338,14 @@ impl TerminalBackend {
                     }
                 }
                 '\n' => {
-                    if !current_text.is_empty() {
-                        self.partial_spans.push(TerminalSpan {
-                            text: current_text.clone(),
-                            color: self.current_color,
-                        });
-                        current_text.clear();
-                    }
+                    self.push_current_text(&mut current_text);
                     let line_spans = std::mem::take(&mut self.partial_spans);
                     let full_text: String = line_spans.iter().map(|s| s.text.as_str()).collect();
                     if !Self::is_prompt_only_line(&full_text, &self.prompt_string) {
-                        self.output_lines.push(line_spans);
+                        self.output_lines.push(TerminalLine {
+                            spans: line_spans,
+                            cached_text: full_text,
+                        });
                     }
                 }
                 '\r' => match chars.peek() {
@@ -360,12 +374,7 @@ impl TerminalBackend {
                 }
             }
         }
-        if !current_text.is_empty() {
-            self.partial_spans.push(TerminalSpan {
-                text: current_text,
-                color: self.current_color,
-            });
-        }
+        self.push_current_text(&mut current_text);
         const MAX_LINES: usize = 2000;
         if self.output_lines.len() > MAX_LINES {
             let remove_count = self.output_lines.len() - MAX_LINES;
@@ -424,10 +433,10 @@ impl Widget for Terminal {
 
                 while let Some(item_id) = list.next_visible_item(cx) {
                     if item_id < self.backend.output_lines.len() {
-                        let spans = &self.backend.output_lines[item_id];
+                        let line = &self.backend.output_lines[item_id];
                         let item_widget = list.item(cx, item_id, live_id!(OutputLine));
-
-                        let full_text: String = spans.iter().map(|s| s.text.as_str()).collect();
+                        let full_text = &line.cached_text;
+                        let spans = &line.spans;
                         let label = item_widget.label(&[id!(line_label)]);
                         label.set_text(cx, &full_text);
                         if let Some(first) = spans.first() {
