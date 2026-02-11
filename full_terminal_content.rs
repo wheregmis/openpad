@@ -311,6 +311,8 @@ impl TerminalBackend {
             match ch {
                 '\x1b' => {
                     self.push_current_text(&mut current_text);
+                        current_text.clear();
+                    }
                     if chars.next() == Some('[') {
                         while let Some(&next) = chars.peek() {
                             if next == '?' || next == '>' || next == '=' || next == '!' {
@@ -339,6 +341,8 @@ impl TerminalBackend {
                 }
                 '\n' => {
                     self.push_current_text(&mut current_text);
+                        current_text.clear();
+                    }
                     let line_spans = std::mem::take(&mut self.partial_spans);
                     let full_text: String = line_spans.iter().map(|s| s.text.as_str()).collect();
                     if !Self::is_prompt_only_line(&full_text, &self.prompt_string) {
@@ -374,7 +378,8 @@ impl TerminalBackend {
                 }
             }
         }
-        self.push_current_text(&mut current_text);
+                    self.push_current_text(&mut current_text);
+        }
         const MAX_LINES: usize = 2000;
         if self.output_lines.len() > MAX_LINES {
             let remove_count = self.output_lines.len() - MAX_LINES;
@@ -433,10 +438,10 @@ impl Widget for Terminal {
 
                 while let Some(item_id) = list.next_visible_item(cx) {
                     if item_id < self.backend.output_lines.len() {
-                        let line = &self.backend.output_lines[item_id];
+                        let spans = &self.backend.output_lines[item_id];
                         let item_widget = list.item(cx, item_id, live_id!(OutputLine));
-                        let full_text = &line.cached_text;
-                        let spans = &line.spans;
+
+                        let full_text: String = spans.iter().map(|s| s.text.as_str()).collect();
                         let label = item_widget.label(&[id!(line_label)]);
                         label.set_text(cx, &full_text);
                         if let Some(first) = spans.first() {
