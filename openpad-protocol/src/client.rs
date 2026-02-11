@@ -30,6 +30,9 @@ use tokio::sync::broadcast;
 /// - TUI APIs (control TUI interface)
 /// - Auth APIs (set credentials)
 /// - Event subscription (SSE)
+// Maximum size of the SSE buffer to prevent memory exhaustion.
+const MAX_SSE_BUFFER_SIZE: usize = 1024 * 1024; // 1MB
+
 pub struct OpenCodeClient {
     http: HttpClient,
     base_url: String,
@@ -91,12 +94,19 @@ impl OpenCodeClient {
     ) -> Result<reqwest::Response> {
         if !response.status().is_success() {
             let status = response.status();
-            let body = response.text().await.unwrap_or_default();
-            let body = if body.is_empty() {
-                "no response body".to_string()
-            } else {
-                body
-            };
+            let mut body = response.text().await.unwrap_or_default();
+            if body.is_empty() {
+                body = "no response body".to_string();
+            } else if body.len() > 1024 {
+                // Truncate overly large error bodies to prevent memory exhaustion and log spam.
+                // We ensure we truncate at a valid UTF-8 character boundary.
+                let mut truncate_idx = 1024;
+                while !body.is_char_boundary(truncate_idx) {
+                    truncate_idx -= 1;
+                }
+                body.truncate(truncate_idx);
+                body.push_str("... (truncated)");
+            }
             return Err(Error::InvalidResponse(format!(
                 "Failed to {}: {} ({})",
                 action, status, body
@@ -658,6 +668,14 @@ impl OpenCodeClient {
                 match chunk {
                     Ok(bytes) => {
                         buffer.push_str(&String::from_utf8_lossy(&bytes));
+
+                        // Prevent memory exhaustion from oversized buffer
+                        if buffer.len() > MAX_SSE_BUFFER_SIZE {
+                            let _ = event_tx.send(Event::Error(
+                                "SSE buffer limit exceeded (potential DoS)".to_string(),
+                            ));
+                            break;
+                        }
 
                         // Parse SSE format: "data: {...}\n\n"
                         while let Some(idx) = buffer.find("\n\n") {
