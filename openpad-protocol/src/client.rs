@@ -126,6 +126,7 @@ impl OpenCodeClient {
             .http
             .get(&url)
             .query(&[("directory", &self.directory)])
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -146,6 +147,7 @@ impl OpenCodeClient {
             .post(&url)
             .query(&[("directory", &self.directory)])
             .json(body)
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -166,6 +168,7 @@ impl OpenCodeClient {
             .post(&url)
             .query(&[("directory", &self.directory)])
             .json(body)
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -186,6 +189,7 @@ impl OpenCodeClient {
             .http
             .post(&url)
             .query(&[("directory", &self.directory)])
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -200,6 +204,7 @@ impl OpenCodeClient {
             .http
             .post(&url)
             .query(&[("directory", &self.directory)])
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -222,6 +227,7 @@ impl OpenCodeClient {
             .patch(&url)
             .query(&[("directory", &self.directory)])
             .json(body)
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -236,6 +242,7 @@ impl OpenCodeClient {
             .http
             .delete(&url)
             .query(&[("directory", &self.directory)])
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -281,7 +288,12 @@ impl OpenCodeClient {
     /// Uses the `/global/health` endpoint.
     pub async fn health(&self) -> Result<HealthResponse> {
         let url = format!("{}/global/health", self.base_url);
-        let response = self.http.get(&url).send().await?;
+        let response = self
+            .http
+            .get(&url)
+            .timeout(std::time::Duration::from_secs(10))
+            .send()
+            .await?;
         let response = Self::check_response(response, "get health").await?;
         Ok(response.json().await?)
     }
@@ -647,6 +659,7 @@ impl OpenCodeClient {
             .http
             .get(&url)
             .query(&[("directory", &self.directory)])
+            // No timeout for the long-running SSE stream.
             .send()
             .await?;
 
