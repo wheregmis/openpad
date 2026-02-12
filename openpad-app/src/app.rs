@@ -237,7 +237,7 @@ live_design! {
                     <View> { width: Fill }
                     clear_attachments_button = <Button> {
                         width: Fit, height: 20
-                        text: "Clear"
+                        text: "Clear", aria_label: "Clear attachments"
                         draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                         draw_bg: {
                             color: (THEME_COLOR_TRANSPARENT)
@@ -269,7 +269,7 @@ live_design! {
                         <View> { width: Fill }
                         clear_skill_button = <Button> {
                             width: Fit, height: 20
-                            text: "Clear"
+                            text: "Clear", aria_label: "Clear selected skill"
                             draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
@@ -444,6 +444,16 @@ live_design! {
                                 flow: Right
                                 spacing: 8
                                 align: { y: 0.5 }
+                                work_indicator = <View> {
+                                    visible: false
+                                    width: Fit, height: Fit
+                                    flow: Right, spacing: 4, align: { y: 0.5 }
+                                    <StatusDot> { draw_bg: { color: (THEME_COLOR_ACCENT_AMBER) } }
+                                    <Label> {
+                                        text: "Working..."
+                                        draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    }
+                                }
                                 status_dot = <StatusDot> {}
                                 status_label = <Label> {
                                     text: "Connected"
@@ -499,7 +509,7 @@ live_design! {
 
                                 share_button = <Button> {
                                     width: Fit, height: 20
-                                    text: "Share"
+                                    text: "Share", aria_label: "Share session"
                                     draw_bg: {
                                         color: (THEME_COLOR_TRANSPARENT)
                                         color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -512,7 +522,7 @@ live_design! {
                                 unshare_button = <Button> {
                                     width: Fit, height: 20
                                     visible: false
-                                    text: "Unshare"
+                                    text: "Unshare", aria_label: "Unshare session"
                                     draw_bg: {
                                         color: (THEME_COLOR_TRANSPARENT)
                                         color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -525,7 +535,7 @@ live_design! {
                                 copy_share_button = <Button> {
                                     width: Fit, height: 20
                                     visible: false
-                                    text: "Copy link"
+                                    text: "Copy link", aria_label: "Copy share link"
                                     draw_bg: {
                                         color: (THEME_COLOR_TRANSPARENT)
                                         color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -544,7 +554,7 @@ live_design! {
 
                             summarize_button = <Button> {
                                 width: Fit, height: 20
-                                text: "Summarize"
+                                text: "Summarize", aria_label: "Summarize session"
                                 draw_bg: {
                                     color: (THEME_COLOR_TRANSPARENT)
                                     color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -565,7 +575,7 @@ live_design! {
                                 visible: false
                                 unrevert_button = <Button> {
                                     width: Fit, height: 20
-                                    text: "Unrevert"
+                                    text: "Unrevert", aria_label: "Unrevert session"
                                     draw_text: { color: (THEME_COLOR_ACCENT_BLUE), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
