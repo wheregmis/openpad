@@ -512,6 +512,12 @@ pub struct MessageList {
     working_since: Option<std::time::Instant>,
     #[rust]
     thinking_frame: usize,
+    #[rust]
+    frame_count: usize,
+    #[rust]
+    last_timer_secs: u64,
+    #[rust]
+    cached_timer_text: String,
 }
 
 impl MessageList {
@@ -541,8 +547,13 @@ impl Widget for MessageList {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
         if self.is_working {
             if let Event::NextFrame(_) = event {
-                self.thinking_frame = (self.thinking_frame + 1) % 6;
-                self.redraw(cx);
+                // Optimization: throttle redraw frequency from ~60fps to ~10fps
+                // This significantly reduces CPU usage during the "thinking" state
+                self.frame_count += 1;
+                if self.frame_count % 6 == 0 {
+                    self.thinking_frame = (self.thinking_frame + 1) % 6;
+                    self.redraw(cx);
+                }
             }
             cx.new_next_frame();
         }
@@ -696,11 +707,17 @@ impl Widget for MessageList {
                             .unwrap_or("Working...");
                         let running_tools = last_msg.map(|m| &m.cached_running_tools);
 
-                        let timer_text = if elapsed > 0 {
-                            format!("· {}m, {}s", mins, secs)
-                        } else {
-                            String::new()
-                        };
+                        // Optimization: cache the timer text to avoid repeated formatting and allocations
+                        // in the draw loop, which runs every frame during animations.
+                        if elapsed as u64 != self.last_timer_secs {
+                            self.last_timer_secs = elapsed as u64;
+                            self.cached_timer_text = if elapsed > 0 {
+                                format!("· {}m, {}s", mins, secs)
+                            } else {
+                                String::new()
+                            };
+                        }
+
                         let item_widget = list.item(cx, item_id, live_id!(ThinkingMsg));
                         item_widget
                             .label(&[id!(thinking_label)])
@@ -710,7 +727,7 @@ impl Widget for MessageList {
                             .set_text(cx, self.thinking_icon());
                         item_widget
                             .label(&[id!(thinking_timer)])
-                            .set_text(cx, &timer_text);
+                            .set_text(cx, &self.cached_timer_text);
                         item_widget
                             .label(&[id!(thinking_activity)])
                             .set_text(cx, current_activity);
@@ -1184,6 +1201,9 @@ impl MessageListRef {
             if working && inner.working_since.is_none() {
                 inner.working_since = Some(std::time::Instant::now());
                 inner.thinking_frame = 0;
+                inner.frame_count = 0;
+                inner.last_timer_secs = 0;
+                inner.cached_timer_text = String::new();
             } else if !working {
                 inner.working_since = None;
             }
