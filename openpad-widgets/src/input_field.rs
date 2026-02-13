@@ -8,7 +8,7 @@ live_design! {
     pub InputField = <TextInput> {
         width: Fill, height: Fit
         padding: { left: 14, right: 14, top: 8, bottom: 8 }
-        empty_text: "Ask anything...", aria_label: "Chat input"
+        empty_text: "Ask anything..."
         draw_bg: {
             instance focus: 0.0
             fn pixel(self) -> vec4 {

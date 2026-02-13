@@ -9,7 +9,7 @@ live_design! {
         width: 32, height: 32
         margin: { left: 6 }
         padding: { left: 8, right: 8, top: 8, bottom: 8 }
-        text: "", aria_label: "Send message"
+        text: ""
         icon_walk: { width: 14, height: Fit }
         draw_icon: {
             svg_file: dep("crate://self/resources/icons/send.svg")

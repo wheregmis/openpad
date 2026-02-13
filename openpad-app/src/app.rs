@@ -237,7 +237,7 @@ live_design! {
                     <View> { width: Fill }
                     clear_attachments_button = <Button> {
                         width: Fit, height: 20
-                        text: "Clear", aria_label: "Clear attachments"
+                        text: "Clear"
                         draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                         draw_bg: {
                             color: (THEME_COLOR_TRANSPARENT)
@@ -269,7 +269,7 @@ live_design! {
                         <View> { width: Fill }
                         clear_skill_button = <Button> {
                             width: Fit, height: 20
-                            text: "Clear", aria_label: "Clear selected skill"
+                            text: "Clear"
                             draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
@@ -448,7 +448,20 @@ live_design! {
                                     visible: false
                                     width: Fit, height: Fit
                                     flow: Right, spacing: 4, align: { y: 0.5 }
-                                    <StatusDot> { draw_bg: { color: (THEME_COLOR_ACCENT_AMBER) } }
+                                    <StatusDot> {
+                                        draw_bg: {
+                                            fn pixel(self) -> vec4 {
+                                                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                                                let c = self.rect_size * 0.5;
+                                                let r = min(c.x, c.y) - 1.0;
+                                                sdf.circle(c.x, c.y, r);
+                                                let color = (THEME_COLOR_ACCENT_AMBER);
+                                                // Pulse effect using time
+                                                let pulse = 0.8 + 0.2 * sin(self.time * 5.0);
+                                                return sdf.fill(color * pulse);
+                                            }
+                                        }
+                                    }
                                     <Label> {
                                         text: "Working..."
                                         draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
@@ -509,7 +522,7 @@ live_design! {
 
                                 share_button = <Button> {
                                     width: Fit, height: 20
-                                    text: "Share", aria_label: "Share session"
+                                    text: "Share"
                                     draw_bg: {
                                         color: (THEME_COLOR_TRANSPARENT)
                                         color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -522,7 +535,7 @@ live_design! {
                                 unshare_button = <Button> {
                                     width: Fit, height: 20
                                     visible: false
-                                    text: "Unshare", aria_label: "Unshare session"
+                                    text: "Unshare"
                                     draw_bg: {
                                         color: (THEME_COLOR_TRANSPARENT)
                                         color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -535,7 +548,7 @@ live_design! {
                                 copy_share_button = <Button> {
                                     width: Fit, height: 20
                                     visible: false
-                                    text: "Copy link", aria_label: "Copy share link"
+                                    text: "Copy link"
                                     draw_bg: {
                                         color: (THEME_COLOR_TRANSPARENT)
                                         color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -554,7 +567,7 @@ live_design! {
 
                             summarize_button = <Button> {
                                 width: Fit, height: 20
-                                text: "Summarize", aria_label: "Summarize session"
+                                text: "Summarize"
                                 draw_bg: {
                                     color: (THEME_COLOR_TRANSPARENT)
                                     color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -575,7 +588,7 @@ live_design! {
                                 visible: false
                                 unrevert_button = <Button> {
                                     width: Fit, height: 20
-                                    text: "Unrevert", aria_label: "Unrevert session"
+                                    text: "Unrevert"
                                     draw_text: { color: (THEME_COLOR_ACCENT_BLUE), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
                                 }
                             }
@@ -1382,6 +1395,13 @@ impl App {
 
 impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
+        if self.state.is_working {
+            if let Event::NextFrame(_) = event {
+                self.ui.view(&[id!(work_indicator)]).redraw(cx);
+            }
+            cx.new_next_frame();
+        }
+
         match event {
             Event::Startup => {
                 self.connect_to_opencode(cx);

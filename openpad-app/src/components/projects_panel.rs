@@ -78,7 +78,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                 new_session_header_button = <Button> {
                     width: Fit, height: 20
                     margin: { right: 4 }
-                    text: "+", aria_label: "Create new session"
+                    text: "+"
                     draw_bg: {
                         color: (THEME_COLOR_TRANSPARENT)
                         color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -171,7 +171,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                     }
                     menu_button = <Button> {
                         width: 28, height: 28
-                        text: "⋯", aria_label: "Session menu"
+                        text: "⋯"
                         align: { x: 0.5, y: 0.5 }
                         draw_bg: {
                             color: (THEME_COLOR_TRANSPARENT)
@@ -209,7 +209,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
 
                         menu_collapse = <Button> {
                             width: 22, height: 22
-                            text: "〉", aria_label: "Close menu"
+                            text: "〉"
                             align: { x: 0.5, y: 0.5 }
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
@@ -222,7 +222,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
 
                         menu_rename = <Button> {
                             width: Fit, height: 22
-                            text: "Rename", aria_label: "Rename session"
+                            text: "Rename"
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
                                 color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -234,7 +234,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
 
                         menu_branch = <Button> {
                             width: Fit, height: 22
-                            text: "Branch", aria_label: "Branch session"
+                            text: "Branch"
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
                                 color_hover: (THEME_COLOR_HOVER_MEDIUM)
@@ -246,7 +246,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
 
                         menu_abort = <Button> {
                             width: Fit, height: 22
-                            text: "Abort", aria_label: "Abort session"
+                            text: "Abort"
                             visible: false
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
@@ -259,7 +259,7 @@ pub ProjectsPanel = {{ProjectsPanel}} {
 
                         menu_delete = <Button> {
                             width: Fit, height: 22
-                            text: "Delete", aria_label: "Delete session"
+                            text: "Delete"
                             draw_bg: {
                                 color: (THEME_COLOR_TRANSPARENT)
                                 color_hover: (THEME_COLOR_ACCENT_RED)

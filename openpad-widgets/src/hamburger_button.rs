@@ -7,7 +7,7 @@ live_design! {
     pub HamburgerButton = <Button> {
         width: 32, height: 32
         padding: { left: 6, right: 6, top: 6, bottom: 6 }
-        text: "", aria_label: "Toggle sidebar"
+        text: ""
         draw_text: { color: #0000 }
         draw_bg: {
             instance open: 0.0
