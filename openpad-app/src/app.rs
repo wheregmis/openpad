@@ -1301,19 +1301,13 @@ impl App {
         async_runtime::spawn_session_brancher(runtime, client, parent_session_id, directory);
     }
 
-    fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
-        let Some(runtime) = self._runtime.as_ref() else {
-            return;
-        };
-
-        // Find the session to get its directory
-        let directory = self.get_session_directory(&session_id);
-
-        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id, directory);
+    fn revert_to_message(&mut self, cx: &mut Cx, session_id: String, message_id: String) {
+        self.ui.simple_dialog(&[id!(simple_dialog)]).show_confirm(
+            cx,
+            "Revert to Message",
+            "Are you sure you want to revert to this message? All subsequent messages will be deleted. This action cannot be undone.",
+            format!("revert_to_message:{}:{}", session_id, message_id),
+        );
     }
 
     fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {
@@ -1345,19 +1339,31 @@ impl App {
             return;
         };
 
-        let directory = self.get_session_directory(data);
-
         match action {
             "delete_session" => {
+                let directory = self.get_session_directory(data);
                 async_runtime::spawn_session_deleter(runtime, client, data.to_string(), directory);
             }
             "rename_session" => {
                 if !value.is_empty() {
+                    let directory = self.get_session_directory(data);
                     async_runtime::spawn_session_updater(
                         runtime,
                         client,
                         data.to_string(),
                         value,
+                        directory,
+                    );
+                }
+            }
+            "revert_to_message" => {
+                if let Some((session_id, message_id)) = data.split_once(':') {
+                    let directory = self.get_session_directory(session_id);
+                    async_runtime::spawn_message_reverter(
+                        runtime,
+                        client,
+                        session_id.to_string(),
+                        message_id.to_string(),
                         directory,
                     );
                 }
