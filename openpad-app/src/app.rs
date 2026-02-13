@@ -444,6 +444,29 @@ live_design! {
                                 flow: Right
                                 spacing: 8
                                 align: { y: 0.5 }
+                                work_indicator = <View> {
+                                    visible: false
+                                    width: Fit, height: Fit
+                                    flow: Right, spacing: 4, align: { y: 0.5 }
+                                    <StatusDot> {
+                                        draw_bg: {
+                                            fn pixel(self) -> vec4 {
+                                                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                                                let c = self.rect_size * 0.5;
+                                                let r = min(c.x, c.y) - 1.0;
+                                                sdf.circle(c.x, c.y, r);
+                                                let color = (THEME_COLOR_ACCENT_AMBER);
+                                                // Pulse effect using time
+                                                let pulse = 0.8 + 0.2 * sin(self.time * 5.0);
+                                                return sdf.fill(color * pulse);
+                                            }
+                                        }
+                                    }
+                                    <Label> {
+                                        text: "Working..."
+                                        draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    }
+                                }
                                 status_dot = <StatusDot> {}
                                 status_label = <Label> {
                                     text: "Connected"
@@ -1372,6 +1395,13 @@ impl App {
 
 impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
+        if self.state.is_working {
+            if let Event::NextFrame(_) = event {
+                self.ui.view(&[id!(work_indicator)]).redraw(cx);
+            }
+            cx.new_next_frame();
+        }
+
         match event {
             Event::Startup => {
                 self.connect_to_opencode(cx);
