@@ -128,12 +128,43 @@ pub struct PathInfo {
 // Config API types
 // ============================================================================
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
     pub model: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("Config");
+        d.field("model", &self.model);
+
+        struct ExtraMasked<'a>(&'a HashMap<String, serde_json::Value>);
+        impl<'a> fmt::Debug for ExtraMasked<'a> {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                let mut map = f.debug_map();
+                for (k, v) in self.0.iter() {
+                    let key_lower = k.to_lowercase();
+                    if key_lower.contains("key")
+                        || key_lower.contains("token")
+                        || key_lower.contains("secret")
+                        || key_lower.contains("auth")
+                        || key_lower.contains("credential")
+                        || key_lower.contains("password")
+                    {
+                        map.entry(k, &"<REDACTED>");
+                    } else {
+                        map.entry(k, v);
+                    }
+                }
+                map.finish()
+            }
+        }
+        d.field("extra", &ExtraMasked(&self.extra));
+        d.finish()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

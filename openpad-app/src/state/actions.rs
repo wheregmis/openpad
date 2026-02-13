@@ -51,7 +51,7 @@ pub enum AppAction {
     UnrevertSession(String),
     DialogConfirmed {
         dialog_type: String,
-        value: String,
+        value: openpad_protocol::SecretString,
     },
     PendingPermissionsLoaded(Vec<PermissionRequest>),
     PermissionDismissed {
