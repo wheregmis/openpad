@@ -122,6 +122,7 @@ live_design! {
 
             key_input = <TextInput> {
                 width: Fill, height: 32
+                is_password: true
                 empty_text: "Enter API Key"
                 draw_bg: {
                     color: (THEME_COLOR_BG_INPUT)

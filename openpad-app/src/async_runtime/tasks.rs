@@ -608,7 +608,7 @@ pub fn spawn_auth_setter(
     runtime.spawn(async move {
         let request = AuthSetRequest {
             auth_type: "api".to_string(),
-            key: api_key,
+            key: api_key.into(),
         };
         match client.set_auth(&provider_id, request).await {
             Ok(success) => {

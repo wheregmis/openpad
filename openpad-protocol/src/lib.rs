@@ -141,6 +141,27 @@ mod tests {
         drop(client_with_dir);
     }
 
+    #[test]
+    fn test_secret_string_masking() {
+        let secret = SecretString::new("sensitive_token_123");
+        let debug_output = format!("{:?}", secret);
+        assert_eq!(debug_output, "\"<REDACTED>\"");
+        assert!(!debug_output.contains("sensitive_token_123"));
+
+        let display_output = format!("{}", secret);
+        assert_eq!(display_output, "sensitive_token_123");
+    }
+
+    #[test]
+    fn test_secret_string_serialization() {
+        let secret = SecretString::new("secret");
+        let serialized = serde_json::to_string(&secret).unwrap();
+        assert_eq!(serialized, "\"secret\"");
+
+        let deserialized: SecretString = serde_json::from_str("\"secret\"").unwrap();
+        assert_eq!(deserialized.as_str(), "secret");
+    }
+
     /// Test module for validating our Rust types against the OpenAPI specification.
     ///
     /// This test ensures that our manually-defined types in `types.rs` match the

@@ -5,6 +5,58 @@
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
+use std::ops::Deref;
+
+/// A string wrapper that masks its content in Debug output.
+///
+/// Use this for sensitive data like API keys or tokens to prevent them from
+/// being accidentally logged or displayed in debug views.
+#[derive(Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct SecretString(String);
+
+impl SecretString {
+    pub fn new(s: impl Into<String>) -> Self {
+        Self(s.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Debug for SecretString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("\"<REDACTED>\"")
+    }
+}
+
+impl fmt::Display for SecretString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl Deref for SecretString {
+    type Target = String;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<String> for SecretString {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl From<&str> for SecretString {
+    fn from(s: &str) -> Self {
+        Self(s.to_string())
+    }
+}
 
 // ============================================================================
 // Global API types
@@ -218,7 +270,7 @@ pub struct ShowToastRequest {
 pub struct AuthSetRequest {
     #[serde(rename = "type")]
     pub auth_type: String, // "api"
-    pub key: String,
+    pub key: SecretString,
 }
 
 // ============================================================================
@@ -547,10 +599,10 @@ pub enum AssistantError {
         is_retryable: bool,
         /// HTTP response headers from the failed request
         #[serde(default, rename = "responseHeaders")]
-        response_headers: Option<HashMap<String, String>>,
+        response_headers: Option<HashMap<String, SecretString>>,
         /// Response body from the failed request
         #[serde(default, rename = "responseBody")]
-        response_body: Option<String>,
+        response_body: Option<SecretString>,
         /// Additional metadata about the error
         #[serde(default)]
         metadata: Option<HashMap<String, String>>,
