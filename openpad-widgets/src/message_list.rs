@@ -689,16 +689,12 @@ impl Widget for MessageList {
                         let mins = elapsed / 60;
                         let secs = elapsed % 60;
 
-                        let (current_activity, running_tools) = self
-                            .messages
-                            .last()
-                            .map(|msg| {
-                                (
-                                    msg.cached_thinking_activity.clone(),
-                                    msg.cached_running_tools.clone(),
-                                )
-                            })
-                            .unwrap_or_else(|| ("Working...".to_string(), Vec::new()));
+                        let last_msg = self.messages.last();
+                        let current_activity = last_msg
+                            .map(|m| &m.cached_thinking_activity)
+                            .map(|s| s.as_str())
+                            .unwrap_or("Working...");
+                        let running_tools = last_msg.map(|m| &m.cached_running_tools);
 
                         let timer_text = if elapsed > 0 {
                             format!("· {}m, {}s", mins, secs)
@@ -717,16 +713,14 @@ impl Widget for MessageList {
                             .set_text(cx, &timer_text);
                         item_widget
                             .label(&[id!(thinking_activity)])
-                            .set_text(cx, &current_activity);
+                            .set_text(cx, current_activity);
 
-                        let has_tools = !running_tools.is_empty();
+                        let has_tools = running_tools.map(|t| !t.is_empty()).unwrap_or(false);
                         item_widget
                             .view(&[id!(thinking_tools)])
                             .set_visible(cx, has_tools);
-                        if has_tools {
-                            for (idx, (icon, name, input)) in
-                                running_tools.iter().take(5).enumerate()
-                            {
+                        if let Some(tools) = running_tools {
+                            for (idx, (icon, name, input)) in tools.iter().take(5).enumerate() {
                                 let (row_id, icon_id, name_id, input_id) = match idx {
                                     0 => (
                                         live_id!(tool_row_0),
@@ -766,7 +760,7 @@ impl Widget for MessageList {
                                 tools_view.label(&[name_id]).set_text(cx, name);
                                 tools_view.label(&[input_id]).set_text(cx, input);
                             }
-                            for idx in running_tools.len()..5 {
+                            for idx in running_tools.map(|t| t.len()).unwrap_or(0)..5 {
                                 let row_id = match idx {
                                     0 => live_id!(tool_row_0),
                                     1 => live_id!(tool_row_1),
@@ -830,11 +824,10 @@ impl Widget for MessageList {
                                 .set_visible(cx, show_revert);
                         }
 
-                        if let Some(timestamp) = msg.timestamp {
-                            item_widget.label(&[id!(timestamp_label)]).set_text(
-                                cx,
-                                &crate::utils::formatters::format_timestamp(timestamp),
-                            );
+                        if msg.timestamp.is_some() {
+                            item_widget
+                                .label(&[id!(timestamp_label)])
+                                .set_text(cx, &msg.cached_timestamp);
                         }
 
                         if msg.role == "assistant" {
@@ -858,17 +851,16 @@ impl Widget for MessageList {
                             }
 
                             let mut show_stats = false;
-                            if let Some(tokens) = &msg.tokens {
-                                item_widget.label(&[id!(tokens_label)]).set_text(
-                                    cx,
-                                    &crate::utils::formatters::format_token_usage(tokens),
-                                );
+                            if msg.tokens.is_some() {
+                                item_widget
+                                    .label(&[id!(tokens_label)])
+                                    .set_text(cx, &msg.cached_token_usage);
                                 show_stats = true;
                             }
-                            if let Some(cost) = msg.cost {
+                            if msg.cost.is_some() {
                                 item_widget
                                     .label(&[id!(cost_label)])
-                                    .set_text(cx, &crate::utils::formatters::format_cost(cost));
+                                    .set_text(cx, &msg.cached_cost);
                                 show_stats = true;
                             }
                             if !msg.steps.is_empty() && msg.show_steps {
@@ -986,15 +978,15 @@ impl Widget for MessageList {
                                         };
                                     if step_id < msg.steps.len() {
                                         let step = &msg.steps[step_id];
-                                        let header = format!(
-                                            "{} {}",
-                                            if step.expanded { "▾" } else { "▸" },
-                                            step.cached_description
-                                        );
+                                        let header = if step.expanded {
+                                            &step.cached_header_expanded
+                                        } else {
+                                            &step.cached_header_collapsed
+                                        };
                                         steps_base.view(&[row_id]).set_visible(cx, true);
                                         let header_button =
                                             steps_base.view(&[row_id]).button(&[header_id]);
-                                        header_button.set_text(cx, &header);
+                                        header_button.set_text(cx, header);
                                         let (text_color, hover_color) = if step.has_error {
                                             (
                                                 vec4(0.937, 0.267, 0.267, 1.0),
@@ -1134,6 +1126,9 @@ impl MessageListRef {
                 cached_needs_markdown: false,
                 cached_thinking_activity: String::new(),
                 cached_running_tools: Vec::new(),
+                cached_timestamp: String::new(),
+                cached_token_usage: String::new(),
+                cached_cost: String::new(),
             };
             MessageProcessor::refresh_message_caches(&mut msg);
             inner.messages.push(msg);
@@ -1166,6 +1161,9 @@ impl MessageListRef {
                 cached_needs_markdown: false,
                 cached_thinking_activity: String::new(),
                 cached_running_tools: Vec::new(),
+                cached_timestamp: String::new(),
+                cached_token_usage: String::new(),
+                cached_cost: String::new(),
             };
             MessageProcessor::refresh_message_caches(&mut msg);
             inner.messages.push(msg);

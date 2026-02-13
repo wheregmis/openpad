@@ -19,6 +19,8 @@ pub struct DisplayStep {
     pub has_running: bool,
     pub cached_description: String,
     pub cached_body: String,
+    pub cached_header_expanded: String,
+    pub cached_header_collapsed: String,
 }
 
 #[derive(Clone, Debug)]
@@ -41,6 +43,9 @@ pub struct DisplayMessage {
     pub cached_needs_markdown: bool,
     pub cached_thinking_activity: String,
     pub cached_running_tools: Vec<(String, String, String)>,
+    pub cached_timestamp: String,
+    pub cached_token_usage: String,
+    pub cached_cost: String,
 }
 
 pub struct MessageProcessor;
@@ -113,6 +118,8 @@ impl MessageProcessor {
                         has_running: false,
                         cached_description: String::new(),
                         cached_body: String::new(),
+                        cached_header_expanded: String::new(),
+                        cached_header_collapsed: String::new(),
                     });
                 } else if let Some((tool, input_summary, result)) = p.tool_display() {
                     let has_error = result.starts_with("Error");
@@ -142,6 +149,8 @@ impl MessageProcessor {
                             has_running: is_running,
                             cached_description: String::new(),
                             cached_body: String::new(),
+                            cached_header_expanded: String::new(),
+                            cached_header_collapsed: String::new(),
                         });
                     }
                 } else if let Some((reason, cost, tokens)) = p.step_finish_info() {
@@ -161,6 +170,8 @@ impl MessageProcessor {
                             has_running: false,
                             cached_description: String::new(),
                             cached_body: String::new(),
+                            cached_header_expanded: String::new(),
+                            cached_header_collapsed: String::new(),
                         });
                     }
                 }
@@ -218,6 +229,9 @@ impl MessageProcessor {
                         cached_needs_markdown: false,
                         cached_thinking_activity: String::new(),
                         cached_running_tools: Vec::new(),
+                        cached_timestamp: String::new(),
+                        cached_token_usage: String::new(),
+                        cached_cost: String::new(),
                     });
                 }
                 continue;
@@ -247,6 +261,9 @@ impl MessageProcessor {
                         cached_needs_markdown: false,
                         cached_thinking_activity: String::new(),
                         cached_running_tools: Vec::new(),
+                        cached_timestamp: String::new(),
+                        cached_token_usage: String::new(),
+                        cached_cost: String::new(),
                     };
                     Self::refresh_message_caches(&mut msg);
                     display.push(msg);
@@ -279,6 +296,9 @@ impl MessageProcessor {
                 cached_needs_markdown: false,
                 cached_thinking_activity: String::new(),
                 cached_running_tools: Vec::new(),
+                cached_timestamp: String::new(),
+                cached_token_usage: String::new(),
+                cached_cost: String::new(),
             };
             Self::refresh_message_caches(&mut msg);
             display.push(msg);
@@ -293,6 +313,9 @@ impl MessageProcessor {
     pub fn refresh_step_caches(step: &mut DisplayStep) {
         step.cached_description = Self::get_step_description(step);
         step.cached_body = Self::format_step_body(step);
+        // Optimization: avoid reformatting step headers in the draw loop
+        step.cached_header_expanded = format!("▾ {}", step.cached_description);
+        step.cached_header_collapsed = format!("▸ {}", step.cached_description);
     }
 
     pub fn refresh_message_caches(msg: &mut DisplayMessage) {
@@ -305,6 +328,21 @@ impl MessageProcessor {
         let (activity, tools) = Self::compute_thinking_data(msg);
         msg.cached_thinking_activity = activity;
         msg.cached_running_tools = tools;
+
+        // Optimization: cache formatted strings to avoid repeated allocations in draw_walk
+        msg.cached_timestamp = msg
+            .timestamp
+            .map(crate::utils::formatters::format_timestamp)
+            .unwrap_or_default();
+        msg.cached_token_usage = msg
+            .tokens
+            .as_ref()
+            .map(crate::utils::formatters::format_token_usage)
+            .unwrap_or_default();
+        msg.cached_cost = msg
+            .cost
+            .map(crate::utils::formatters::format_cost)
+            .unwrap_or_default();
     }
 
     pub fn compute_thinking_data(msg: &DisplayMessage) -> (String, Vec<(String, String, String)>) {
