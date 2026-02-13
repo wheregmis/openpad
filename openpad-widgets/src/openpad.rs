@@ -1,5 +1,8 @@
 use makepad_widgets::*;
 
-live_design! {
-    // Consolidated module for various openpad generic DSLs
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+
+    // Consolidated module for generic Openpad script DSL definitions.
 }

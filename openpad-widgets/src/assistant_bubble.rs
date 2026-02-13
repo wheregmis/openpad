@@ -1,21 +1,17 @@
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::openpad::*;
-    use crate::theme::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
 
-    pub AssistantBubble = <RoundedView> {
-        width: Fit, height: Fit
-        flow: Down,
-        padding: { top: 8, bottom: 8, left: 14, right: 14 }
-        draw_bg: {
-            color: (THEME_COLOR_BG_ASSISTANT_BUBBLE)
-            border_radius: 12.0
-            border_size: 1.0
-            border_color: (THEME_COLOR_BORDER_MEDIUM)
-        }
+    mod.widgets.AssistantBubble = RoundedView{
+        width: Fit
+        height: Fit
+        flow: Down
+        padding: Inset{top: 8 bottom: 8 left: 14 right: 14}
+        draw_bg.color: #252526
+        draw_bg.border_radius: 12.0
+        draw_bg.border_size: 1.0
+        draw_bg.border_color: #333
     }
 }
