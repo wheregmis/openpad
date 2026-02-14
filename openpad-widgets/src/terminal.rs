@@ -93,6 +93,7 @@ pub struct TerminalBackend {
     pub current_color: Vec4,
     pub prompt_string: String,
     pub pty_writer: Option<Arc<Mutex<Box<dyn Write + Send>>>>,
+    pub normalization_buffer: String,
 }
 
 impl Default for TerminalBackend {
@@ -108,6 +109,7 @@ impl Default for TerminalBackend {
             },
             prompt_string: Self::build_prompt_string(&std::path::PathBuf::from(".")),
             pty_writer: None,
+            normalization_buffer: String::with_capacity(256),
         }
     }
 }
@@ -239,9 +241,8 @@ impl TerminalBackend {
         }
     }
 
-    pub fn normalize_for_prompt_check(line: &str) -> String {
-        let mut result = String::with_capacity(line.len());
-        let mut chars = line.chars().peekable();
+    fn strip_ansi_to_buffer(&mut self, text: &str) {
+        let mut chars = text.chars().peekable();
         while let Some(ch) = chars.next() {
             if ch == '\x1b' {
                 if chars.peek() == Some(&'[') {
@@ -254,18 +255,17 @@ impl TerminalBackend {
                     }
                 }
             } else if !ch.is_control() || ch == '\n' {
-                result.push(ch);
+                self.normalization_buffer.push(ch);
             }
         }
-        result.trim().to_string()
     }
 
-    pub fn is_prompt_only_line(line: &str, our_prompt: &str) -> bool {
-        let t = Self::normalize_for_prompt_check(line);
+    fn check_if_buffer_is_prompt(&self) -> bool {
+        let t = self.normalization_buffer.trim();
         if t.is_empty() {
             return true;
         }
-        let our_trimmed = our_prompt.trim();
+        let our_trimmed = self.prompt_string.trim();
         if t == our_trimmed {
             return true;
         }
@@ -287,6 +287,25 @@ impl TerminalBackend {
         false
     }
 
+    pub fn normalize_for_prompt_check(&mut self, line: &str) -> &str {
+        self.normalization_buffer.clear();
+        self.strip_ansi_to_buffer(line);
+        self.normalization_buffer.trim()
+    }
+
+    pub fn is_prompt_only_line(&mut self, line: &str) -> bool {
+        self.normalize_for_prompt_check(line);
+        self.check_if_buffer_is_prompt()
+    }
+
+    pub fn is_prompt_only_line_from_spans(&mut self, spans: &[TerminalSpan]) -> bool {
+        self.normalization_buffer.clear();
+        for span in spans {
+            self.strip_ansi_to_buffer(&span.text);
+        }
+        self.check_if_buffer_is_prompt()
+    }
+
     fn push_current_text(&mut self, current_text: &mut String) {
         if !current_text.is_empty() {
             if let Some(last) = self.partial_spans.last_mut() {
@@ -296,11 +315,12 @@ impl TerminalBackend {
                     return;
                 }
             }
+            // Optimization: use std::mem::take to move the string content
+            // and avoid an allocation/clone.
             self.partial_spans.push(TerminalSpan {
-                text: current_text.clone(),
+                text: std::mem::take(current_text),
                 color: self.current_color,
             });
-            current_text.clear();
         }
     }
 
@@ -339,14 +359,18 @@ impl TerminalBackend {
                 }
                 '\n' => {
                     self.push_current_text(&mut current_text);
+                    // Optimization: check for prompt-only lines before allocating a full line string.
+                    // We take the spans first to avoid borrow checker issues with &mut self.
                     let line_spans = std::mem::take(&mut self.partial_spans);
-                    let full_text: String = line_spans.iter().map(|s| s.text.as_str()).collect();
-                    if !Self::is_prompt_only_line(&full_text, &self.prompt_string) {
+                    if !self.is_prompt_only_line_from_spans(&line_spans) {
+                        let full_text: String =
+                            line_spans.iter().map(|s| s.text.as_str()).collect();
                         self.output_lines.push(TerminalLine {
                             spans: line_spans,
                             cached_text: full_text,
                         });
                     }
+                    // Note: if it was a prompt-only line, line_spans is simply dropped here.
                 }
                 '\r' => match chars.peek() {
                     Some(&'\n') | Some(&'\r') | None => {}
