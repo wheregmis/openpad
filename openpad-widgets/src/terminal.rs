@@ -1,72 +1,77 @@
-use makepad_widgets::text_input::TextInputAction;
 use makepad_widgets::*;
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
 use std::io::{Read, Write};
 use std::sync::{Arc, Mutex};
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::openpad::*;
-    use crate::theme::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    pub Terminal = {{Terminal}} {
-        width: Fill, height: Fill
-        terminal_output = <View> {
-            width: Fill, height: Fill
+    mod.widgets.TerminalBase = #(Terminal::register_widget(vm))
+    mod.widgets.Terminal = mod.widgets.TerminalBase {
+        width: Fill
+        height: Fill
+        terminal_output = View {
+            width: Fill
+            height: Fill
             flow: Down
             spacing: 0
             show_bg: true
             draw_bg: {
-                color: (THEME_COLOR_BG_DARKER)
+                color: THEME_COLOR_BG_DARKER
             }
 
-            output_list = <PortalList> {
+            output_list = PortalList {
                 auto_tail: true
-                OutputLine = <View> {
-                    width: Fill, height: Fit
-                    padding: { left: 10, right: 10, top: 0, bottom: 0 }
+                OutputLine = View {
+                    width: Fill
+                    height: Fit
+                    padding: {left: 10 right: 10 top: 0 bottom: 0}
 
-                    line_label = <Label> {
-                        width: Fill, height: Fit
+                    line_label = Label {
+                        width: Fill
+                        height: Fit
                         draw_text: {
-                            color: (THEME_COLOR_SHADE_11)
-                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                            color: THEME_COLOR_SHADE_11
+                            text_style: theme.font_code {font_size: 10}
                         }
                     }
                 }
 
-                InputLine = <View> {
-                    width: Fill, height: Fit
+                InputLine = View {
+                    width: Fill
+                    height: Fit
                     flow: Right
-                    padding: { left: 10, right: 10, top: 0, bottom: 0 }
+                    padding: {left: 10 right: 10 top: 0 bottom: 0}
                     spacing: 0
                     align: { y: 0.5 }
 
-                    prompt_label = <Label> {
-                        width: Fit, height: Fit
+                    prompt_label = Label {
+                        width: Fit
+                        height: Fit
                         text: " % "
                         draw_text: {
-                            color: (THEME_COLOR_SHADE_11)
-                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                            color: THEME_COLOR_SHADE_11
+                            text_style: theme.font_code {font_size: 10}
                         }
                     }
 
-                    input_field = <TextInput> {
-                        width: Fill, height: Fit
-                        padding: { left: 0, right: 10, top: 4, bottom: 4 }
+                    input_field = TextInput {
+                        width: Fill
+                        height: Fit
+                        padding: {left: 0 right: 10 top: 4 bottom: 4}
                         empty_text: ""
                         draw_bg: {
-                            color: (THEME_COLOR_TRANSPARENT)
-                            color_focus: (THEME_COLOR_TRANSPARENT)
-                            color_empty: (THEME_COLOR_TRANSPARENT)
+                            color: THEME_COLOR_TRANSPARENT
+                            color_focus: THEME_COLOR_TRANSPARENT
+                            color_empty: THEME_COLOR_TRANSPARENT
                             border_radius: 0.0
                             border_size: 0.0
                         }
                         draw_text: {
-                            color: (THEME_COLOR_TEXT_BRIGHT)
-                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                            color: THEME_COLOR_TEXT_BRIGHT
+                            text_style: theme.font_code {font_size: 10}
                         }
                     }
                 }
@@ -398,8 +403,11 @@ impl TerminalBackend {
     }
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct Terminal {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
 
@@ -413,14 +421,12 @@ impl Widget for Terminal {
             self.view.handle_event(cx, event, scope);
         });
 
-        if let TextInputAction::Returned(input, _modifiers) =
-            actions.widget_action(&[live_id!(input_field)]).cast()
-        {
+        if let Some((input, _modifiers)) = self.view.text_input(cx, ids!(input_field)).returned(&actions) {
             if !input.is_empty() {
                 if let Err(e) = self.backend.send_command(&input) {
                     self.backend.append_output(&format!("Error: {}\n", e));
                 }
-                self.view.text_input(&[id!(input_field)]).set_text(cx, "");
+                self.view.text_input(cx, ids!(input_field)).set_text(cx, "");
             }
         }
     }
@@ -437,17 +443,15 @@ impl Widget for Terminal {
                         let item_widget = list.item(cx, item_id, live_id!(OutputLine));
                         let full_text = &line.cached_text;
                         let spans = &line.spans;
-                        let label = item_widget.label(&[id!(line_label)]);
+                        let label = item_widget.label(cx, ids!(line_label));
                         label.set_text(cx, &full_text);
-                        if let Some(first) = spans.first() {
-                            label.apply_over(cx, live! { draw_text: { color: (first.color) } });
-                        }
+                        let _ = spans;
 
                         item_widget.draw_all(cx, scope);
                     } else if item_id == self.backend.output_lines.len() {
                         let item_widget = list.item(cx, item_id, live_id!(InputLine));
                         item_widget
-                            .label(&[id!(prompt_label)])
+                            .label(cx, ids!(prompt_label))
                             .set_text(cx, &self.backend.prompt_string);
                         item_widget.draw_all(cx, scope);
                     }
@@ -548,7 +552,7 @@ impl Terminal {
                 Cx::post_action(TerminalAction::ScrollToBottom);
             }
             TerminalAction::ScrollToBottom => {
-                let list = self.view.portal_list(&[id!(output_list)]);
+                let list = self.view.portal_list(cx, ids!(output_list));
                 let total_items = self.backend.output_lines.len() + 1;
                 if total_items > 0 {
                     list.set_first_id(total_items.saturating_sub(40));
@@ -559,10 +563,11 @@ impl Terminal {
     }
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum TerminalAction {
     OutputReceived(String),
     ScrollToBottom,
+    #[default]
     None,
 }
 

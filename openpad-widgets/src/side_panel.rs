@@ -51,7 +51,7 @@ script_mod! {
     }
 }
 
-#[derive(Script, Widget, Animator)]
+#[derive(Script, ScriptHook, Widget, Animator)]
 pub struct SidePanel {
     #[source]
     source: ScriptObjectRef,

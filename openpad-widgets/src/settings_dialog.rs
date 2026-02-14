@@ -2,206 +2,219 @@ use crate::upward_dropdown::UpDropDownWidgetExt;
 use makepad_widgets::*;
 use openpad_protocol::{Config, Provider};
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::openpad::*;
-    use crate::theme::*;
-    use crate::upward_dropdown::UpDropDown;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    pub SettingsDialog = {{SettingsDialog}} {
-        width: Fill, height: Fill
+    mod.widgets.SettingsDialog = #(SettingsDialog::register_widget(vm)) {
+        width: Fill
+        height: Fill
         flow: Down
         show_bg: true
 
-        draw_bg: {
-            color: (THEME_COLOR_BG_APP)
+        draw_bg +: {
+            color: THEME_COLOR_BG_APP
         }
 
-        <ScrollYView> {
-            width: Fill, height: Fill
+        ScrollYView {
+            width: Fill
+            height: Fill
 
-            content = <View> {
-                width: Fill, height: Fit
+            content = View {
+                width: Fill
+                height: Fit
                 flow: Down
                 spacing: 12
-                padding: { left: 16, right: 16, top: 16, bottom: 16 }
+                padding: {left: 16 right: 16 top: 16 bottom: 16}
 
-        <View> {
-            width: Fill, height: Fit
-            flow: Down
-            spacing: 5
+                View {
+                    width: Fill
+                    height: Fit
+                    flow: Down
+                    spacing: 5
 
-            <Label> {
-                text: "Select Provider"
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_DIM)
-                    text_style: <THEME_FONT_REGULAR> { font_size: 10 }
-                }
-            }
-
-            provider_dropdown = <UpDropDown> {
-                width: Fill, height: 32
-                padding: { left: 10, right: 10, top: 6, bottom: 6 }
-                popup_menu_position: AboveInput
-
-                animator: {
-                    disabled = {
-                        default: off
-                        off = { apply: { draw_bg: { disabled: 0.0 } } }
-                        on = { apply: { draw_bg: { disabled: 1.0 } } }
-                    }
-                    hover = {
-                        default: off
-                        off = {
-                            from: {all: Forward {duration: 0.15}}
-                            apply: { draw_bg: {hover: 0.0} }
-                        }
-                        on = {
-                            from: {all: Forward {duration: 0.15}}
-                            apply: { draw_bg: {hover: 1.0} }
+                    Label {
+                        text: "Select Provider"
+                        draw_text: {
+                            color: THEME_COLOR_TEXT_DIM
+                            text_style: theme.font_regular {font_size: 10}
                         }
                     }
-                    focus = {
-                        default: off
-                        off = { apply: { draw_bg: { focus: 0.0 } } }
-                        on = { apply: { draw_bg: { focus: 1.0 } } }
+
+                    provider_dropdown = mod.widgets.UpDropDown {
+                        width: Fill
+                        height: 32
+                        padding: {left: 10 right: 10 top: 6 bottom: 6}
+                        popup_menu_position: AboveInput
+
+                        animator: Animator {
+                            disabled = {
+                                default: @off
+                                off = {apply: {draw_bg: {disabled: 0.0}}}
+                                on = {apply: {draw_bg: {disabled: 1.0}}}
+                            }
+                            hover = {
+                                default: @off
+                                off = {
+                                    from: {all: Forward {duration: 0.15}}
+                                    apply: {draw_bg: {hover: 0.0}}
+                                }
+                                on = {
+                                    from: {all: Forward {duration: 0.15}}
+                                    apply: {draw_bg: {hover: 1.0}}
+                                }
+                            }
+                            focus = {
+                                default: @off
+                                off = {apply: {draw_bg: {focus: 0.0}}}
+                                on = {apply: {draw_bg: {focus: 1.0}}}
+                            }
+                        }
+
+                        draw_text: {
+                            text_style: theme.font_regular {font_size: 11}
+                            get_color: fn() {
+                                return mix(THEME_COLOR_TEXT_PRIMARY, THEME_COLOR_TEXT_BRIGHT, self.hover)
+                            }
+                        }
+
+                        draw_bg +: {
+                            hover: instance(0.0)
+                            focus: instance(0.0)
+                            active: instance(0.0)
+                            disabled: instance(0.0)
+                            pixel: fn() {
+                                let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+                                sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 6.0)
+
+                                let bg_color = mix(THEME_COLOR_BG_INPUT, THEME_COLOR_HOVER_MEDIUM, self.hover)
+                                sdf.fill_keep(bg_color)
+
+                                let stroke_color = mix(THEME_COLOR_BORDER_MEDIUM, THEME_COLOR_BORDER_LIGHT, self.hover)
+                                sdf.stroke(stroke_color, 1.0)
+
+                                return sdf.result
+                            }
+                        }
+
+                        popup_menu: {
+                            draw_bg: {
+                                color: THEME_COLOR_BG_DARKER
+                                border_radius: 6.0
+                                border_size: 1.0
+                                border_color: THEME_COLOR_BORDER_MEDIUM
+                            }
+                        }
                     }
                 }
 
-                draw_text: {
-                    text_style: <THEME_FONT_REGULAR> { font_size: 11 }
-                    fn get_color(self) -> vec4 {
-                        return mix((THEME_COLOR_TEXT_PRIMARY), (THEME_COLOR_TEXT_BRIGHT), self.hover);
+                View {
+                    width: Fill
+                    height: Fit
+                    flow: Down
+                    spacing: 5
+
+                    Label {
+                        text: "API Key"
+                        draw_text: {
+                            color: THEME_COLOR_TEXT_DIM
+                            text_style: theme.font_regular {font_size: 10}
+                        }
+                    }
+
+                    key_input = TextInput {
+                        width: Fill
+                        height: 32
+                        is_password: true
+                        empty_text: "Enter API Key"
+                        draw_bg: {
+                            color: THEME_COLOR_BG_INPUT
+                            color_focus: THEME_COLOR_BG_INPUT
+                            border_radius: 6.0
+                            border_size: 1.0
+                            border_color: THEME_COLOR_BORDER_MEDIUM
+                        }
+                        draw_text: {
+                            color: THEME_COLOR_TEXT_PRIMARY
+                            text_style: theme.font_code {font_size: 10}
+                        }
                     }
                 }
 
-                draw_bg: {
-                    instance hover: 0.0
-                    instance focus: 0.0
-                    instance active: 0.0
-                    instance disabled: 0.0
-                    fn pixel(self) -> vec4 {
-                        let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                        sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 6.0);
+                View {
+                    width: Fill
+                    height: Fit
+                    align: {x: 1.0}
 
-                        let bg_color = mix((THEME_COLOR_BG_INPUT), (THEME_COLOR_HOVER_MEDIUM), self.hover);
-                        sdf.fill_keep(bg_color);
-
-                        let stroke_color = mix((THEME_COLOR_BORDER_MEDIUM), (THEME_COLOR_BORDER_LIGHT), self.hover);
-                        sdf.stroke(stroke_color, 1.0);
-
-                        return sdf.result;
+                    save_button = Button {
+                        width: 100
+                        height: 32
+                        text: "Update Key"
+                        draw_bg: {
+                            color: THEME_COLOR_BG_BUTTON
+                            color_hover: THEME_COLOR_BG_BUTTON_HOVER
+                            border_radius: 6.0
+                            border_size: 0.0
+                        }
+                        draw_text: {
+                            color: THEME_COLOR_TEXT_BRIGHT
+                            text_style: theme.font_bold {font_size: 11}
+                        }
                     }
                 }
 
-                popup_menu: {
-                    draw_bg: {
-                        color: (THEME_COLOR_BG_DARKER)
-                        border_radius: 6.0
-                        border_size: 1.0
-                        border_color: (THEME_COLOR_BORDER_MEDIUM)
+                View {height: 10}
+
+                separator2 = View {
+                    width: Fill
+                    height: 1
+                    show_bg: true
+                    draw_bg: {color: THEME_COLOR_BORDER_MEDIUM}
+                }
+
+                View {
+                    width: Fill
+                    height: Fit
+                    flow: Down
+                    spacing: 5
+
+                    Label {
+                        text: "Current Configuration"
+                        draw_text: {
+                            color: THEME_COLOR_TEXT_DIM
+                            text_style: theme.font_regular {font_size: 10}
+                        }
+                    }
+
+                    config_display = Label {
+                        width: Fill
+                        height: Fit
+                        text: "Loading..."
+                        draw_text: {
+                            color: THEME_COLOR_TEXT_DIM
+                            text_style: theme.font_code {font_size: 9}
+                            wrap: Word
+                        }
                     }
                 }
-            }
-        }
-
-        <View> {
-            width: Fill, height: Fit
-            flow: Down
-            spacing: 5
-
-            <Label> {
-                text: "API Key"
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_DIM)
-                    text_style: <THEME_FONT_REGULAR> { font_size: 10 }
-                }
-            }
-
-            key_input = <TextInput> {
-                width: Fill, height: 32
-                is_password: true
-                empty_text: "Enter API Key"
-                draw_bg: {
-                    color: (THEME_COLOR_BG_INPUT)
-                    color_focus: (THEME_COLOR_BG_INPUT)
-                    border_radius: 6.0
-                    border_size: 1.0
-                    border_color: (THEME_COLOR_BORDER_MEDIUM)
-                }
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_PRIMARY)
-                    text_style: <THEME_FONT_CODE> { font_size: 10 }
-                }
-            }
-        }
-
-        <View> {
-            width: Fill, height: Fit
-            align: { x: 1.0 }
-
-            save_button = <Button> {
-                width: 100, height: 32
-                text: "Update Key"
-                draw_bg: {
-                    color: (THEME_COLOR_BG_BUTTON)
-                    color_hover: (THEME_COLOR_BG_BUTTON_HOVER)
-                    border_radius: 6.0
-                    border_size: 0.0
-                }
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_BRIGHT)
-                    text_style: <THEME_FONT_BOLD> { font_size: 11 }
-                }
-            }
-        }
-
-        <View> { height: 10 }
-
-        separator2 = <View> {
-            width: Fill, height: 1
-            show_bg: true
-            draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) }
-        }
-
-        <View> {
-            width: Fill, height: Fit
-            flow: Down,
-            spacing: 5
-
-            <Label> {
-                text: "Current Configuration"
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_DIM)
-                    text_style: <THEME_FONT_REGULAR> { font_size: 10 }
-                }
-            }
-
-            config_display = <Label> {
-                width: Fill, height: Fit
-                text: "Loading..."
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_DIM)
-                    text_style: <THEME_FONT_CODE> { font_size: 9 }
-                    wrap: Word
-                }
-            }
-        }
             }
         }
     }
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum SettingsDialogAction {
+    #[default]
     None,
     UpdateKey { provider_id: String, key: String },
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct SettingsDialog {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
 
@@ -220,23 +233,26 @@ impl Widget for SettingsDialog {
 
         if let Some(idx) = self
             .view
-            .up_drop_down(&[id!(content), id!(provider_dropdown)])
+            .up_drop_down(cx, &[id!(content), id!(provider_dropdown)])
             .changed(&actions)
         {
             self.selected_provider_idx = Some(idx);
             self.view
-                .text_input(&[id!(content), id!(key_input)])
+                .text_input(cx, &[id!(content), id!(key_input)])
                 .set_text(cx, "");
         }
 
         if self
             .view
-            .button(&[id!(content), id!(save_button)])
+            .button(cx, &[id!(content), id!(save_button)])
             .clicked(&actions)
         {
             if let Some(idx) = self.selected_provider_idx {
                 if let Some(provider) = self.providers.get(idx) {
-                    let key = self.view.text_input(&[id!(content), id!(key_input)]).text();
+                    let key = self
+                        .view
+                        .text_input(cx, &[id!(content), id!(key_input)])
+                        .text();
                     if !key.is_empty() {
                         cx.action(SettingsDialogAction::UpdateKey {
                             provider_id: provider.id.clone(),
@@ -273,14 +289,14 @@ impl SettingsDialog {
             .map(|p| p.name.clone().unwrap_or_default())
             .collect();
         self.view
-            .up_drop_down(&[id!(content), id!(provider_dropdown)])
+            .up_drop_down(cx, &[id!(content), id!(provider_dropdown)])
             .set_labels(cx, items);
     }
 
     pub fn set_config(&mut self, cx: &mut Cx, config: &Config) {
         let display = format!("{:#?}", config);
         self.view
-            .label(&[id!(content), id!(config_display)])
+            .label(cx, &[id!(content), id!(config_display)])
             .set_text(cx, &display);
     }
 }

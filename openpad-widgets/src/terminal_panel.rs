@@ -1,44 +1,46 @@
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::openpad::*;
-    use crate::theme::*;
-    use crate::terminal::Terminal;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    pub TerminalPanelBase = {{TerminalPanel}} {}
-    pub TerminalPanel = <TerminalPanelBase> {
-        width: Fill, height: Fit
+    mod.widgets.TerminalPanelBase = #(TerminalPanel::register_widget(vm))
+    mod.widgets.TerminalPanel = mod.widgets.TerminalPanelBase {
+        width: Fill
+        height: Fit
         flow: Down
         show_bg: true
         open_size: 250.0
         close_size: 0.0
 
-        draw_bg: { color: (THEME_COLOR_BG_APP) }
+        draw_bg +: {color: THEME_COLOR_BG_APP}
 
-        // Separator line
-        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } }
+        View {
+            width: Fill
+            height: 1
+            show_bg: true
+            draw_bg: {color: THEME_COLOR_BORDER_MEDIUM}
+        }
 
-        terminal_panel = <Terminal> {
+        terminal_panel = mod.widgets.Terminal {
             width: Fill
             height: Fill
         }
 
-        animator: {
+        animator: Animator {
             open = {
-                default: off,
+                default: @off
                 off = {
                     redraw: true
                     from: {all: Forward {duration: 0.4}}
-                    ease: ExpDecay {d1: 0.80, d2: 0.97}
+                    ease: ExpDecay {d1: 0.80 d2: 0.97}
                     apply: {animator_panel_progress: 0.0}
                 }
                 on = {
                     redraw: true
                     from: {all: Forward {duration: 0.4}}
-                    ease: ExpDecay {d1: 0.80, d2: 0.97}
+                    ease: ExpDecay {d1: 0.80 d2: 0.97}
                     apply: {animator_panel_progress: 1.0}
                 }
             }
@@ -46,8 +48,11 @@ live_design! {
     }
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget, Animator)]
 pub struct TerminalPanel {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
 
@@ -60,7 +65,7 @@ pub struct TerminalPanel {
     #[live(0.0)]
     close_size: f32,
 
-    #[animator]
+    #[apply_default]
     animator: Animator,
 }
 

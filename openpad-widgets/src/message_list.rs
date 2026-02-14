@@ -3,271 +3,265 @@ use crate::message_logic::{DisplayMessage, MessageProcessor};
 use crate::permission_card::{PermissionCardApi, PermissionCardWidgetRefExt};
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use makepad_code_editor::code_view::CodeView;
-    use crate::openpad::*;
-    use crate::theme::*;
-    use crate::user_bubble::UserBubble;
-    use crate::assistant_bubble::AssistantBubble;
-    use crate::diff_view::DiffView;
-    use crate::permission_card::PermissionCard;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.widgets.CodeView
+    use mod.theme.*
 
-    pub MessageList = {{MessageList}} {
+    mod.widgets.MessageList = #(MessageList::register_widget(vm)) {
         width: Fill, height: Fill
         flow: Overlay
 
-        empty_state = <View> {
+        empty_state = View {
             visible: false
             width: Fill, height: Fill
             align: { x: 0.5, y: 0.5 }
             flow: Down, spacing: 10
 
-            <Label> {
+            Label {
                 text: "Openpad"
                 draw_text: {
-                    color: (THEME_COLOR_TEXT_BRIGHT)
-                    text_style: <THEME_FONT_BOLD> { font_size: 16 }
+                    color: THEME_COLOR_TEXT_BRIGHT
+                    text_style: theme.font_bold { font_size: 16 }
                 }
             }
-            <Label> {
+            Label {
                 text: "How can I help you today?"
                 draw_text: {
-                    color: (THEME_COLOR_TEXT_DIM)
-                    text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                    color: THEME_COLOR_TEXT_DIM
+                    text_style: theme.font_regular { font_size: 11 }
                 }
             }
         }
 
-        list = <PortalList> {
-            scroll_bar: <ScrollBar> {}
+        list = PortalList {
+            scroll_bar: ScrollBar {}
 
-            UserMsg = <View> {
+            UserMsg = View {
                 width: Fill, height: Fit
                 flow: Down,
                 padding: { top: 4, bottom: 4, left: 100, right: 24 }
                 align: { x: 1.0 }
 
-                <UserBubble> {
+                UserBubble {
                     width: Fill, height: Fit
                     flow: Down,
                     align: { x: 1.0 }
 
-                    <View> {
+                    View {
                         width: Fit, height: Fit
                         flow: Right,
                         spacing: 8,
                         margin: { bottom: 4 }
                         align: { y: 0.5 }
 
-                        timestamp_label = <Label> {
+                        timestamp_label = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_DARKER),
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 },
+                                color: THEME_COLOR_TEXT_MUTED_DARKER,
+                                text_style: theme.font_regular { font_size: 8 },
                             }
                             text: "..."
                         }
 
-                        <Label> {
+                        Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_DARK),
-                                text_style: <THEME_FONT_BOLD> { font_size: 8 },
+                                color: THEME_COLOR_TEXT_MUTED_DARK,
+                                text_style: theme.font_bold { font_size: 8 },
                             }
                             text: "YOU"
                         }
                     }
 
-                    msg_text = <Label> {
+                    msg_text = Label {
                         width: Fill, height: Fit
                         draw_text: {
-                            color: (THEME_COLOR_TEXT_LIGHT),
-                            text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 },
+                            color: THEME_COLOR_TEXT_LIGHT,
+                            text_style: theme.font_regular { font_size: 10, line_spacing: 1.4 },
                             word: Wrap,
                         }
                     }
 
-                    msg_actions = <View> {
+                    msg_actions = View {
                         width: Fit, height: Fit
                         flow: Right,
                         spacing: 6,
                         margin: { top: 6 }
 
-                        copy_button = <Button> {
+                        copy_button = Button {
                             width: Fit, height: 20
                             text: "Copy"
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_size: 0.0
                             }
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                         }
                     }
                 }
             }
 
-            PermissionMsg = <PermissionCard> {}
+            PermissionMsg = PermissionCard {}
 
-            ThinkingMsg = <View> {
+            ThinkingMsg = View {
                 width: Fill, height: Fit
                 flow: Down,
                 padding: { top: 8, bottom: 8, left: 24, right: 100 }
 
-                <AssistantBubble> {
+                AssistantBubble {
                     width: Fill, height: Fit
                     flow: Down,
                     padding: { top: 10, bottom: 10, left: 14, right: 14 }
                     draw_bg: {
-                        color: (THEME_COLOR_BG_ASSISTANT_BUBBLE)
-                        border_color: (THEME_COLOR_BORDER_MEDIUM)
+                        color: THEME_COLOR_BG_ASSISTANT_BUBBLE
+                        border_color: THEME_COLOR_BORDER_MEDIUM
                     }
 
-                    <View> {
+                    View {
                         width: Fill, height: Fit
                         flow: Right,
                         spacing: 8,
                         margin: { bottom: 6 }
                         align: { y: 0.5 }
 
-                        thinking_indicator = <View> {
+                        thinking_indicator = View {
                             width: Fit, height: Fit
                             flow: Right,
                             spacing: 4,
                             align: { y: 0.5 }
 
-                            thinking_icon = <Label> {
+                            thinking_icon = Label {
                                 width: Fit, height: Fit
                                 draw_text: {
-                                    color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                    text_style: <THEME_FONT_REGULAR> { font_size: 9 }
+                                    color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                    text_style: theme.font_regular { font_size: 9 }
                                 }
                                 text: "◐"
                             }
 
-                            thinking_label = <Label> {
+                            thinking_label = Label {
                                 width: Fit, height: Fit
                                 draw_text: {
-                                    color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                    text_style: <THEME_FONT_BOLD> { font_size: 9 }
+                                    color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                    text_style: theme.font_bold { font_size: 9 }
                                 }
                                 text: "Working"
                             }
                         }
 
-                        <View> { width: Fill }
+                        View { width: Fill }
 
-                        thinking_timer = <Label> {
+                        thinking_timer = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_DARKER)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_TEXT_MUTED_DARKER
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
                         }
                     }
 
-                    thinking_activity = <Label> {
+                    thinking_activity = Label {
                         width: Fill, height: Fit
                         draw_text: {
-                            color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                            text_style: <THEME_FONT_ITALIC> { font_size: 9, line_spacing: 1.3 }
+                            color: THEME_COLOR_TEXT_MUTED_LIGHT
+                            text_style: theme.font_italic { font_size: 9, line_spacing: 1.3 }
                             word: Wrap
                         }
                         text: ""
                     }
 
-                    thinking_tools = <View> {
+                    thinking_tools = View {
                         visible: false
                         width: Fill, height: Fit
                         flow: Down,
                         spacing: 3,
                         margin: { top: 8 }
 
-                        tool_row_0 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_0 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_0 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_0 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
-                        tool_row_1 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_1 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_1 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_1 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
-                        tool_row_2 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_2 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_2 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_2 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
-                        tool_row_3 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_3 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_3 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_3 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
-                        tool_row_4 = <View> { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_4 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" }, tool_name_4 = <Label> { width: Fit, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 9 } }, text: "" }, tool_input_4 = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }
+                        tool_row_0 = View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_0 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_0 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_0 = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_1 = View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_1 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_1 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_1 = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_2 = View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_2 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_2 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_2 = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_3 = View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_3 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_3 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_3 = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_4 = View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.5 }, tool_icon_4 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_4 = Label { width: Fit, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_4 = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
                     }
                 }
             }
 
-            AssistantMsg = <View> {
+            AssistantMsg = View {
                 width: Fill, height: Fit
                 flow: Down,
                 padding: { top: 4, bottom: 4, left: 24, right: 100 }
 
-                <AssistantBubble> {
+                AssistantBubble {
                     width: Fill, height: Fit
                     flow: Down,
 
-                    <View> {
+                    View {
                         width: Fill, height: Fit
                         flow: Right,
                         spacing: 8,
                         margin: { bottom: 4 }
                         align: { y: 0.5 }
 
-                        model_label = <Label> {
+                        model_label = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_DARK),
-                                text_style: <THEME_FONT_BOLD> { font_size: 8 },
+                                color: THEME_COLOR_TEXT_MUTED_DARK,
+                                text_style: theme.font_bold { font_size: 8 },
                             }
                             text: "ASSISTANT"
                         }
 
-                        timestamp_label = <Label> {
+                        timestamp_label = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_DARKER),
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 },
+                                color: THEME_COLOR_TEXT_MUTED_DARKER,
+                                text_style: theme.font_regular { font_size: 8 },
                             }
                             text: "..."
                         }
 
-                        <View> { width: Fill }
+                        View { width: Fill }
 
-                        copy_action_button = <Button> {
+                        copy_action_button = Button {
                             width: Fit, height: 20
                             text: "Copy"
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_size: 0.0
                             }
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_PRIMARY)
-                                color_hover: (THEME_COLOR_TEXT_BRIGHT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_TEXT_PRIMARY
+                                color_hover: THEME_COLOR_TEXT_BRIGHT
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                         }
 
-                        revert_action_button = <Button> {
+                        revert_action_button = Button {
                             width: Fit, height: 20
                             text: "Revert"
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_size: 0.0
                             }
                             draw_text: {
-                                color: (THEME_COLOR_ACCENT_AMBER)
-                                color_hover: (THEME_COLOR_TEXT_BRIGHT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_ACCENT_AMBER
+                                color_hover: THEME_COLOR_TEXT_BRIGHT
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                         }
                     }
 
-                    steps_summary_row = <View> {
+                    steps_summary_row = View {
                         visible: false
                         width: Fill, height: Fit
                         flow: Right
@@ -275,210 +269,210 @@ live_design! {
                         margin: { top: 6, bottom: 4 }
                         align: { y: 0.5 }
 
-                        steps_summary_label = <Label> {
+                        steps_summary_label = Label {
                             width: Fill, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 9 }
+                                color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                text_style: theme.font_regular { font_size: 9 }
                             }
                             text: ""
                         }
 
-                        steps_button = <Button> {
+                        steps_button = Button {
                             width: Fit, height: 20
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_PRIMARY)
-                                color_hover: (THEME_COLOR_TEXT_BRIGHT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_TEXT_PRIMARY
+                                color_hover: THEME_COLOR_TEXT_BRIGHT
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                             text: "▸ Details"
                         }
                     }
 
-                    steps_expanded = <View> {
+                    steps_expanded = View {
                         visible: false
                         width: Fill, height: Fit
                         flow: Down,
                         margin: { top: 2, bottom: 4 }
 
-                        steps_scroll = <ScrollYView> {
+                        steps_scroll = ScrollYView {
                             width: Fill, height: Fit
-                            content = <View> {
+                            content = View {
                                 width: Fill, height: Fit
                                 flow: Down
                                 spacing: 4
-                                step_row_0 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_0_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_0_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_0_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_0_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_0_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_0_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_0_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_1 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_1_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_1_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_1_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_1_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_1_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_1_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_1_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_2 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_2_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_2_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_2_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_2_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_2_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_2_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_2_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_3 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_3_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_3_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_3_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_3_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_3_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_3_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_3_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_4 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_4_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_4_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_4_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_4_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_4_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_4_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_4_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_5 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_5_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_5_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_5_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_5_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_5_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_5_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_5_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_6 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_6_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_6_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_6_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_6_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_6_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_6_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_6_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_7 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_7_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_7_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_7_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_7_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_7_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_7_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_7_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_8 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_8_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_8_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_8_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_8_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_8_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_8_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_8_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
-                                step_row_9 = <View> { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_9_header_row = <View> { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_9_rail = <View> { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_9_dot = <RoundedView> { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_TEXT_MUTED_DARKER), border_radius: 3.0 } }, step_row_9_line = <View> { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) } } }, step_row_9_header = <Button> { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: (THEME_COLOR_TRANSPARENT), color_hover: (THEME_COLOR_HOVER_MEDIUM), border_radius: 4.0, border_size: 0.0 }, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }, text: "" } }, step_row_9_body = <View> { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_9_content = <Label> { width: Fill, height: Fit, draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_0 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_0_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_0_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_0_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_0_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_0_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_0_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_0_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_1 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_1_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_1_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_1_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_1_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_1_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_1_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_1_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_2 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_2_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_2_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_2_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_2_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_2_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_2_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_2_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_3 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_3_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_3_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_3_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_3_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_3_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_3_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_3_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_4 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_4_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_4_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_4_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_4_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_4_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_4_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_4_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_5 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_5_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_5_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_5_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_5_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_5_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_5_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_5_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_6 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_6_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_6_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_6_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_6_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_6_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_6_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_6_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_7 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_7_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_7_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_7_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_7_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_7_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_7_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_7_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_8 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_8_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_8_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_8_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_8_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_8_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_8_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_8_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
+                                step_row_9 = View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_9_header_row = View { width: Fill, height: Fit, flow: Right, spacing: 6, align: { y: 0.0 }, step_row_9_rail = View { width: 10, height: Fill, flow: Down, align: { x: 0.5 }, step_row_9_dot = RoundedView { width: 6, height: 6, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_9_line = View { width: 2, height: Fill, margin: { top: 4 }, show_bg: true, draw_bg: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_9_header = Button { width: Fill, height: Fit, padding: { left: 4, right: 6, top: 2, bottom: 2 }, align: { x: 0.0 }, draw_bg: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_9_body = View { visible: true, width: Fill, height: Fit, flow: Down, padding: { left: 18, top: 2, bottom: 4 }, step_row_9_content = Label { width: Fill, height: Fit, draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }, text: "" } } }
                             }
                         }
                     }
 
-                    markdown_view = <View> {
+                    markdown_view = View {
                         visible: false
                         width: Fill, height: Fit
-                        msg_text = <Markdown> {
+                        msg_text = Markdown {
                             width: Fill, height: Fit
                             font_size: 10
-                            font_color: (THEME_COLOR_TEXT_NORMAL)
+                            font_color: THEME_COLOR_TEXT_NORMAL
                             paragraph_spacing: 8
                             pre_code_spacing: 6
                             use_code_block_widget: true
 
-                            code_block = <RoundedView> {
+                            code_block = RoundedView {
                                 width: Fill, height: Fit
                                 flow: Down
                                 padding: { left: 8, right: 8, top: 6, bottom: 6 }
                                 margin: { top: 4, bottom: 4 }
                                 draw_bg: {
-                                    color: (THEME_COLOR_BG_INPUT)
+                                    color: THEME_COLOR_BG_INPUT
                                     border_radius: 6.0
                                 }
 
-                                code_view = <CodeView> {
+                                code_view = CodeView {
                                     editor: {
                                         width: Fill
                                         height: Fit
-                                        draw_bg: { color: (THEME_COLOR_BG_INPUT) }
+                                        draw_bg: { color: THEME_COLOR_BG_INPUT }
                                         token_colors: {
-                                            unknown: (THEME_COLOR_TEXT_NORMAL)
-                                            branch_keyword: (THEME_COLOR_ACCENT_PURPLE)
-                                            comment: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                            constant: (THEME_COLOR_ACCENT_AMBER)
-                                            delimiter: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                            delimiter_highlight: (THEME_COLOR_TEXT_BRIGHT)
-                                            identifier: (THEME_COLOR_TEXT_NORMAL)
-                                            loop_keyword: (THEME_COLOR_ACCENT_PURPLE)
-                                            number: (THEME_COLOR_ACCENT_AMBER)
-                                            other_keyword: (THEME_COLOR_ACCENT_BLUE)
-                                            function: (THEME_COLOR_ACCENT_BLUE)
-                                            punctuator: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                            string: (THEME_COLOR_TEXT_CODE)
-                                            typename: (THEME_COLOR_TEXT_BOLD)
-                                            whitespace: (THEME_COLOR_TEXT_NORMAL)
-                                            error_decoration: (THEME_COLOR_ACCENT_RED)
-                                            warning_decoration: (THEME_COLOR_ACCENT_AMBER)
+                                            unknown: THEME_COLOR_TEXT_NORMAL
+                                            branch_keyword: THEME_COLOR_ACCENT_PURPLE
+                                            comment: THEME_COLOR_TEXT_MUTED_LIGHT
+                                            constant: THEME_COLOR_ACCENT_AMBER
+                                            delimiter: THEME_COLOR_TEXT_MUTED_LIGHTER
+                                            delimiter_highlight: THEME_COLOR_TEXT_BRIGHT
+                                            identifier: THEME_COLOR_TEXT_NORMAL
+                                            loop_keyword: THEME_COLOR_ACCENT_PURPLE
+                                            number: THEME_COLOR_ACCENT_AMBER
+                                            other_keyword: THEME_COLOR_ACCENT_BLUE
+                                            function: THEME_COLOR_ACCENT_BLUE
+                                            punctuator: THEME_COLOR_TEXT_MUTED_LIGHTER
+                                            string: THEME_COLOR_TEXT_CODE
+                                            typename: THEME_COLOR_TEXT_BOLD
+                                            whitespace: THEME_COLOR_TEXT_NORMAL
+                                            error_decoration: THEME_COLOR_ACCENT_RED
+                                            warning_decoration: THEME_COLOR_ACCENT_AMBER
                                         }
                                     }
                                 }
                             }
 
                             draw_normal: {
-                                text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 }
-                                color: (THEME_COLOR_TEXT_NORMAL)
+                                text_style: theme.font_regular { font_size: 10, line_spacing: 1.4 }
+                                color: THEME_COLOR_TEXT_NORMAL
                             }
                             draw_italic: {
-                                text_style: <THEME_FONT_ITALIC> { font_size: 10 }
-                                color: (THEME_COLOR_TEXT_NORMAL)
+                                text_style: theme.font_italic { font_size: 10 }
+                                color: THEME_COLOR_TEXT_NORMAL
                             }
                             draw_bold: {
-                                text_style: <THEME_FONT_BOLD> { font_size: 10 }
-                                color: (THEME_COLOR_TEXT_BOLD)
+                                text_style: theme.font_bold { font_size: 10 }
+                                color: THEME_COLOR_TEXT_BOLD
                             }
                             draw_fixed: {
-                                text_style: <THEME_FONT_CODE> { font_size: 9 }
-                                color: (THEME_COLOR_TEXT_CODE)
+                                text_style: theme.font_code { font_size: 9 }
+                                color: THEME_COLOR_TEXT_CODE
                             }
                         }
                     }
 
-                    label_view = <View> {
+                    label_view = View {
                         visible: false
                         width: Fill, height: Fit
-                        msg_label = <Label> {
+                        msg_label = Label {
                             width: Fill, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_NORMAL)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 10, line_spacing: 1.4 }
+                                color: THEME_COLOR_TEXT_NORMAL
+                                text_style: theme.font_regular { font_size: 10, line_spacing: 1.4 }
                                 word: Wrap
                             }
                         }
                     }
 
-                    error_label = <Label> {
+                    error_label = Label {
                         width: Fill, height: Fit
                         text: ""
                         draw_text: {
-                            color: (THEME_COLOR_ACCENT_RED)
-                            text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.4 }
+                            color: THEME_COLOR_ACCENT_RED
+                            text_style: theme.font_regular { font_size: 9, line_spacing: 1.4 }
                             wrap: Word
                         }
                     }
 
-                    diff_view = <DiffView> {}
+                    diff_view = DiffView {}
 
-                    stats_row = <View> {
+                    stats_row = View {
                         width: Fit, height: Fit
                         flow: Right,
                         spacing: 8,
                         margin: { top: 6 }
                         align: { y: 0.5 }
 
-                        tokens_label = <Label> {
+                        tokens_label = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
                         }
 
-                        cost_label = <Label> {
+                        cost_label = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
                         }
                     }
 
-                    msg_actions = <View> {
+                    msg_actions = View {
                         width: Fit, height: Fit
                         flow: Right,
                         spacing: 6,
                         margin: { top: 8 }
 
-                        copy_button = <Button> {
+                        copy_button = Button {
                             width: Fit, height: 20
                             text: "Copy"
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_size: 0.0
                             }
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                         }
 
-                        revert_button = <Button> {
+                        revert_button = Button {
                              width: Fit, height: 20
                              text: "Revert"
                              draw_bg: {
-                                 color: (THEME_COLOR_TRANSPARENT)
-                                 color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                 color: THEME_COLOR_TRANSPARENT
+                                 color_hover: THEME_COLOR_HOVER_MEDIUM
                                  border_size: 0.0
                              }
                              draw_text: {
-                                 color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                                 color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                                 text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                 color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                 color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
+                                 text_style: theme.font_regular { font_size: 8 }
                              }
                          }
                      }
@@ -496,8 +490,11 @@ pub struct PendingPermissionDisplay {
     pub patterns: Vec<String>,
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct MessageList {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
     #[rust]
@@ -562,29 +559,29 @@ impl Widget for MessageList {
             self.view.handle_event(cx, event, scope);
         });
 
-        let list = self.view.portal_list(&[id!(list)]);
+        let list = self.view.portal_list(cx, &[id!(list)]);
         for (item_id, widget) in list.items_with_actions(&actions) {
             if item_id >= self.messages.len() {
                 continue;
             }
 
-            if widget.button(&[id!(copy_action_button)]).clicked(&actions)
-                || widget.button(&[id!(copy_button)]).clicked(&actions)
+            if widget.button(cx, &[id!(copy_action_button)]).clicked(&actions)
+                || widget.button(cx, &[id!(copy_button)]).clicked(&actions)
             {
                 cx.copy_to_clipboard(&self.messages[item_id].text);
             }
 
             if widget
-                .button(&[id!(revert_action_button)])
+                .button(cx, &[id!(revert_action_button)])
                 .clicked(&actions)
-                || widget.button(&[id!(revert_button)]).clicked(&actions)
+                || widget.button(cx, &[id!(revert_button)]).clicked(&actions)
             {
                 if let Some(message_id) = &self.messages[item_id].message_id {
                     cx.action(MessageListAction::RevertToMessage(message_id.clone()));
                 }
             }
 
-            if widget.button(&[id!(steps_button)]).clicked(&actions) {
+            if widget.button(cx, &[id!(steps_button)]).clicked(&actions) {
                 if let Some(message) = self.messages.get_mut(item_id) {
                     if !message.steps.is_empty() {
                         message.show_steps = !message.show_steps;
@@ -597,7 +594,7 @@ impl Widget for MessageList {
                 let msg = &self.messages[item_id];
                 if !msg.diffs.is_empty() {
                     if widget
-                        .diff_view(&[id!(diff_view)])
+                        .diff_view(cx, &[id!(diff_view)])
                         .summary_header_clicked(cx)
                     {
                         if let Some(message) = self.messages.get_mut(item_id) {
@@ -612,7 +609,7 @@ impl Widget for MessageList {
                 let msg = &self.messages[item_id];
                 if msg.role == "assistant" && msg.show_steps && !msg.steps.is_empty() {
                     let steps_base =
-                        widget.view(&[id!(steps_expanded), id!(steps_scroll), id!(content)]);
+                        widget.view(cx, &[id!(steps_expanded), id!(steps_scroll), id!(content)]);
                     for step_id in 0..MessageList::MAX_STEP_ROWS.min(msg.steps.len()) {
                         let (row_id, header_id) = match step_id {
                             0 => (live_id!(step_row_0), live_id!(step_row_0_header)),
@@ -628,8 +625,8 @@ impl Widget for MessageList {
                             _ => continue,
                         };
                         if steps_base
-                            .view(&[row_id])
-                            .button(&[header_id])
+                            .view(cx, &[row_id])
+                            .button(cx, &[header_id])
                             .clicked(&actions)
                         {
                             if let Some(step) = self.messages[item_id].steps.get_mut(step_id) {
@@ -648,7 +645,7 @@ impl Widget for MessageList {
         let is_empty =
             self.messages.is_empty() && self.pending_permissions.is_empty() && !self.is_working;
         self.view
-            .view(&[id!(empty_state)])
+            .view(cx, &[id!(empty_state)])
             .set_visible(cx, is_empty);
 
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
@@ -669,7 +666,7 @@ impl Widget for MessageList {
                         let perm_idx = item_id - self.messages.len();
                         let perm = &self.pending_permissions[perm_idx];
                         let item_widget = list.item(cx, item_id, live_id!(PermissionMsg));
-                        item_widget.permission_card(&[]).set_permission(
+                        item_widget.permission_card(cx, &[]).set_permission(
                             cx,
                             perm.session_id.clone(),
                             perm.request_id.clone(),
@@ -720,21 +717,21 @@ impl Widget for MessageList {
 
                         let item_widget = list.item(cx, item_id, live_id!(ThinkingMsg));
                         item_widget
-                            .label(&[id!(thinking_label)])
+                            .label(cx, &[id!(thinking_label)])
                             .set_text(cx, "Working");
                         item_widget
-                            .label(&[id!(thinking_icon)])
+                            .label(cx, &[id!(thinking_icon)])
                             .set_text(cx, self.thinking_icon());
                         item_widget
-                            .label(&[id!(thinking_timer)])
+                            .label(cx, &[id!(thinking_timer)])
                             .set_text(cx, &self.cached_timer_text);
                         item_widget
-                            .label(&[id!(thinking_activity)])
+                            .label(cx, &[id!(thinking_activity)])
                             .set_text(cx, current_activity);
 
                         let has_tools = running_tools.map(|t| !t.is_empty()).unwrap_or(false);
                         item_widget
-                            .view(&[id!(thinking_tools)])
+                            .view(cx, &[id!(thinking_tools)])
                             .set_visible(cx, has_tools);
                         if let Some(tools) = running_tools {
                             for (idx, (icon, name, input)) in tools.iter().take(5).enumerate() {
@@ -771,11 +768,11 @@ impl Widget for MessageList {
                                     ),
                                     _ => continue,
                                 };
-                                let tools_view = item_widget.view(&[id!(thinking_tools)]);
-                                tools_view.view(&[row_id]).set_visible(cx, true);
-                                tools_view.label(&[icon_id]).set_text(cx, icon);
-                                tools_view.label(&[name_id]).set_text(cx, name);
-                                tools_view.label(&[input_id]).set_text(cx, input);
+                                let tools_view = item_widget.view(cx, &[id!(thinking_tools)]);
+                                tools_view.view(cx, &[row_id]).set_visible(cx, true);
+                                tools_view.label(cx, &[icon_id]).set_text(cx, icon);
+                                tools_view.label(cx, &[name_id]).set_text(cx, name);
+                                tools_view.label(cx, &[input_id]).set_text(cx, input);
                             }
                             for idx in running_tools.map(|t| t.len()).unwrap_or(0)..5 {
                                 let row_id = match idx {
@@ -787,8 +784,8 @@ impl Widget for MessageList {
                                     _ => continue,
                                 };
                                 item_widget
-                                    .view(&[id!(thinking_tools)])
-                                    .view(&[row_id])
+                                    .view(cx, &[id!(thinking_tools)])
+                                    .view(cx, &[row_id])
                                     .set_visible(cx, false);
                             }
                         }
@@ -803,21 +800,21 @@ impl Widget for MessageList {
                         let item_widget = list.item(cx, item_id, template);
 
                         if msg.role == "user" {
-                            item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
+                            item_widget.widget(cx, &[id!(msg_text)]).set_text(cx, &msg.text);
                         } else {
                             if msg.cached_needs_markdown {
-                                item_widget.view(&[id!(label_view)]).set_visible(cx, false);
+                                item_widget.view(cx, &[id!(label_view)]).set_visible(cx, false);
                                 item_widget
-                                    .view(&[id!(markdown_view)])
+                                    .view(cx, &[id!(markdown_view)])
                                     .set_visible(cx, true);
-                                item_widget.widget(&[id!(msg_text)]).set_text(cx, &msg.text);
+                                item_widget.widget(cx, &[id!(msg_text)]).set_text(cx, &msg.text);
                             } else {
                                 item_widget
-                                    .view(&[id!(markdown_view)])
+                                    .view(cx, &[id!(markdown_view)])
                                     .set_visible(cx, false);
-                                item_widget.view(&[id!(label_view)]).set_visible(cx, true);
+                                item_widget.view(cx, &[id!(label_view)]).set_visible(cx, true);
                                 item_widget
-                                    .widget(&[id!(msg_label)])
+                                    .widget(cx, &[id!(msg_label)])
                                     .set_text(cx, &msg.text);
                             }
                         }
@@ -834,49 +831,49 @@ impl Widget for MessageList {
                                 && last_assistant_idx == Some(item_id));
                         if msg.role == "assistant" {
                             item_widget
-                                .button(&[id!(copy_action_button)])
+                                .button(cx, &[id!(copy_action_button)])
                                 .set_visible(cx, true);
                             item_widget
-                                .button(&[id!(revert_action_button)])
+                                .button(cx, &[id!(revert_action_button)])
                                 .set_visible(cx, show_revert);
                         }
 
                         if msg.timestamp.is_some() {
                             item_widget
-                                .label(&[id!(timestamp_label)])
+                                .label(cx, &[id!(timestamp_label)])
                                 .set_text(cx, &msg.cached_timestamp);
                         }
 
                         if msg.role == "assistant" {
                             if let Some(ref model_id) = msg.model_id {
                                 item_widget
-                                    .label(&[id!(model_label)])
+                                    .label(cx, &[id!(model_label)])
                                     .set_text(cx, model_id);
                             }
                             if let Some(error_text) = &msg.error_text {
                                 item_widget
-                                    .label(&[id!(error_label)])
+                                    .label(cx, &[id!(error_label)])
                                     .set_text(cx, error_text);
                                 item_widget
-                                    .widget(&[id!(error_label)])
+                                    .widget(cx, &[id!(error_label)])
                                     .set_visible(cx, true);
                             } else {
-                                item_widget.label(&[id!(error_label)]).set_text(cx, "");
+                                item_widget.label(cx, &[id!(error_label)]).set_text(cx, "");
                                 item_widget
-                                    .widget(&[id!(error_label)])
+                                    .widget(cx, &[id!(error_label)])
                                     .set_visible(cx, false);
                             }
 
                             let mut show_stats = false;
                             if msg.tokens.is_some() {
                                 item_widget
-                                    .label(&[id!(tokens_label)])
+                                    .label(cx, &[id!(tokens_label)])
                                     .set_text(cx, &msg.cached_token_usage);
                                 show_stats = true;
                             }
                             if msg.cost.is_some() {
                                 item_widget
-                                    .label(&[id!(cost_label)])
+                                    .label(cx, &[id!(cost_label)])
                                     .set_text(cx, &msg.cached_cost);
                                 show_stats = true;
                             }
@@ -884,26 +881,26 @@ impl Widget for MessageList {
                                 show_stats = false;
                             }
                             item_widget
-                                .view(&[id!(stats_row)])
+                                .view(cx, &[id!(stats_row)])
                                 .set_visible(cx, show_stats);
 
                             let has_steps = !msg.steps.is_empty();
                             item_widget
-                                .view(&[id!(steps_summary_row)])
+                                .view(cx, &[id!(steps_summary_row)])
                                 .set_visible(cx, has_steps);
                             if has_steps {
                                 item_widget
-                                    .label(&[id!(steps_summary_label)])
+                                    .label(cx, &[id!(steps_summary_label)])
                                     .set_text(cx, &msg.cached_steps_summary);
                                 item_widget
-                                    .button(&[id!(steps_button)])
+                                    .button(cx, &[id!(steps_button)])
                                     .set_text(cx, &Self::steps_button_label(msg));
                             }
                             item_widget
-                                .view(&[id!(steps_expanded)])
+                                .view(cx, &[id!(steps_expanded)])
                                 .set_visible(cx, has_steps && msg.show_steps);
                             if has_steps && msg.show_steps {
-                                let steps_base = item_widget.view(&[
+                                let steps_base = item_widget.view(cx, &[
                                     id!(steps_expanded),
                                     id!(steps_scroll),
                                     id!(content),
@@ -1000,63 +997,40 @@ impl Widget for MessageList {
                                         } else {
                                             &step.cached_header_collapsed
                                         };
-                                        steps_base.view(&[row_id]).set_visible(cx, true);
+                                        steps_base.view(cx, &[row_id]).set_visible(cx, true);
                                         let header_button =
-                                            steps_base.view(&[row_id]).button(&[header_id]);
-                                        header_button.set_text(cx, header);
-                                        let (text_color, hover_color) = if step.has_error {
-                                            (
-                                                vec4(0.937, 0.267, 0.267, 1.0),
-                                                vec4(1.0, 0.4, 0.4, 1.0),
-                                            )
+                                            steps_base.view(cx, &[row_id]).button(cx, &[header_id]);
+                                        if step.has_error {
+                                            header_button
+                                                .set_text(cx, &format!("! {}", header));
                                         } else {
-                                            (vec4(0.65, 0.65, 0.65, 1.0), vec4(0.9, 0.9, 0.9, 1.0))
-                                        };
-                                        header_button.apply_over(cx, live! { draw_text: { color: (text_color) color_hover: (hover_color) } });
+                                            header_button.set_text(cx, header);
+                                        }
                                         steps_base
-                                            .view(&[row_id])
-                                            .view(&[body_id])
+                                            .view(cx, &[row_id])
+                                            .view(cx, &[body_id])
                                             .set_visible(cx, step.expanded);
                                         steps_base
-                                            .view(&[row_id])
-                                            .label(&[content_id])
+                                            .view(cx, &[row_id])
+                                            .label(cx, &[content_id])
                                             .set_text(cx, &step.cached_body);
-                                        let (dot_color, line_color) = if step.has_error {
-                                            (
-                                                vec4(0.937, 0.267, 0.267, 1.0),
-                                                vec4(0.4, 0.2, 0.2, 1.0),
-                                            )
-                                        } else if step.has_running {
-                                            (vec4(0.4, 0.6, 1.0, 1.0), vec4(0.2, 0.3, 0.5, 1.0))
-                                        } else {
-                                            (vec4(0.5, 0.5, 0.5, 1.0), vec4(0.25, 0.25, 0.25, 1.0))
-                                        };
-                                        steps_base.view(&[row_id]).view(&[dot_id]).apply_over(
-                                            cx,
-                                            live! { draw_bg: { color: (dot_color) } },
-                                        );
+                                        let _ = dot_id;
                                         let show_line = step_id + 1 < msg.steps.len();
-                                        let line_view = steps_base.view(&[row_id]).view(&[line_id]);
+                                        let line_view = steps_base.view(cx, &[row_id]).view(cx, &[line_id]);
                                         line_view.set_visible(cx, show_line);
-                                        if show_line {
-                                            line_view.apply_over(
-                                                cx,
-                                                live! { draw_bg: { color: (line_color) } },
-                                            );
-                                        }
                                     } else {
-                                        steps_base.view(&[row_id]).set_visible(cx, false);
+                                        steps_base.view(cx, &[row_id]).set_visible(cx, false);
                                     }
                                 }
                             }
                             item_widget
-                                .button(&[id!(copy_button)])
+                                .button(cx, &[id!(copy_button)])
                                 .set_visible(cx, false);
                             item_widget
-                                .button(&[id!(revert_button)])
+                                .button(cx, &[id!(revert_button)])
                                 .set_visible(cx, false);
-                            item_widget.view(&[id!(msg_actions)]).set_visible(cx, true);
-                            let diff_view = item_widget.diff_view(&[id!(diff_view)]);
+                            item_widget.view(cx, &[id!(msg_actions)]).set_visible(cx, true);
+                            let diff_view = item_widget.diff_view(cx, &[id!(diff_view)]);
                             if msg.diffs.is_empty() {
                                 diff_view.clear_diffs(cx);
                             } else {
@@ -1103,7 +1077,7 @@ impl MessageListRef {
             if msg_count > 0 {
                 inner
                     .view
-                    .portal_list(&[id!(list)])
+                    .portal_list(cx, &[id!(list)])
                     .set_first_id(msg_count.saturating_sub(1));
             }
             inner.redraw(cx);
@@ -1245,8 +1219,9 @@ impl MessageListRef {
     }
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum MessageListAction {
+    #[default]
     None,
     RevertToMessage(String),
 }

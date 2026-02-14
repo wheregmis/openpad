@@ -1,89 +1,98 @@
 use crate::colored_diff_text::{ColoredDiffTextApi, ColoredDiffTextWidgetExt};
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::openpad::*;
-    use crate::theme::*;
-    use crate::colored_diff_text::ColoredDiffText;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    pub DiffView = {{DiffView}} {
-        width: Fill, height: Fit
+    mod.widgets.DiffView = #(DiffView::register_widget(vm)) {
+        width: Fill
+        height: Fit
         flow: Down
         visible: false
 
-        summary_header = <RoundedView> {
+        summary_header = RoundedView {
             visible: false
-            width: Fill, height: Fit
-            padding: { left: 12, right: 12, top: 8, bottom: 8 }
+            width: Fill
+            height: Fit
+            padding: {left: 12 right: 12 top: 8 bottom: 8}
             cursor: Hand
             show_bg: true
             draw_bg: {
-                color: (THEME_COLOR_DIFF_HEADER_BG)
+                color: THEME_COLOR_DIFF_HEADER_BG
                 border_radius: 8.0
             }
 
-            summary_row = <View> {
-                width: Fill, height: Fit
+            summary_row = View {
+                width: Fill
+                height: Fit
                 flow: Right
                 spacing: 8
-                align: { y: 0.5 }
+                align: {y: 0.5}
 
-                summary_files_label = <Label> {
-                    width: Fit, height: Fit
+                summary_files_label = Label {
+                    width: Fit
+                    height: Fit
                     text: ""
                     draw_text: {
-                        color: (THEME_COLOR_TEXT_DIM)
-                        text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                        color: THEME_COLOR_TEXT_DIM
+                        text_style: theme.font_bold {font_size: 11}
                     }
                 }
 
-                summary_add_label = <Label> {
-                    width: Fit, height: Fit
+                summary_add_label = Label {
+                    width: Fit
+                    height: Fit
                     text: ""
                     draw_text: {
-                        color: (THEME_COLOR_DIFF_ADD_TEXT)
-                        text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                        color: THEME_COLOR_DIFF_ADD_TEXT
+                        text_style: theme.font_bold {font_size: 11}
                     }
                 }
 
-                summary_del_label = <Label> {
-                    width: Fit, height: Fit
+                summary_del_label = Label {
+                    width: Fit
+                    height: Fit
                     text: ""
                     draw_text: {
-                        color: (THEME_COLOR_DIFF_DEL_TEXT)
-                        text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                        color: THEME_COLOR_DIFF_DEL_TEXT
+                        text_style: theme.font_bold {font_size: 11}
                     }
                 }
             }
         }
 
-        diff_content = <RoundedView> {
-            width: Fill, height: Fit
+        diff_content = RoundedView {
+            width: Fill
+            height: Fit
             visible: false
-            padding: { left: 12, right: 12, top: 8, bottom: 8 }
-            margin: { top: 2 }
+            padding: {left: 12 right: 12 top: 8 bottom: 8}
+            margin: {top: 2}
             show_bg: true
             draw_bg: {
-                color: (THEME_COLOR_BG_DARKER)
+                color: THEME_COLOR_BG_DARKER
                 border_radius: 0.0
             }
 
-            <ScrollYView> {
-                width: Fill, height: Fit
+            ScrollYView {
+                width: Fill
+                height: Fit
 
-                diff_text = <ColoredDiffText> {
-                    width: Fill, height: Fit
+                diff_text = mod.widgets.ColoredDiffText {
+                    width: Fill
+                    height: Fit
                 }
             }
         }
     }
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct DiffView {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
 
@@ -102,7 +111,7 @@ impl Widget for DiffView {
         self.view.handle_event(cx, event, scope);
 
         if let Event::MouseDown(mouse) = event {
-            let header = self.view.view(&[id!(summary_header)]);
+            let header = self.view.view(cx, &[id!(summary_header)]);
             let header_rect = header.area().rect(cx);
             if header_rect.contains(mouse.abs) {
                 self.summary_header_clicked = true;
@@ -141,13 +150,13 @@ impl DiffView {
             if file_count == 1 { "" } else { "s" }
         );
         self.view
-            .label(&[id!(summary_files_label)])
+            .label(cx, &[id!(summary_files_label)])
             .set_text(cx, &files_label);
         self.view
-            .label(&[id!(summary_add_label)])
+            .label(cx, &[id!(summary_add_label)])
             .set_text(cx, &format!("+{}", total_additions));
         self.view
-            .label(&[id!(summary_del_label)])
+            .label(cx, &[id!(summary_del_label)])
             .set_text(cx, &format!("-{}", total_deletions));
 
         let mut full_diff = String::new();
@@ -165,12 +174,16 @@ impl DiffView {
 
         self.diff_text_content = full_diff.clone();
         self.view
-            .colored_diff_text(&[id!(diff_text)])
+            .colored_diff_text(cx, &[id!(diff_text)])
             .set_diff_text(cx, &full_diff);
 
         self.expanded = false;
-        self.view.view(&[id!(diff_content)]).set_visible(cx, false);
-        self.view.view(&[id!(summary_header)]).set_visible(cx, true);
+        self.view
+            .view(cx, &[id!(diff_content)])
+            .set_visible(cx, false);
+        self.view
+            .view(cx, &[id!(summary_header)])
+            .set_visible(cx, true);
         self.view.set_visible(cx, true);
         self.redraw(cx);
     }
@@ -178,7 +191,7 @@ impl DiffView {
     pub fn set_expanded(&mut self, cx: &mut Cx, expanded: bool) {
         self.expanded = expanded;
         self.view
-            .view(&[id!(diff_content)])
+            .view(cx, &[id!(diff_content)])
             .set_visible(cx, expanded);
         if expanded {
             self.view.set_visible(cx, true);
@@ -191,12 +204,16 @@ impl DiffView {
         self.diff_text_content.clear();
         self.summary_text.clear();
         self.view
-            .label(&[id!(summary_files_label)])
+            .label(cx, &[id!(summary_files_label)])
             .set_text(cx, "");
-        self.view.label(&[id!(summary_add_label)]).set_text(cx, "");
-        self.view.label(&[id!(summary_del_label)]).set_text(cx, "");
         self.view
-            .view(&[id!(summary_header)])
+            .label(cx, &[id!(summary_add_label)])
+            .set_text(cx, "");
+        self.view
+            .label(cx, &[id!(summary_del_label)])
+            .set_text(cx, "");
+        self.view
+            .view(cx, &[id!(summary_header)])
             .set_visible(cx, false);
         self.view.set_visible(cx, false);
         self.redraw(cx);

@@ -1,112 +1,120 @@
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::openpad::*;
-    use crate::theme::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    pub PermissionDialog = {{PermissionDialog}} {
-        width: Fill, height: Fit
+    mod.widgets.PermissionDialog = #(PermissionDialog::register_widget(vm)) {
+        width: Fill
+        height: Fit
         flow: Down
-        padding: { left: 14, right: 14, top: 12, bottom: 12 }
-        spacing: 10,
+        padding: {left: 14 right: 14 top: 12 bottom: 12}
+        spacing: 10
         visible: false
         show_bg: true
 
-        draw_bg: {
-            color: (THEME_COLOR_BG_DIALOG)
-            uniform border_color: (THEME_COLOR_BORDER_DIALOG)
-            uniform border_radius: 10.0
-            uniform border_size: 1.0
+        draw_bg +: {
+            color: uniform(THEME_COLOR_BG_DIALOG)
+            border_color: uniform(THEME_COLOR_BORDER_DIALOG)
+            border_radius: uniform(10.0)
+            border_size: uniform(1.0)
 
-            fn pixel(self) -> vec4 {
-                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
-                sdf.fill_keep(self.color);
-                sdf.stroke(self.border_color, self.border_size);
-                return sdf.result;
+            pixel: fn() {
+                let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+                sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius)
+                sdf.fill_keep(self.color)
+                sdf.stroke(self.border_color, self.border_size)
+                return sdf.result
             }
         }
 
-        header_row = <View> {
-            width: Fill, height: Fit
-            flow: Right,
-            spacing: 8,
-            align: { y: 0.5 }
+        header_row = View {
+            width: Fill
+            height: Fit
+            flow: Right
+            spacing: 8
+            align: {y: 0.5}
 
-            title = <Label> {
+            title = Label {
                 text: "Permission required"
                 draw_text: {
-                    color: (THEME_COLOR_TEXT_PRIMARY)
-                    text_style: <THEME_FONT_BOLD> { font_size: 12 }
+                    color: THEME_COLOR_TEXT_PRIMARY
+                    text_style: theme.font_bold {font_size: 12}
                 }
             }
 
-            <View> { width: Fill }
+            View {width: Fill}
 
-            permission_badge = <RoundedView> {
-                width: Fit, height: Fit
-                padding: { left: 8, right: 8, top: 4, bottom: 4 }
+            permission_badge = RoundedView {
+                width: Fit
+                height: Fit
+                padding: {left: 8 right: 8 top: 4 bottom: 4}
                 draw_bg: {
-                    color: (THEME_COLOR_SHADE_1)
+                    color: THEME_COLOR_SHADE_1
                     border_radius: 10.0
                 }
 
-                permission_type = <Label> {
-                    width: Fit, height: Fit
+                permission_type = Label {
+                    width: Fit
+                    height: Fit
                     text: ""
                     draw_text: {
-                        color: (THEME_COLOR_SHADE_10)
-                        text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                        color: THEME_COLOR_SHADE_10
+                        text_style: theme.font_regular {font_size: 10}
                     }
                 }
             }
         }
 
-        description = <Label> {
-            width: Fill, height: Fit
+        description = Label {
+            width: Fill
+            height: Fit
             text: ""
             draw_text: {
-                color: (THEME_COLOR_TEXT_DIM)
-                text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                color: THEME_COLOR_TEXT_DIM
+                text_style: theme.font_regular {font_size: 11}
                 wrap: Word
             }
         }
 
-        details_view = <RoundedView> {
-            width: Fill, height: 200
-            padding: 10,
+        details_view = RoundedView {
+            width: Fill
+            height: 200
+            padding: 10
             draw_bg: {
-                color: (THEME_COLOR_BG_INPUT)
+                color: THEME_COLOR_BG_INPUT
                 border_radius: 8.0
             }
 
-            <ScrollYView> {
-                width: Fill, height: Fill
+            ScrollYView {
+                width: Fill
+                height: Fill
 
-                <View> {
-                    width: Fill, height: Fit
-                    flow: Down,
-                    spacing: 6,
+                View {
+                    width: Fill
+                    height: Fit
+                    flow: Down
+                    spacing: 6
 
-                    pattern = <Label> {
-                        width: Fill, height: Fit
+                    pattern = Label {
+                        width: Fill
+                        height: Fit
                         text: ""
                         draw_text: {
-                            color: (THEME_COLOR_STATUS_DOT)
-                            text_style: <THEME_FONT_CODE> { font_size: 10 }
+                            color: THEME_COLOR_STATUS_DOT
+                            text_style: theme.font_code {font_size: 10}
                             wrap: Word
                         }
                     }
 
-                    context = <Label> {
-                        width: Fill, height: Fit
+                    context = Label {
+                        width: Fill
+                        height: Fit
                         text: ""
                         draw_text: {
-                            color: (THEME_COLOR_SHADE_7)
-                            text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                            color: THEME_COLOR_SHADE_7
+                            text_style: theme.font_regular {font_size: 10}
                             wrap: Word
                         }
                     }
@@ -114,53 +122,67 @@ live_design! {
             }
         }
 
-        buttons_row = <View> {
-            width: Fill, height: Fit
-            flow: Right,
-            spacing: 10,
-            align: { x: 1.0, y: 0.5 }
+        buttons_row = View {
+            width: Fill
+            height: Fit
+            flow: Right
+            spacing: 10
+            align: {x: 1.0 y: 0.5}
 
-            reject_button = <Button> {
-                width: 90, height: 32
+            reject_button = Button {
+                width: 90
+                height: 32
                 text: "Reject"
                 draw_bg: {
-                    color: (THEME_COLOR_SHADE_3)
-                    color_hover: (THEME_COLOR_SHADE_5)
+                    color: THEME_COLOR_SHADE_3
+                    color_hover: THEME_COLOR_SHADE_5
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                draw_text: {
+                    color: THEME_COLOR_TEXT_PRIMARY
+                    text_style: theme.font_regular {font_size: 11}
+                }
             }
 
-            always_button = <Button> {
-                width: 120, height: 32
+            always_button = Button {
+                width: 120
+                height: 32
                 text: "Always allow"
                 draw_bg: {
-                    color: (THEME_COLOR_SHADE_4)
-                    color_hover: (THEME_COLOR_SHADE_6)
+                    color: THEME_COLOR_SHADE_4
+                    color_hover: THEME_COLOR_SHADE_6
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                draw_text: {
+                    color: THEME_COLOR_TEXT_PRIMARY
+                    text_style: theme.font_regular {font_size: 11}
+                }
             }
 
-            accept_button = <Button> {
-                width: 110, height: 32
+            accept_button = Button {
+                width: 110
+                height: 32
                 text: "Allow once"
                 draw_bg: {
-                    color: (THEME_COLOR_ACCENT_BLUE)
-                    color_hover: (THEME_COLOR_ACCENT_BLUE_DARK)
+                    color: THEME_COLOR_ACCENT_BLUE
+                    color_hover: THEME_COLOR_ACCENT_BLUE_DARK
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: { color: (THEME_COLOR_TEXT_BRIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                draw_text: {
+                    color: THEME_COLOR_TEXT_BRIGHT
+                    text_style: theme.font_regular {font_size: 11}
+                }
             }
         }
     }
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum PermissionDialogAction {
+    #[default]
     None,
     Responded {
         session_id: String,
@@ -169,8 +191,11 @@ pub enum PermissionDialogAction {
     },
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct PermissionDialog {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
 
@@ -186,7 +211,7 @@ impl Widget for PermissionDialog {
             self.view.handle_event(cx, event, scope);
         });
 
-        if self.view.button(&[id!(accept_button)]).clicked(&actions) {
+        if self.view.button(cx, &[id!(accept_button)]).clicked(&actions) {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
@@ -199,7 +224,7 @@ impl Widget for PermissionDialog {
             self.hide(cx);
         }
 
-        if self.view.button(&[id!(reject_button)]).clicked(&actions) {
+        if self.view.button(cx, &[id!(reject_button)]).clicked(&actions) {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
@@ -212,7 +237,7 @@ impl Widget for PermissionDialog {
             self.hide(cx);
         }
 
-        if self.view.button(&[id!(always_button)]).clicked(&actions) {
+        if self.view.button(cx, &[id!(always_button)]).clicked(&actions) {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
@@ -250,27 +275,33 @@ impl PermissionDialog {
         );
 
         self.view
-            .label(&[id!(description)])
+            .label(cx, &[id!(description)])
             .set_text(cx, &description);
         self.view
-            .label(&[id!(permission_type)])
+            .label(cx, &[id!(permission_type)])
             .set_text(cx, &permission.to_uppercase());
+
         let patterns_text = if patterns.is_empty() {
             "Patterns: (none)".to_string()
         } else {
             format!("Patterns:\n{}", patterns.join("\n"))
         };
         self.view
-            .label(&[id!(pattern)])
+            .label(cx, &[id!(pattern)])
             .set_text(cx, &patterns_text);
+
         if let Some(context_text) = context.filter(|text| !text.trim().is_empty()) {
             self.view
-                .label(&[id!(context)])
+                .label(cx, &[id!(context)])
                 .set_text(cx, &format!("Context:\n{}", context_text));
-            self.view.widget(&[id!(context)]).set_visible(cx, true);
+            self.view
+                .widget(cx, &[id!(context)])
+                .set_visible(cx, true);
         } else {
-            self.view.label(&[id!(context)]).set_text(cx, "");
-            self.view.widget(&[id!(context)]).set_visible(cx, false);
+            self.view.label(cx, &[id!(context)]).set_text(cx, "");
+            self.view
+                .widget(cx, &[id!(context)])
+                .set_visible(cx, false);
         }
 
         self.view.set_visible(cx, true);
