@@ -32,15 +32,15 @@ script_mod! {
         }
 
         animator: Animator {
-            open = {
+            open: {
                 default: @off
-                off = {
+                off: {
                     redraw: true
                     from: {all: Forward {duration: 0.4}}
                     ease: ExpDecay {d1: 0.80 d2: 0.97}
                     apply: {animator_panel_progress: 0.0}
                 }
-                on = {
+                on: {
                     redraw: true
                     from: {all: Forward {duration: 0.4}}
                     ease: ExpDecay {d1: 0.80 d2: 0.97}
@@ -101,6 +101,11 @@ impl SidePanel {
             self.animator_play(cx, &[id!(open), id!(off)]);
         }
     }
+
+    pub fn set_open_size(&mut self, cx: &mut Cx, open_size: f32) {
+        self.open_size = open_size;
+        self.redraw(cx);
+    }
 }
 
 impl SidePanelRef {
@@ -115,6 +120,12 @@ impl SidePanelRef {
     pub fn set_open(&self, cx: &mut Cx, open: bool) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.set_open(cx, open);
+        }
+    }
+
+    pub fn set_open_size(&self, cx: &mut Cx, open_size: f32) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.set_open_size(cx, open_size);
         }
     }
 }

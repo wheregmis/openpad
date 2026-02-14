@@ -46,29 +46,28 @@ script_mod! {
                         width: Fill
                         height: 32
                         padding: {left: 10 right: 10 top: 6 bottom: 6}
-                        popup_menu_position: AboveInput
 
                         animator: Animator {
-                            disabled = {
+                            disabled: {
                                 default: @off
-                                off = {apply: {draw_bg: {disabled: 0.0}}}
-                                on = {apply: {draw_bg: {disabled: 1.0}}}
+                                off: {apply: {draw_bg: {disabled: 0.0}}}
+                                on: {apply: {draw_bg: {disabled: 1.0}}}
                             }
-                            hover = {
+                            hover: {
                                 default: @off
-                                off = {
+                                off: {
                                     from: {all: Forward {duration: 0.15}}
                                     apply: {draw_bg: {hover: 0.0}}
                                 }
-                                on = {
+                                on: {
                                     from: {all: Forward {duration: 0.15}}
                                     apply: {draw_bg: {hover: 1.0}}
                                 }
                             }
-                            focus = {
+                            focus: {
                                 default: @off
-                                off = {apply: {draw_bg: {focus: 0.0}}}
-                                on = {apply: {draw_bg: {focus: 1.0}}}
+                                off: {apply: {draw_bg: {focus: 0.0}}}
+                                on: {apply: {draw_bg: {focus: 1.0}}}
                             }
                         }
 

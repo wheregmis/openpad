@@ -29,15 +29,15 @@ script_mod! {
         }
 
         animator: Animator {
-            open = {
+            open: {
                 default: @off
-                off = {
+                off: {
                     redraw: true
                     from: {all: Forward {duration: 0.4}}
                     ease: ExpDecay {d1: 0.80 d2: 0.97}
                     apply: {animator_panel_progress: 0.0}
                 }
-                on = {
+                on: {
                     redraw: true
                     from: {all: Forward {duration: 0.4}}
                     ease: ExpDecay {d1: 0.80 d2: 0.97}

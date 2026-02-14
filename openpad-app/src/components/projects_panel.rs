@@ -1,40 +1,37 @@
 use crate::async_runtime;
-use crate::constants::{COLOR_SESSION_NORMAL, COLOR_SESSION_SELECTED};
 use crate::state::actions::ProjectsPanelAction;
 use makepad_widgets::*;
 use openpad_protocol::{Project, Session, SessionSummary};
 use std::collections::HashMap;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-pub ProjectsPanel = {{ProjectsPanel}} {
+mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
         width: Fill, height: Fill
-        list = <PortalList> {
-            scroll_bar: <ScrollBar> {
+        list = PortalList {
+            scroll_bar: ScrollBar {
                 bar_size: 4.0
                 bar_side_margin: 6.0
                 smoothing: 0.15
             }
 
-            ProjectHeader = <View> {
+            ProjectHeader = View {
                 width: Fill, height: Fit
                 flow: Right, align: {y: 0.5}
                 padding: { top: 12, bottom: 4, left: 8 }
                 cursor: Hand
 
-                chevron = <View> {
+                chevron = View {
                     width: 16, height: 16
                     align: { x: 0.5, y: 0.5 }
                     show_bg: true
                     draw_bg: {
-                        instance rotation: 0.0
-                        fn pixel(self) -> vec4 {
-                            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                        rotation: instance(0.0)
+                        pixel: fn() {
+                            let sdf = Sdf2d.viewport(self.pos * self.rect_size);
                             let cx = self.rect_size.x * 0.5;
                             let cy = self.rect_size.y * 0.5;
                             let sz = 3.0;
@@ -51,21 +48,21 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                     }
                 }
 
-                project_name = <Label> {
+                project_name = Label {
                     width: Fill
                     margin: { left: 4 }
-                    draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                    draw_text: { color: THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 10 } }
                 }
 
-                project_working_dot = <View> {
+                project_working_dot = View {
                     visible: false
                     width: 6, height: 6
                     margin: { right: 4 }
                     show_bg: true
                     draw_bg: {
-                        color: (THEME_COLOR_ACCENT_AMBER)
-                        fn pixel(self) -> vec4 {
-                            let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                        color: THEME_COLOR_ACCENT_AMBER
+                        pixel: fn() {
+                            let sdf = Sdf2d.viewport(self.pos * self.rect_size);
                             let c = self.rect_size * 0.5;
                             let r = min(c.x, c.y) - 0.5;
                             sdf.circle(c.x, c.y, r);
@@ -75,92 +72,92 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                     }
                 }
 
-                new_session_header_button = <Button> {
+                new_session_header_button = Button {
                     width: Fit, height: 20
                     margin: { right: 4 }
                     text: "+"
                     draw_bg: {
-                        color: (THEME_COLOR_TRANSPARENT)
-                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                        color: THEME_COLOR_TRANSPARENT
+                        color_hover: THEME_COLOR_HOVER_MEDIUM
                         border_radius: 4.0
                         border_size: 0.0
                     }
-                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                    draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 11 } }
                 }
             }
 
-            SessionRow = <View> {
+            SessionRow = View {
                 width: Fill, height: Fit
                 flow: Overlay
 
                 // Main row content
-                <View> {
+                View {
                     width: Fill, height: Fit
                     padding: { top: 1, bottom: 1, left: 16 }
                     flow: Right,
                     spacing: 2,
                     align: { y: 0.5 }
 
-                    session_button = <Button> {
+                    session_button = Button {
                         width: Fill, height: 24
                         margin: { right: 8 }
                         text: "Session"
                         draw_bg: {
-                            color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_HOVER_SUBTLE)
+                            color: THEME_COLOR_TRANSPARENT
+                            color_hover: THEME_COLOR_HOVER_SUBTLE
                             border_radius: 4.0
                             border_size: 0.0
                         }
                         draw_text: {
-                            color: (THEME_COLOR_TEXT_NORMAL),
-                            text_style: <THEME_FONT_REGULAR> { font_size: 10 }
+                            color: THEME_COLOR_TEXT_NORMAL,
+                            text_style: theme.font_regular { font_size: 10 }
                             word: Wrap
                         }
                     }
 
-                    summary_stats = <View> {
+                    summary_stats = View {
                         width: Fit, height: Fit
                         margin: { right: 6 }
                         flow: Right
                         spacing: 6
                         align: { y: 0.5 }
 
-                        summary_files_label = <Label> {
+                        summary_files_label = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_TEXT_MUTED_DARK)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_TEXT_MUTED_DARK
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
                         }
 
-                        summary_add_label = <Label> {
+                        summary_add_label = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_DIFF_ADD_TEXT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_DIFF_ADD_TEXT
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
                         }
 
-                        summary_del_label = <Label> {
+                        summary_del_label = Label {
                             width: Fit, height: Fit
                             draw_text: {
-                                color: (THEME_COLOR_DIFF_DEL_TEXT)
-                                text_style: <THEME_FONT_REGULAR> { font_size: 8 }
+                                color: THEME_COLOR_DIFF_DEL_TEXT
+                                text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
                         }
                     }
 
-                    working_dot = <View> {
+                    working_dot = View {
                         visible: false
                         width: 6, height: 6
                         show_bg: true
                         draw_bg: {
-                            color: (THEME_COLOR_ACCENT_AMBER)
-                            fn pixel(self) -> vec4 {
-                                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
+                            color: THEME_COLOR_ACCENT_AMBER
+                            pixel: fn() {
+                                let sdf = Sdf2d.viewport(self.pos * self.rect_size);
                                 let c = self.rect_size * 0.5;
                                 let r = min(c.x, c.y) - 0.5;
                                 sdf.circle(c.x, c.y, r);
@@ -169,31 +166,31 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                             }
                         }
                     }
-                    menu_button = <Button> {
+                    menu_button = Button {
                         width: 28, height: 28
                         text: "⋯"
                         align: { x: 0.5, y: 0.5 }
                         draw_bg: {
-                            color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                            color: THEME_COLOR_TRANSPARENT
+                            color_hover: THEME_COLOR_HOVER_MEDIUM
                             border_radius: 6.0
                             border_size: 0.0
                         }
                         draw_text: {
-                            color: (THEME_COLOR_TEXT_MUTED_LIGHT)
-                            color_hover: (THEME_COLOR_TEXT_MUTED_LIGHTER)
-                            text_style: <THEME_FONT_BOLD> { font_size: 12 }
+                            color: THEME_COLOR_TEXT_MUTED_LIGHT
+                            color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
+                            text_style: theme.font_bold { font_size: 12 }
                         }
                     }
                 }
 
                 // Floating menu panel - overlays on top, right-aligned
-                <View> {
+                View {
                     width: Fill, height: Fit
                     padding: { top: 1, bottom: 1, right: 4 }
                     align: { x: 1.0, y: 0.5 }
 
-                    menu_panel = <RoundedView> {
+                    menu_panel = RoundedView {
                         visible: false
                         width: Fit, height: Fit
                         flow: Right,
@@ -207,72 +204,72 @@ pub ProjectsPanel = {{ProjectsPanel}} {
                             border_color: #444
                         }
 
-                        menu_collapse = <Button> {
+                        menu_collapse = Button {
                             width: 22, height: 22
                             text: "〉"
                             align: { x: 0.5, y: 0.5 }
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                            draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 10 } }
                         }
 
-                        menu_rename = <Button> {
+                        menu_rename = Button {
                             width: Fit, height: 22
                             text: "Rename"
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                            draw_text: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
                         }
 
-                        menu_branch = <Button> {
+                        menu_branch = Button {
                             width: Fit, height: 22
                             text: "Branch"
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                            draw_text: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
                         }
 
-                        menu_abort = <Button> {
+                        menu_abort = Button {
                             width: Fit, height: 22
                             text: "Abort"
                             visible: false
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_ACCENT_RED)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_ACCENT_RED
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                            draw_text: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
                         }
 
-                        menu_delete = <Button> {
+                        menu_delete = Button {
                             width: Fit, height: 22
                             text: "Delete"
                             draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_ACCENT_RED)
+                                color: THEME_COLOR_TRANSPARENT
+                                color_hover: THEME_COLOR_ACCENT_RED
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: (THEME_COLOR_TEXT_NORMAL), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                            draw_text: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
                         }
                     }
                 }
             }
 
-            Spacer = <View> { width: Fill, height: 12 }
+            Spacer = View { width: Fill, height: 12 }
         }
     }
 }
@@ -290,8 +287,11 @@ pub enum PanelItemKind {
     Spacer,
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct ProjectsPanel {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
     #[rust]
@@ -440,7 +440,7 @@ impl Widget for ProjectsPanel {
             self.view.handle_event(cx, event, scope);
         });
 
-        let list = self.view.portal_list(&[id!(list)]);
+        let list = self.view.portal_list(cx, &[id!(list)]);
         for (item_id, widget) in list.items_with_actions(&actions) {
             if item_id >= self.items.len() {
                 continue;
@@ -449,7 +449,7 @@ impl Widget for ProjectsPanel {
             match panel_item {
                 PanelItemKind::ProjectHeader { project_id, .. } => {
                     if widget
-                        .button(&[id!(new_session_header_button)])
+                        .button(cx, &[id!(new_session_header_button)])
                         .clicked(&actions)
                     {
                         cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
@@ -466,12 +466,12 @@ impl Widget for ProjectsPanel {
                     }
                 }
                 PanelItemKind::SessionRow { session_id, .. } => {
-                    if widget.button(&[id!(session_button)]).clicked(&actions) {
+                    if widget.button(cx, &[id!(session_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
 
-                    if widget.button(&[id!(menu_button)]).clicked(&actions)
-                        || widget.button(&[id!(menu_collapse)]).clicked(&actions)
+                    if widget.button(cx, &[id!(menu_button)]).clicked(&actions)
+                        || widget.button(cx, &[id!(menu_collapse)]).clicked(&actions)
                     {
                         let next = if self.open_menu_session_id.as_deref() == Some(&session_id) {
                             None
@@ -482,22 +482,22 @@ impl Widget for ProjectsPanel {
                         self.redraw(cx);
                     }
 
-                    if widget.button(&[id!(menu_delete)]).clicked(&actions) {
+                    if widget.button(cx, &[id!(menu_delete)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::DeleteSession(session_id.clone()));
                         self.open_menu_session_id = None;
                         self.redraw(cx);
                     }
-                    if widget.button(&[id!(menu_rename)]).clicked(&actions) {
+                    if widget.button(cx, &[id!(menu_rename)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::RenameSession(session_id.clone()));
                         self.open_menu_session_id = None;
                         self.redraw(cx);
                     }
-                    if widget.button(&[id!(menu_branch)]).clicked(&actions) {
+                    if widget.button(cx, &[id!(menu_branch)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::BranchSession(session_id.clone()));
                         self.open_menu_session_id = None;
                         self.redraw(cx);
                     }
-                    if widget.button(&[id!(menu_abort)]).clicked(&actions) {
+                    if widget.button(cx, &[id!(menu_abort)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::AbortSession(session_id.clone()));
                         self.open_menu_session_id = None;
                         self.redraw(cx);
@@ -537,23 +537,15 @@ impl Widget for ProjectsPanel {
                         PanelItemKind::ProjectHeader {
                             name, project_id, ..
                         } => {
-                            item_widget.label(&[id!(project_name)]).set_text(cx, name);
                             let collapsed = self
                                 .collapsed_projects
                                 .get(project_id)
                                 .copied()
                                 .unwrap_or(true);
-                            let rotation = if collapsed {
-                                -std::f32::consts::FRAC_PI_2
-                            } else {
-                                0.0
-                            };
-                            item_widget.view(&[id!(chevron)]).apply_over(
-                                cx,
-                                live! {
-                                    draw_bg: { rotation: (rotation) }
-                                },
-                            );
+                            let chevron = if collapsed { "▸" } else { "▾" };
+                            item_widget
+                                .label(cx, &[id!(project_name)])
+                                .set_text(cx, &format!("{chevron} {name}"));
                             // Show orange dot if any session in this project is working
                             let project_working = self.sessions.iter().any(|s| {
                                 let matches_project = match project_id {
@@ -564,47 +556,44 @@ impl Widget for ProjectsPanel {
                                     && self.working_by_session.get(&s.id).copied().unwrap_or(false)
                             });
                             item_widget
-                                .view(&[id!(project_working_dot)])
+                                .view(cx, &[id!(project_working_dot)])
                                 .set_visible(cx, project_working);
                         }
                         PanelItemKind::SessionRow { session_id, title } => {
                             item_widget
-                                .button(&[id!(session_button)])
+                                .button(cx, &[id!(session_button)])
                                 .set_text(cx, title);
                             let selected = self
                                 .selected_session_id
                                 .as_ref()
                                 .map(|id| id == session_id)
                                 .unwrap_or(false);
-                            let color = if selected {
-                                COLOR_SESSION_SELECTED
+                            let display_title = if selected {
+                                format!("● {}", title)
                             } else {
-                                COLOR_SESSION_NORMAL
+                                title.clone()
                             };
-                            item_widget.button(&[id!(session_button)]).apply_over(
-                                cx,
-                                live! {
-                                    draw_bg: { color: (color) }
-                                },
-                            );
+                            item_widget
+                                .button(cx, &[id!(session_button)])
+                                .set_text(cx, &display_title);
                             let working = self
                                 .working_by_session
                                 .get(session_id)
                                 .copied()
                                 .unwrap_or(false);
                             item_widget
-                                .view(&[id!(working_dot)])
+                                .view(cx, &[id!(working_dot)])
                                 .set_visible(cx, working);
                             let menu_open =
                                 self.open_menu_session_id.as_deref() == Some(session_id);
                             item_widget
-                                .view(&[id!(menu_panel)])
+                                .view(cx, &[id!(menu_panel)])
                                 .set_visible(cx, menu_open);
                             item_widget
-                                .button(&[id!(menu_button)])
+                                .button(cx, &[id!(menu_button)])
                                 .set_visible(cx, !menu_open);
                             item_widget
-                                .button(&[id!(menu_abort)])
+                                .button(cx, &[id!(menu_abort)])
                                 .set_visible(cx, working);
 
                             let summary_text = self
@@ -613,22 +602,22 @@ impl Widget for ProjectsPanel {
                                 .find(|s| &s.id == session_id)
                                 .and_then(|s| s.summary.as_ref())
                                 .and_then(Self::session_diff_stats);
-                            let summary_files = item_widget.label(&[id!(summary_files_label)]);
-                            let summary_add = item_widget.label(&[id!(summary_add_label)]);
-                            let summary_del = item_widget.label(&[id!(summary_del_label)]);
+                            let summary_files = item_widget.label(cx, &[id!(summary_files_label)]);
+                            let summary_add = item_widget.label(cx, &[id!(summary_add_label)]);
+                            let summary_del = item_widget.label(cx, &[id!(summary_del_label)]);
                             if let Some((files, adds, dels)) = summary_text {
                                 summary_files.set_text(cx, &files);
                                 summary_add.set_text(cx, &adds);
                                 summary_del.set_text(cx, &dels);
                                 item_widget
-                                    .view(&[id!(summary_stats)])
+                                    .view(cx, &[id!(summary_stats)])
                                     .set_visible(cx, true);
                             } else {
                                 summary_files.set_text(cx, "");
                                 summary_add.set_text(cx, "");
                                 summary_del.set_text(cx, "");
                                 item_widget
-                                    .view(&[id!(summary_stats)])
+                                    .view(cx, &[id!(summary_stats)])
                                     .set_visible(cx, false);
                             }
                         }

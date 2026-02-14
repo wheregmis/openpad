@@ -10,7 +10,7 @@ script_mod! {
         height: Fit
         flow: Down
         spacing: 8
-        padding: {left: 16 right: 12 top: 12 bottom: 12}
+        padding: Inset{left: 16 right: 12 top: 12 bottom: 12}
         show_bg: true
         draw_bg +: {
             color: instance(#1a1a1a)
@@ -37,8 +37,8 @@ script_mod! {
         height: 32
         flow: Right
         spacing: 12
-        padding: {left: 10 right: 8 top: 4 bottom: 4}
-        align: {y: 0.5}
+        padding: Inset{left: 10 right: 8 top: 4 bottom: 4}
+        align: Align{y: 0.5}
         clip_y: false
         show_bg: false
     }
@@ -46,32 +46,31 @@ script_mod! {
     mod.widgets.InputBarDropDown = mod.widgets.UpDropDown {
         width: Fit
         height: 28
-        padding: {left: 12 right: 26 top: 5 bottom: 5}
-        popup_menu_position: AboveInput
+        padding: Inset{left: 12 right: 26 top: 5 bottom: 5}
         animator: Animator {
-            disabled = {
+            disabled: {
                 default: @off
-                off = {apply: {draw_bg: {disabled: 0.0}}}
-                on = {apply: {draw_bg: {disabled: 1.0}}}
+                off: {apply: {draw_bg: {disabled: 0.0}}}
+                on: {apply: {draw_bg: {disabled: 1.0}}}
             }
-            hover = {
+            hover: {
                 default: @off
-                off = {
+                off: {
                     from: {all: Forward {duration: 0.15}}
                     apply: {draw_bg: {hover: 0.0}}
                 }
-                on = {
+                on: {
                     from: {all: Forward {duration: 0.15}}
                     apply: {draw_bg: {hover: 1.0}}
                 }
             }
-            focus = {
+            focus: {
                 default: @off
-                off = {apply: {draw_bg: {focus: 0.0}}}
-                on = {apply: {draw_bg: {focus: 1.0}}}
+                off: {apply: {draw_bg: {focus: 0.0}}}
+                on: {apply: {draw_bg: {focus: 1.0}}}
             }
         }
-        draw_text: {
+        draw_text +: {
             text_style: theme.font_regular {font_size: 9.0}
             get_color: fn() {
                 return mix(#99a1b2, #d6dbe4, self.hover)

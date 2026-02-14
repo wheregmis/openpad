@@ -7,9 +7,9 @@ script_mod! {
     mod.widgets.HamburgerButton = Button {
         width: 32
         height: 32
-        padding: {left: 6 right: 6 top: 6 bottom: 6}
+        padding: Inset{left: 6 right: 6 top: 6 bottom: 6}
         text: ""
-        draw_text: {color: #0000}
+        draw_text +: {color: #0000}
         draw_bg +: {
             open: instance(0.0)
             hover: instance(0.0)
@@ -54,13 +54,13 @@ script_mod! {
             }
         }
         animator: Animator {
-            open = {
+            open: {
                 default: @off
-                off = {
+                off: {
                     from: {all: Forward {duration: 1.0}}
                     apply: {draw_bg: {open: 0.0}}
                 }
-                on = {
+                on: {
                     from: {all: Forward {duration: 1.0}}
                     apply: {draw_bg: {open: 1.0}}
                 }

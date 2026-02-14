@@ -46,7 +46,6 @@ pub fn script_mod(vm: &mut ScriptVm) {
     crate::app_bg::script_mod(vm);
     crate::hamburger_button::script_mod(vm);
     crate::header_bar::script_mod(vm);
-    crate::input_bar::script_mod(vm);
     crate::input_field::script_mod(vm);
     crate::send_button::script_mod(vm);
     crate::side_panel::script_mod(vm);
@@ -54,6 +53,7 @@ pub fn script_mod(vm: &mut ScriptVm) {
     crate::scrollable_popup_menu::script_mod(vm);
     crate::status_dot::script_mod(vm);
     crate::upward_dropdown::script_mod(vm);
+    crate::input_bar::script_mod(vm);
     crate::openpad::script_mod(vm);
 
     crate::user_bubble::script_mod(vm);

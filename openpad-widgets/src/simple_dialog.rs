@@ -11,118 +11,108 @@ script_mod! {
         flow: Overlay
         visible: false
 
-        overlay = View {
+        overlay := View {
             width: Fill
             height: Fill
             show_bg: true
             draw_bg +: {
-                pixel: fn() {
-                    return vec4(0.0, 0.0, 0.0, 0.5)
-                }
+                color: #0008
             }
         }
 
         View {
             width: Fill
             height: Fill
-            align: {x: 0.5 y: 0.5}
+            align: Align{x: 0.5 y: 0.5}
 
-            dialog_box = RoundedView {
+            dialog_box := View {
                 width: 400
                 height: Fit
                 flow: Down
-                padding: {left: 14 right: 14 top: 12 bottom: 12}
+                padding: Inset{left: 14 right: 14 top: 12 bottom: 12}
                 spacing: 10
                 show_bg: true
                 draw_bg +: {
-                    color: uniform(THEME_COLOR_BG_DIALOG)
-                    border_color: uniform(THEME_COLOR_BORDER_DIALOG)
-                    border_radius: uniform(10.0)
-                    border_size: uniform(1.0)
-
-                    pixel: fn() {
-                        let sdf = Sdf2d.viewport(self.pos * self.rect_size)
-                        sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius)
-                        sdf.fill_keep(self.color)
-                        sdf.stroke(self.border_color, self.border_size)
-                        return sdf.result
-                    }
+                    color: THEME_COLOR_BG_DIALOG
+                    border_color: THEME_COLOR_BORDER_DIALOG
+                    border_radius: 10.0
+                    border_size: 1.0
                 }
 
-                title_label = Label {
+                title_label := Label {
                     text: "Dialog"
-                    draw_text: {
+                    draw_text +: {
                         color: THEME_COLOR_TEXT_PRIMARY
                         text_style: theme.font_bold {font_size: 12}
                     }
                 }
 
-                message_label = Label {
+                message_label := Label {
                     width: Fill
                     height: Fit
                     text: ""
-                    draw_text: {
+                    draw_text +: {
                         color: THEME_COLOR_TEXT_DIM
                         text_style: theme.font_regular {font_size: 11}
-                        wrap: Word
                     }
                 }
 
-                input_row = View {
+                input_row := View {
                     width: Fill
                     height: Fit
                     visible: false
 
-                    input_field = TextInput {
+                    input_field := TextInput {
                         width: Fill
                         height: 32
-                        padding: 8
-                        draw_text: {
+                        padding: Inset{left: 8 right: 8 top: 8 bottom: 8}
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_PRIMARY
                             text_style: theme.font_regular {font_size: 11}
                         }
-                        draw_bg: {
+                        draw_bg +: {
                             color: THEME_COLOR_BG_INPUT
+                            color_focus: THEME_COLOR_BG_INPUT
                             border_radius: 8.0
                             border_size: 0.0
                         }
                     }
                 }
 
-                buttons_row = View {
+                buttons_row := View {
                     width: Fill
                     height: Fit
                     flow: Right
                     spacing: 10
-                    align: {x: 1.0}
+                    align: Align{x: 1.0 y: 0.5}
 
-                    cancel_button = Button {
+                    cancel_button := Button {
                         width: 90
                         height: 32
                         text: "Cancel"
-                        draw_bg: {
+                        draw_bg +: {
                             color: THEME_COLOR_SHADE_3
                             color_hover: THEME_COLOR_SHADE_5
                             border_radius: 8.0
                             border_size: 0.0
                         }
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_PRIMARY
                             text_style: theme.font_regular {font_size: 11}
                         }
                     }
 
-                    confirm_button = Button {
+                    confirm_button := Button {
                         width: 90
                         height: 32
                         text: "OK"
-                        draw_bg: {
+                        draw_bg +: {
                             color: THEME_COLOR_ACCENT_BLUE
                             color_hover: THEME_COLOR_ACCENT_BLUE_DARK
                             border_radius: 8.0
                             border_size: 0.0
                         }
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_BRIGHT
                             text_style: theme.font_regular {font_size: 11}
                         }

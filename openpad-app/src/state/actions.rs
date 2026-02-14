@@ -1,11 +1,11 @@
-use makepad_widgets::*;
 use openpad_protocol::{
     Agent, Event as OcEvent, FileDiff, HealthResponse, Message, MessageWithParts, Part,
     PermissionReply, PermissionRequest, Project, ProvidersResponse, Session, Skill,
 };
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum AppAction {
+    #[default]
     None,
     Connected,
     ConnectionFailed(String),
@@ -68,8 +68,9 @@ pub enum AppAction {
     },
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum ProjectsPanelAction {
+    #[default]
     None,
     SelectSession(String),
     CreateSession(Option<String>),

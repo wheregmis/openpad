@@ -3,6 +3,7 @@ use makepad_widgets::*;
 script_mod! {
     use mod.prelude.widgets_internal.*
     use mod.widgets.*
+    use mod.theme.*
 
     mod.widgets.InputField = TextInput{
         width: Fill
@@ -10,10 +11,11 @@ script_mod! {
         padding: Inset{left: 14 right: 14 top: 8 bottom: 8}
         empty_text: "Ask anything..."
         draw_bg +: {
-            focus: instance(0.0)
-            pixel: fn() {
-                return #0000
-            }
+            color: #0000
+            color_focus: #0000
+            color_empty: #0000
+            border_radius: 8.0
+            border_size: 0.0
         }
         draw_text +: {
             color: #d9dde6
@@ -21,10 +23,6 @@ script_mod! {
                 font_size: 10.5
                 line_spacing: 1.4
             }
-            get_color: fn() {
-                return mix(#99a1b2 #d9dde6 self.focus)
-            }
         }
-        text: ""
     }
 }
