@@ -9,8 +9,8 @@ script_mod! {
         width: Fill
         height: Fit
         flow: Down
-        spacing: 8
-        padding: Inset{left: 16 right: 12 top: 12 bottom: 12}
+        spacing: 10
+        padding: Inset{left: 12 right: 12 top: 10 bottom: 10}
         show_bg: true
         draw_bg +: {
             color: instance(#1a1a1a)
@@ -37,7 +37,7 @@ script_mod! {
         height: 32
         flow: Right
         spacing: 12
-        padding: Inset{left: 10 right: 8 top: 4 bottom: 4}
+        padding: Inset{left: 10 right: 8 top: 2 bottom: 2}
         align: Align{y: 0.5}
         clip_y: false
         show_bg: false
@@ -46,6 +46,7 @@ script_mod! {
     mod.widgets.InputBarDropDown = mod.widgets.UpDropDown {
         width: Fit
         height: 28
+        popup_menu_position: BelowInput
         padding: Inset{left: 12 right: 26 top: 5 bottom: 5}
         animator: Animator {
             disabled: {
@@ -102,7 +103,12 @@ script_mod! {
             }
         }
         popup_menu: mod.widgets.ScrollablePopupMenu {
-            draw_bg +: {color: #1a1a1a}
+            draw_bg +: {
+                color: #252a33
+                border_size: 1.0
+                border_color: #444
+                border_radius: 8.0
+            }
         }
         labels: ["Default"]
         values: []

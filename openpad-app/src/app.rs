@@ -1,4 +1,5 @@
 use crate::async_runtime;
+use crate::components::session_options_popup::SessionOptionsPopupWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{self, AppAction, AppState, ProjectsPanelAction, SidebarMode};
 use makepad_widgets::*;
@@ -181,6 +182,17 @@ script_mod! {
                                 }
                                 Label { text: "/" }
                                 session_row := View { session_title := Label { text: "New Session" } }
+                                session_options_btn := Button {
+                                    width: 28, height: 24
+                                    text: "⋯"
+                                    draw_bg +: {
+                                        color: #0000
+                                        color_hover: #333
+                                        border_radius: 6.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text +: { color: #9ca3af, text_style: theme.font_bold { font_size: 11 } }
+                                }
                                 project_path_wrap := View { visible: false project_path_label := Label { text: "" } }
                                 View { width: Fill }
                                 share_wrap := View {
@@ -202,6 +214,8 @@ script_mod! {
                     }
 
                     simple_dialog := SimpleDialog {}
+
+                    session_options_popup := SessionOptionsPopup { visible: false }
                 }
             }
         }
@@ -241,6 +255,7 @@ impl App {
         openpad_widgets::script_mod(vm);
         crate::components::projects_panel::script_mod(vm);
         crate::components::sidebar_header::script_mod(vm);
+        crate::components::session_options_popup::script_mod(vm);
         App::from_script_mod(vm, self::script_mod)
     }
 
@@ -973,6 +988,30 @@ impl AppMain for App {
             self.ui.handle_event(cx, event, &mut Scope::empty());
         });
 
+        // Session options button in header (reliable way to open session menu)
+        let opts_clicked = self
+            .ui
+            .button(cx, &[id!(session_info), id!(session_options_btn)])
+            .clicked(&actions)
+            || self.ui.button(cx, &[id!(session_options_btn)]).clicked(&actions);
+        if opts_clicked {
+            log!("Session options button clicked");
+            if let Some(session_id) = &self.state.current_session_id {
+                let working = self
+                    .state
+                    .working_by_session
+                    .get(session_id)
+                    .copied()
+                    .unwrap_or(false);
+                self.ui
+                    .widget(cx, &[id!(session_options_popup)])
+                    .set_visible(cx, true);
+                self.ui
+                    .session_options_popup(cx, &[id!(session_options_popup)])
+                    .show(cx, session_id.clone(), working);
+            }
+        }
+
         // Process widget actions (e.g. ProjectsPanelAction from sidebar clicks)
         for action in &actions {
             if let Some(panel_action) = action.downcast_ref::<ProjectsPanelAction>() {
@@ -1013,6 +1052,28 @@ impl AppMain for App {
                     }
                     ProjectsPanelAction::BranchSession(session_id) => {
                         self.branch_session(cx, session_id.clone());
+                    }
+                    ProjectsPanelAction::OpenSessionContextMenu {
+                        session_id,
+                        x: _,
+                        y: _,
+                        working,
+                    } => {
+                        let popup_ref = self.ui.widget(cx, &[id!(session_options_popup)]);
+                        popup_ref.set_visible(cx, true);
+                        popup_ref.redraw(cx);
+                        self.ui
+                            .session_options_popup(cx, &[id!(session_options_popup)])
+                            .show(cx, session_id.clone(), *working);
+                        popup_ref.redraw(cx);
+                    }
+                    ProjectsPanelAction::CloseSessionContextMenu => {
+                        self.ui
+                            .widget(cx, &[id!(session_options_popup)])
+                            .set_visible(cx, false);
+                        self.ui
+                            .session_options_popup(cx, &[id!(session_options_popup)])
+                            .hide(cx);
                     }
                     _ => {}
                 }

@@ -120,7 +120,7 @@ script_mod! {
 
                 View {
                     width: Fill, height: Fit
-                    padding: Inset{ top: 1, bottom: 1, left: 22, right: 3 }
+                    padding: Inset{ top: 1, bottom: 1, left: 22, right: 28 }
                     flow: Right,
                     spacing: 3,
                     align: Align{ y: 0.5 }
@@ -186,8 +186,15 @@ script_mod! {
                             border_radius: 2.5
                         }
                     }
+                }
+
+                View {
+                    width: Fit, height: Fill
+                    flow: Right
+                    align: Align{ x: 1.0, y: 0.5 }
+                    padding: Inset{ right: 3, top: 1, bottom: 1 }
                     menu_button := Button {
-                        width: 20, height: 22
+                        width: 24, height: 24
                         text: "⋯"
                         align: Align{ x: 0.5, y: 0.5 }
                         draw_bg +: {
@@ -486,11 +493,15 @@ impl ProjectsPanel {
 
 impl Widget for ProjectsPanel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+        // Pointer position for popup placement; not available from Event directly here.
+        let _pointer_pos: Option<(f32, f32)> = None;
+
         let actions = cx.capture_actions(|cx| {
             self.view.handle_event(cx, event, scope);
         });
 
         let list = self.view.portal_list(cx, &[id!(list)]);
+        let mut menu_opened = false;
         for (item_id, widget) in list.items_with_actions(&actions) {
             if item_id >= self.items.len() {
                 continue;
@@ -520,16 +531,20 @@ impl Widget for ProjectsPanel {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
 
-                    if widget.button(cx, &[id!(menu_button)]).clicked(&actions)
-                        || widget.button(cx, &[id!(menu_collapse)]).clicked(&actions)
-                    {
-                        let next = if self.open_menu_session_id.as_deref() == Some(&session_id) {
-                            None
-                        } else {
-                            Some(session_id.clone())
-                        };
-                        self.open_menu_session_id = next;
-                        self.redraw(cx);
+                    if widget.button(cx, &[id!(menu_button)]).clicked(&actions) {
+                        menu_opened = true;
+                        let (x, y) = _pointer_pos.unwrap_or((0.0, 0.0));
+                        let working = self
+                            .working_by_session
+                            .get(&session_id)
+                            .copied()
+                            .unwrap_or(false);
+                        cx.action(ProjectsPanelAction::OpenSessionContextMenu {
+                            session_id: session_id.clone(),
+                            x,
+                            y,
+                            working,
+                        });
                     }
 
                     if widget.button(cx, &[id!(menu_delete)]).clicked(&actions) {
@@ -554,6 +569,31 @@ impl Widget for ProjectsPanel {
                     }
                 }
                 _ => {}
+            }
+        }
+
+        // Fallback: items_with_actions may omit items when the menu button's action
+        // isn't associated with the list item. Check each SessionRow for menu button click.
+        if !menu_opened {
+            for (item_id, panel_item) in self.items.iter().enumerate() {
+                if let PanelItemKind::SessionRow { session_id, .. } = panel_item {
+                    let widget = list.item(cx, item_id, live_id!(SessionRow));
+                    if widget.button(cx, &[id!(menu_button)]).clicked(&actions) {
+                        let (x, y) = _pointer_pos.unwrap_or((0.0, 0.0));
+                        let working = self
+                            .working_by_session
+                            .get(session_id)
+                            .copied()
+                            .unwrap_or(false);
+                        cx.action(ProjectsPanelAction::OpenSessionContextMenu {
+                            session_id: session_id.clone(),
+                            x,
+                            y,
+                            working,
+                        });
+                        break;
+                    }
+                }
             }
         }
     }

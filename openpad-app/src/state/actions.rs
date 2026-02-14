@@ -86,4 +86,12 @@ pub enum ProjectsPanelAction {
     RenameSession(String),
     AbortSession(String),
     BranchSession(String),
+    /// Open the session context menu at the given position (avoids full list redraw).
+    OpenSessionContextMenu {
+        session_id: String,
+        x: f32,
+        y: f32,
+        working: bool,
+    },
+    CloseSessionContextMenu,
 }
