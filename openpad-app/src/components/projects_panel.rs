@@ -14,6 +14,8 @@ live_design! {
 
 pub ProjectsPanel = {{ProjectsPanel}} {
         width: Fill, height: Fill
+        flow: Overlay
+
         list = <PortalList> {
             scroll_bar: <ScrollBar> {
                 bar_size: 4.0
@@ -274,6 +276,32 @@ pub ProjectsPanel = {{ProjectsPanel}} {
 
             Spacer = <View> { width: Fill, height: 12 }
         }
+
+        empty_state = <View> {
+            visible: false
+            width: Fill, height: Fill
+            align: { x: 0.5, y: 0.5 }
+            padding: 20
+            flow: Down
+            spacing: 8
+            <Label> {
+                text: "No projects detected"
+                draw_text: {
+                    color: (THEME_COLOR_TEXT_BRIGHT)
+                    text_style: <THEME_FONT_BOLD> { font_size: 11 }
+                }
+            }
+            <Label> {
+                width: Fill
+                text: "Start 'opencode serve' in a project directory to see it here."
+                draw_text: {
+                    color: (THEME_COLOR_TEXT_DIM)
+                    text_style: <THEME_FONT_REGULAR> { font_size: 9 }
+                    align: { x: 0.5 }
+                    word: Wrap
+                }
+            }
+        }
     }
 }
 
@@ -512,6 +540,11 @@ impl Widget for ProjectsPanel {
         if self.dirty {
             self.rebuild_items();
         }
+
+        let is_empty = self.items.is_empty();
+        self.view
+            .view(&[id!(empty_state)])
+            .set_visible(cx, is_empty);
 
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
