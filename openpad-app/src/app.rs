@@ -1,6 +1,6 @@
 use crate::async_runtime;
 use crate::constants::OPENCODE_SERVER_URL;
-use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
+use crate::state::{self, AppAction, AppState, ProjectsPanelAction, SidebarMode};
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::message_list::MessageListWidgetRefExt;
@@ -14,13 +14,6 @@ use openpad_widgets::{
 };
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
-
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
-enum SidebarMode {
-    #[default]
-    Projects,
-    Settings,
-}
 
 // Lazy-initialized regex for detecting image data URLs
 static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -143,12 +136,15 @@ script_mod! {
                         side_panel := SidePanel {
                             width: 260.0, height: Fill
                             open_size: 260.0
+                            flow: Down
+
+                            sidebar_header := SidebarHeader {}
 
                             projects_panel := ProjectsPanel { visible: true }
                             settings_panel := SettingsDialog { visible: false width: Fill height: Fill }
                         }
 
-                        sidebar_resize_handle := View { width: 6, height: Fill }
+                        sidebar_resize_handle := View { width: 6, height: Fill cursor: MouseCursor.ColResize }
 
                         View {
                             width: Fill, height: Fill
@@ -244,6 +240,7 @@ impl App {
         makepad_code_editor::script_mod(vm);
         openpad_widgets::script_mod(vm);
         crate::components::projects_panel::script_mod(vm);
+        crate::components::sidebar_header::script_mod(vm);
         App::from_script_mod(vm, self::script_mod)
     }
 
@@ -1036,6 +1033,10 @@ impl AppMain for App {
             // Handle AppAction from captured UI actions (e.g. DialogConfirmed, PermissionResponded)
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
+                    AppAction::SetSidebarMode(mode) => {
+                        self.sidebar_mode = *mode;
+                        self.update_sidebar_panel_visibility(cx);
+                    }
                     AppAction::DialogConfirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }

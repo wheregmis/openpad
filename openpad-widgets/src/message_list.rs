@@ -879,7 +879,7 @@ impl Widget for MessageList {
                             if has_steps {
                                 item_widget
                                     .label(cx, &[id!(steps_summary_label)])
-                                    .set_text(cx, &msg.cached_steps_summary);
+                                    .set_text(cx, &msg.cached_grouped_summary);
                                 item_widget
                                     .button(cx, &[id!(steps_button)])
                                     .set_text(cx, &Self::steps_button_label(msg));
@@ -1111,6 +1111,8 @@ impl MessageListRef {
                 show_steps: false,
                 duration_ms: None,
                 cached_steps_summary: String::new(),
+                cached_grouped_summary: String::new(),
+                cached_tool_groups: Vec::new(),
                 cached_needs_markdown: false,
                 cached_thinking_activity: String::new(),
                 cached_running_tools: Vec::new(),
@@ -1149,6 +1151,8 @@ impl MessageListRef {
                 show_steps: false,
                 duration_ms: None,
                 cached_steps_summary: String::new(),
+                cached_grouped_summary: String::new(),
+                cached_tool_groups: Vec::new(),
                 cached_needs_markdown: false,
                 cached_thinking_activity: String::new(),
                 cached_running_tools: Vec::new(),

@@ -1,4 +1,61 @@
 use openpad_protocol::{FileDiff, Message, MessageWithParts, Part, TokenUsage};
+use std::collections::HashMap;
+
+/// Categories for grouping tools by type
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ToolCategory {
+    Files,    // read, grep, glob, search, cat, find
+    Commands, // bash, execute, shell, run
+    Edits,    // edit, write, patch, apply_patch
+    Tools,    // everything else
+}
+
+impl ToolCategory {
+    pub fn from_tool_name(tool: &str) -> Self {
+        let lower = tool.to_lowercase();
+        if lower.contains("read") || lower.contains("grep") || lower.contains("glob")
+            || lower.contains("search") || lower.contains("cat") || lower.contains("find")
+        {
+            ToolCategory::Files
+        } else if lower.contains("bash") || lower.contains("execute")
+            || lower.contains("shell") || lower.contains("run")
+        {
+            ToolCategory::Commands
+        } else if lower.contains("edit") || lower.contains("write")
+            || lower.contains("patch") || lower.contains("apply")
+        {
+            ToolCategory::Edits
+        } else {
+            ToolCategory::Tools
+        }
+    }
+
+    pub fn icon(&self) -> &'static str {
+        match self {
+            ToolCategory::Files => "📄",
+            ToolCategory::Commands => "🔧",
+            ToolCategory::Edits => "✏️",
+            ToolCategory::Tools => "🔨",
+        }
+    }
+
+    pub fn label(&self) -> &'static str {
+        match self {
+            ToolCategory::Files => "files",
+            ToolCategory::Commands => "commands",
+            ToolCategory::Edits => "edits",
+            ToolCategory::Tools => "tools",
+        }
+    }
+}
+
+/// Summary of tools grouped by category
+#[derive(Clone, Debug)]
+pub struct ToolGroupSummary {
+    pub category: ToolCategory,
+    pub count: usize,
+    pub detail_indices: Vec<(usize, usize)>, // (step_idx, detail_idx) pairs
+}
 
 #[derive(Clone, Debug)]
 pub struct StepDetail {
@@ -6,6 +63,9 @@ pub struct StepDetail {
     pub input_summary: String,
     pub result: String,
     pub is_running: bool,
+    pub category: ToolCategory,
+    pub duration_ms: Option<i64>,
+    pub title: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -40,6 +100,8 @@ pub struct DisplayMessage {
     pub show_steps: bool,
     pub duration_ms: Option<i64>,
     pub cached_steps_summary: String,
+    pub cached_grouped_summary: String,
+    pub cached_tool_groups: Vec<ToolGroupSummary>,
     pub cached_needs_markdown: bool,
     pub cached_thinking_activity: String,
     pub cached_running_tools: Vec<(String, String, String)>,
@@ -121,14 +183,41 @@ impl MessageProcessor {
                         cached_header_expanded: String::new(),
                         cached_header_collapsed: String::new(),
                     });
-                } else if let Some((tool, input_summary, result)) = p.tool_display() {
+                } else if let Part::Tool { tool, state, .. } = p {
+                    // Use tool_display for basic info
+                    let (tool_name, input_summary, result) =
+                        p.tool_display().unwrap_or_default();
                     let has_error = result.starts_with("Error");
                     let is_running = result == "(running)" || result == "(pending)";
+
+                    // Extract duration from ToolStateTime
+                    let duration_ms = match state {
+                        openpad_protocol::ToolState::Completed { time, .. }
+                        | openpad_protocol::ToolState::Error { time, .. } => {
+                            time.start.zip(time.end).map(|(s, e)| ((e - s) * 1000.0) as i64)
+                        }
+                        _ => None,
+                    };
+
+                    // Extract title from ToolState
+                    let title = match state {
+                        openpad_protocol::ToolState::Running { title, .. }
+                        | openpad_protocol::ToolState::Completed { title, .. }
+                            if !title.is_empty() =>
+                        {
+                            Some(title.clone())
+                        }
+                        _ => None,
+                    };
+
                     let detail = StepDetail {
-                        tool,
+                        tool: tool_name,
                         input_summary,
                         result: result.clone(),
                         is_running,
+                        category: ToolCategory::from_tool_name(tool),
+                        duration_ms,
+                        title,
                     };
                     if let Some(last) = steps.last_mut() {
                         last.details.push(detail);
@@ -226,6 +315,8 @@ impl MessageProcessor {
                         show_steps: true,
                         duration_ms,
                         cached_steps_summary: String::new(),
+                        cached_grouped_summary: String::new(),
+                        cached_tool_groups: Vec::new(),
                         cached_needs_markdown: false,
                         cached_thinking_activity: String::new(),
                         cached_running_tools: Vec::new(),
@@ -258,6 +349,8 @@ impl MessageProcessor {
                         show_steps: false,
                         duration_ms: merged_duration,
                         cached_steps_summary: String::new(),
+                        cached_grouped_summary: String::new(),
+                        cached_tool_groups: Vec::new(),
                         cached_needs_markdown: false,
                         cached_thinking_activity: String::new(),
                         cached_running_tools: Vec::new(),
@@ -293,6 +386,8 @@ impl MessageProcessor {
                 show_steps,
                 duration_ms,
                 cached_steps_summary: String::new(),
+                cached_grouped_summary: String::new(),
+                cached_tool_groups: Vec::new(),
                 cached_needs_markdown: false,
                 cached_thinking_activity: String::new(),
                 cached_running_tools: Vec::new(),
@@ -326,6 +421,12 @@ impl MessageProcessor {
             Self::refresh_step_caches(step);
         }
         msg.cached_steps_summary = Self::compute_steps_summary(msg);
+
+        // Compute grouped summary for cleaner display
+        let (grouped_summary, tool_groups) = Self::compute_grouped_summary(msg);
+        msg.cached_grouped_summary = grouped_summary;
+        msg.cached_tool_groups = tool_groups;
+
         msg.cached_needs_markdown = Self::compute_needs_markdown(&msg.text);
 
         let (activity, tools) = Self::compute_thinking_data(msg);
@@ -417,6 +518,66 @@ impl MessageProcessor {
         } else {
             format!("{}: {} • {}", prefix, count, summary)
         }
+    }
+
+    /// Compute grouped summary in format: "📄 3 • 🔧 2 • ⏱️ 2s"
+    pub fn compute_grouped_summary(msg: &DisplayMessage) -> (String, Vec<ToolGroupSummary>) {
+        if msg.steps.is_empty() {
+            return (String::new(), Vec::new());
+        }
+
+        let mut category_map: HashMap<ToolCategory, Vec<(usize, usize)>> = HashMap::new();
+        let mut total_duration_ms: i64 = 0;
+
+        // Collect all tool details by category
+        for (step_idx, step) in msg.steps.iter().enumerate() {
+            for (detail_idx, detail) in step.details.iter().enumerate() {
+                category_map
+                    .entry(detail.category)
+                    .or_default()
+                    .push((step_idx, detail_idx));
+                if let Some(d) = detail.duration_ms {
+                    total_duration_ms += d;
+                }
+            }
+        }
+
+        // Build groups in preferred order: Files, Commands, Edits, Tools
+        let order = [
+            ToolCategory::Files,
+            ToolCategory::Commands,
+            ToolCategory::Edits,
+            ToolCategory::Tools,
+        ];
+
+        let mut groups = Vec::new();
+        let mut summary_parts = Vec::new();
+
+        for cat in order {
+            if let Some(indices) = category_map.get(&cat) {
+                if !indices.is_empty() {
+                    groups.push(ToolGroupSummary {
+                        category: cat,
+                        count: indices.len(),
+                        detail_indices: indices.clone(),
+                    });
+                    summary_parts.push(format!("{} {}", cat.icon(), indices.len()));
+                }
+            }
+        }
+
+        // Add duration
+        let has_running = msg.steps.iter().any(|s| s.has_running);
+        let dur_ms = msg.duration_ms.unwrap_or(total_duration_ms);
+        if dur_ms > 0 {
+            let formatted = crate::utils::formatters::format_duration_ms(dur_ms);
+            summary_parts.push(format!("⏱️ {}", formatted));
+        }
+
+        let prefix = if has_running { "Running: " } else { "" };
+        let summary = format!("{}{}", prefix, summary_parts.join(" • "));
+
+        (summary, groups)
     }
 }
 

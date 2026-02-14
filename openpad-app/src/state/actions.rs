@@ -66,6 +66,14 @@ pub enum AppAction {
         provider_id: String,
         success: bool,
     },
+    SetSidebarMode(SidebarMode),
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum SidebarMode {
+    #[default]
+    Projects,
+    Settings,
 }
 
 #[derive(Clone, Debug, Default)]

@@ -6,14 +6,14 @@ script_mod! {
 
     mod.widgets.SidePanelBase = #(SidePanel::register_widget(vm))
     mod.widgets.SidePanel = mod.widgets.SidePanelBase {
-        width: 280.0
+        width: 260.0
         height: Fill
         flow: Down
         padding: 0
         spacing: 0
         clip_x: true
         show_bg: true
-        open_size: 280.0
+        open_size: 260.0
         close_size: 0.0
 
         draw_bg +: {
@@ -62,7 +62,7 @@ pub struct SidePanel {
     #[live]
     animator_panel_progress: f32,
 
-    #[live(280.0)]
+    #[live(260.0)]
     open_size: f32,
 
     #[live(0.0)]

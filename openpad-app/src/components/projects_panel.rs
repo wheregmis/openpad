@@ -12,8 +12,9 @@ script_mod! {
     mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
         width: Fill, height: Fill
         flow: Down
-        padding: Inset{ left: 12, right: 10, top: 8, bottom: 8 }
+        padding: Inset{ left: 10, right: 8, top: 8, bottom: 8 }
         spacing: 0
+        new_batch: true
 
         list := PortalList {
             width: Fill, height: Fill
@@ -24,38 +25,54 @@ script_mod! {
             }
 
             ProjectHeader := View {
-                width: Fill, height: Fit
+                width: Fill, height: 28
                 flow: Right, align: Align{y: 0.5}
-                padding: Inset{ top: 5, bottom: 2, left: 2, right: 4 }
-                chevron := Label {
-                    width: 12, height: Fit
-                    text: "v"
-                    draw_text +: { color: #8f97a6, text_style: theme.font_bold { font_size: 10.0 } }
-                }
-                folder_icon := Icon {
-                    width: 15, height: 15
-                    margin: Inset{ right: 4 }
-                    icon_walk: Walk{ width: 15, height: 15 }
-                    draw_icon +: {
-                        svg: crate_resource("self://resources/icons/folder.svg")
-                        color: #bac2cf
-                    }
-                }
+                padding: Inset{ top: 2, bottom: 2, left: 0, right: 2 }
+                spacing: 2
+                new_batch: true
+                left_group := View {
+                    width: Fill, height: Fill
+                    flow: Right, align: Align{y: 0.5}
+                    spacing: 2
 
-                project_toggle := Button {
-                    width: Fill, height: 30
-                    margin: Inset{ left: 0, right: 4 }
-                    text: "Project"
-                    draw_bg +: {
-                        color: #0000
-                        color_hover: #ffffff08
-                        color_active: #272d38
-                        border_radius: 10.0
-                        border_size: 0.0
+                    chevron := Label {
+                        width: 10, height: Fit
+                        text: "v"
+                        draw_text +: { color: theme.THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 9.0 } }
                     }
-                    draw_text +: {
-                        color: #dfe4ee
-                        text_style: theme.font_bold { font_size: 12.0 }
+
+                    folder_icon := View {
+                        width: 17, height: Fill
+                        padding: Inset{ left: 1, right: 3, top: 4, bottom: 0 }
+                        align: Align{ y: 0.5 }
+
+                        glyph := Icon {
+                            width: 14, height: 14
+                            icon_walk: Walk{ width: 14, height: 14 }
+                            draw_icon +: {
+                                svg: crate_resource("self://resources/icons/folder_sidebar.svg")
+                                color: theme.THEME_COLOR_TEXT_MUTED_LIGHTER
+                            }
+                        }
+                    }
+
+                    project_toggle := Button {
+                        width: Fill, height: Fill
+                        margin: Inset{ left: 0, right: 2 }
+                        padding: Inset{ left: 2, right: 2, top: 0, bottom: 0 }
+                        align: Align{ x: 0.0, y: 0.5 }
+                        text: "Project"
+                        draw_bg +: {
+                            color: theme.THEME_COLOR_TRANSPARENT
+                            color_hover: theme.THEME_COLOR_HOVER_SUBTLE
+                            color_active: theme.THEME_COLOR_HOVER_SUBTLE
+                            border_radius: 8.0
+                            border_size: 0.0
+                        }
+                        draw_text +: {
+                            color: theme.THEME_COLOR_TEXT_PRIMARY
+                            text_style: theme.font_bold { font_size: 11.5 }
+                        }
                     }
                 }
 
@@ -65,7 +82,7 @@ script_mod! {
                     margin: Inset{ right: 5 }
                     show_bg: true
                     draw_bg +: {
-                        color: #f59e0b
+                        color: theme.THEME_COLOR_ACCENT_AMBER
                         border_radius: 2.5
                     }
                 }
@@ -75,52 +92,53 @@ script_mod! {
                     margin: Inset{ left: 2 }
                     text: "+"
                     draw_bg +: {
-                        color: #0000
-                        color_hover: #ffffff12
-                        color_active: #2c3240
-                        border_radius: 6.0
+                        color: theme.THEME_COLOR_TRANSPARENT
+                        color_hover: theme.THEME_COLOR_HOVER_SUBTLE
+                        color_active: theme.THEME_COLOR_HOVER_SUBTLE
+                        border_radius: 5.0
                         border_size: 0.0
                     }
-                    draw_text +: { color: #99a0ad, text_style: theme.font_bold { font_size: 12 } }
+                    draw_text +: { color: theme.THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 11 } }
                 }
             }
 
             SessionRow := View {
                 width: Fill, height: Fit
                 flow: Overlay
+                new_batch: true
 
                 selected_pill := RoundedView {
                     visible: false
                     width: Fill, height: Fit
-                    margin: Inset{ left: 18, right: 4, top: 1, bottom: 1 }
+                    margin: Inset{ left: 22, right: 3, top: 1, bottom: 1 }
                     show_bg: true
                     draw_bg +: {
-                        color: #ffffff12
-                        border_radius: 10.0
+                        color: theme.THEME_COLOR_HOVER_SUBTLE
+                        border_radius: 8.0
                     }
                 }
 
                 View {
                     width: Fill, height: Fit
-                    padding: Inset{ top: 1, bottom: 1, left: 18, right: 4 }
+                    padding: Inset{ top: 1, bottom: 1, left: 22, right: 3 }
                     flow: Right,
-                    spacing: 4,
+                    spacing: 3,
                     align: Align{ y: 0.5 }
 
                     session_button := Button {
-                        width: Fill, height: 30
-                        margin: Inset{ right: 4 }
+                        width: Fill, height: 27
+                        margin: Inset{ right: 2 }
                         text: "Session"
                         draw_bg +: {
-                            color: #0000
-                            color_hover: #ffffff08
-                            color_active: #0000
-                            border_radius: 10.0
+                            color: theme.THEME_COLOR_TRANSPARENT
+                            color_hover: theme.THEME_COLOR_HOVER_SUBTLE
+                            color_active: theme.THEME_COLOR_TRANSPARENT
+                            border_radius: 8.0
                             border_size: 0.0
                         }
                         draw_text +: {
-                            color: #cfd5df,
-                            text_style: theme.font_regular { font_size: 10.5 }}
+                            color: theme.THEME_COLOR_TEXT_LIGHT,
+                            text_style: theme.font_regular { font_size: 10.0 }}
                     }
 
                     summary_stats := View {
@@ -133,7 +151,7 @@ script_mod! {
                         summary_files_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: #6c7382
+                                color: theme.THEME_COLOR_TEXT_MUTED
                                 text_style: theme.font_regular { font_size: 8.0 }
                             }
                             text: ""
@@ -142,7 +160,7 @@ script_mod! {
                         summary_add_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: #31c468
+                                color: theme.THEME_COLOR_DIFF_ADD_TEXT
                                 text_style: theme.font_regular { font_size: 8.0 }
                             }
                             text: ""
@@ -151,7 +169,7 @@ script_mod! {
                         summary_del_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: #ef5b66
+                                color: theme.THEME_COLOR_DIFF_DEL_TEXT
                                 text_style: theme.font_regular { font_size: 8.0 }
                             }
                             text: ""
@@ -164,32 +182,32 @@ script_mod! {
                         margin: Inset{ right: 2 }
                         show_bg: true
                         draw_bg +: {
-                            color: #f59e0b
+                            color: theme.THEME_COLOR_ACCENT_AMBER
                             border_radius: 2.5
                         }
                     }
                     menu_button := Button {
-                        width: 24, height: 26
+                        width: 20, height: 22
                         text: "⋯"
                         align: Align{ x: 0.5, y: 0.5 }
                         draw_bg +: {
-                            color: #0000
-                            color_hover: #ffffff10
-                            color_active: #2a2f3b
-                            border_radius: 6.0
+                            color: theme.THEME_COLOR_TRANSPARENT
+                            color_hover: theme.THEME_COLOR_HOVER_SUBTLE
+                            color_active: theme.THEME_COLOR_HOVER_SUBTLE
+                            border_radius: 5.0
                             border_size: 0.0
                         }
                         draw_text +: {
-                            color: #818896
-                            color_hover: #c4cad5
-                            text_style: theme.font_bold { font_size: 10 }
+                            color: theme.THEME_COLOR_SHADE_8
+                            color_hover: theme.THEME_COLOR_SHADE_10
+                            text_style: theme.font_bold { font_size: 9.5 }
                         }
                     }
                 }
 
                 View {
                     width: Fill, height: Fit
-                    padding: Inset{ top: 1, bottom: 1, right: 4 }
+                    padding: Inset{ top: 1, bottom: 1, right: 3 }
                     align: Align{ x: 1.0, y: 0.5 }
 
                     menu_panel := RoundedView {
@@ -200,10 +218,10 @@ script_mod! {
                         padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
                         show_bg: true
                         draw_bg +: {
-                            color: #242a34
-                            border_radius: 8.0
+                            color: theme.THEME_COLOR_SHADE_5
+                            border_radius: 7.0
                             border_size: 1.0
-                            border_color: #343d4d
+                            border_color: theme.THEME_COLOR_BORDER_MEDIUM
                         }
 
                         menu_collapse := Button {
@@ -211,36 +229,36 @@ script_mod! {
                             text: "〉"
                             align: Align{ x: 0.5, y: 0.5 }
                             draw_bg +: {
-                                color: #0000
-                                color_hover: #313846
+                                color: theme.THEME_COLOR_TRANSPARENT
+                                color_hover: theme.THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #8c93a1, text_style: theme.font_bold { font_size: 10 } }
+                            draw_text +: { color: theme.THEME_COLOR_SHADE_8, text_style: theme.font_bold { font_size: 10 } }
                         }
 
                         menu_rename := Button {
                             width: Fit, height: 22
                             text: "Rename"
                             draw_bg +: {
-                                color: #0000
-                                color_hover: #313846
+                                color: theme.THEME_COLOR_TRANSPARENT
+                                color_hover: theme.THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #d2d7e0, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: theme.THEME_COLOR_SHADE_10, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_branch := Button {
                             width: Fit, height: 22
                             text: "Branch"
                             draw_bg +: {
-                                color: #0000
-                                color_hover: #313846
+                                color: theme.THEME_COLOR_TRANSPARENT
+                                color_hover: theme.THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #d2d7e0, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: theme.THEME_COLOR_SHADE_10, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_abort := Button {
@@ -248,32 +266,56 @@ script_mod! {
                             text: "Abort"
                             visible: false
                             draw_bg +: {
-                                color: #0000
-                                color_hover: #ef4444
+                                color: theme.THEME_COLOR_TRANSPARENT
+                                color_hover: theme.THEME_COLOR_ACCENT_RED
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #d2d7e0, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: theme.THEME_COLOR_SHADE_10, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_delete := Button {
                             width: Fit, height: 22
                             text: "Delete"
                             draw_bg +: {
-                                color: #0000
-                                color_hover: #ef4444
+                                color: theme.THEME_COLOR_TRANSPARENT
+                                color_hover: theme.THEME_COLOR_ACCENT_RED
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #d2d7e0, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: theme.THEME_COLOR_SHADE_10, text_style: theme.font_regular { font_size: 9 } }
                         }
                     }
                 }
             }
 
-            Spacer := View { width: Fill, height: 4 }
-        }
+            Spacer := View { width: Fill, height: 6 }
 
+            EmptyState := View {
+                width: Fill, height: Fit
+                padding: Inset{ left: 12, right: 12, top: 24, bottom: 24 }
+                flow: Down
+                spacing: 8
+
+                empty_label := Label {
+                    width: Fill, height: Fit
+                    text: "No projects yet"
+                    draw_text +: {
+                        color: theme.THEME_COLOR_TEXT_MUTED
+                        text_style: theme.font_regular { font_size: 11 }
+                    }
+                }
+
+                empty_hint := Label {
+                    width: Fill, height: Fit
+                    text: "Add a project to get started"
+                    draw_text +: {
+                        color: theme.THEME_COLOR_TEXT_MUTED
+                        text_style: theme.font_regular { font_size: 9 }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -288,6 +330,7 @@ pub enum PanelItemKind {
         title: String,
     },
     Spacer,
+    EmptyState,
 }
 
 #[derive(Script, ScriptHook, Widget)]
@@ -411,6 +454,10 @@ impl ProjectsPanel {
             }
         }
 
+        if items.is_empty() {
+            items.push(PanelItemKind::EmptyState);
+        }
+
         self.items = items;
         self.dirty = false;
     }
@@ -529,10 +576,11 @@ impl Widget for ProjectsPanel {
                         continue;
                     }
                     let panel_item = self.items[item_id].clone();
-                    let template = match panel_item {
+                    let template = match &panel_item {
                         PanelItemKind::ProjectHeader { .. } => live_id!(ProjectHeader),
                         PanelItemKind::SessionRow { .. } => live_id!(SessionRow),
                         PanelItemKind::Spacer => live_id!(Spacer),
+                        PanelItemKind::EmptyState => live_id!(EmptyState),
                     };
                     let item_widget = list.item(cx, item_id, template);
 
@@ -572,7 +620,12 @@ impl Widget for ProjectsPanel {
                             let display_title = if title.trim().is_empty() {
                                 "Untitled session".to_string()
                             } else {
-                                title.clone()
+                                let truncated: String = title.chars().take(45).collect();
+                                if title.chars().count() > 45 {
+                                    format!("{}…", truncated)
+                                } else {
+                                    truncated
+                                }
                             };
                             let selected = self
                                 .selected_session_id
