@@ -101,8 +101,8 @@ script_mod! {
                 return sdf.result
             }
         }
-        popup_menu: {
-            draw_bg: {color: THEME_COLOR_BG_DARKER}
+        popup_menu: mod.widgets.ScrollablePopupMenu {
+            draw_bg +: {color: #1a1a1a}
         }
         labels: ["Default"]
         values: []

@@ -31,14 +31,14 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                     margin: Inset{ left: 0, right: 4 }
                     text: "> Project"
                     draw_bg +: {
-                        color: THEME_COLOR_TRANSPARENT
-                        color_hover: THEME_COLOR_HOVER_SUBTLE
-                        color_active: THEME_COLOR_HOVER_SUBTLE
+                        color: #0000
+                        color_hover: #ffffff10
+                        color_active: #ffffff10
                         border_radius: 4.0
                         border_size: 0.0
                     }
                     draw_text +: {
-                        color: THEME_COLOR_TEXT_LIGHT
+                        color: #ddd
                         text_style: theme.font_bold { font_size: 11 }
                     }
                 }
@@ -49,7 +49,7 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                     margin: Inset{ right: 4 }
                     show_bg: true
                     draw_bg +: {
-                        color: THEME_COLOR_ACCENT_AMBER
+                        color: #f59e0b
                         border_radius: 3.0
                     }
                 }
@@ -59,13 +59,13 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                     margin: Inset{ left: 4 }
                     text: "+"
                     draw_bg +: {
-                        color: THEME_COLOR_TRANSPARENT
-                        color_hover: THEME_COLOR_HOVER_SUBTLE
-                        color_active: THEME_COLOR_HOVER_SUBTLE
+                        color: #0000
+                        color_hover: #ffffff10
+                        color_active: #ffffff10
                         border_radius: 4.0
                         border_size: 0.0
                     }
-                    draw_text +: { color: THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 12 } }
+                    draw_text +: { color: #888, text_style: theme.font_bold { font_size: 12 } }
                 }
             }
 
@@ -86,14 +86,14 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         margin: Inset{ right: 4 }
                         text: "Session"
                         draw_bg +: {
-                            color: THEME_COLOR_TRANSPARENT
-                            color_hover: THEME_COLOR_HOVER_SUBTLE
-                            color_active: THEME_COLOR_HOVER_SUBTLE
+                            color: #0000
+                            color_hover: #ffffff10
+                            color_active: #ffffff10
                             border_radius: 4.0
                             border_size: 0.0
                         }
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_NORMAL,
+                            color: #ccc,
                             text_style: theme.font_regular { font_size: 9 }}
                     }
 
@@ -107,7 +107,7 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         summary_files_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_DARK
+                                color: #555
                                 text_style: theme.font_regular { font_size: 7.5 }
                             }
                             text: ""
@@ -116,7 +116,7 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         summary_add_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_DIFF_ADD_TEXT
+                                color: #4dca4d
                                 text_style: theme.font_regular { font_size: 7.5 }
                             }
                             text: ""
@@ -125,7 +125,7 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         summary_del_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_DIFF_DEL_TEXT
+                                color: #e06060
                                 text_style: theme.font_regular { font_size: 7.5 }
                             }
                             text: ""
@@ -137,7 +137,7 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         width: 6, height: 6
                         show_bg: true
                         draw_bg +: {
-                            color: THEME_COLOR_ACCENT_AMBER
+                            color: #f59e0b
                             border_radius: 3.0
                         }
                     }
@@ -146,15 +146,15 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         text: "⋯"
                         align: Align{ x: 0.5, y: 0.5 }
                         draw_bg +: {
-                            color: THEME_COLOR_TRANSPARENT
-                            color_hover: THEME_COLOR_HOVER_SUBTLE
-                            color_active: THEME_COLOR_HOVER_SUBTLE
+                            color: #0000
+                            color_hover: #ffffff10
+                            color_active: #ffffff10
                             border_radius: 4.0
                             border_size: 0.0
                         }
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_MUTED
-                            color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
+                            color: #888
+                            color_hover: #aaa
                             text_style: theme.font_bold { font_size: 10 }
                         }
                     }
@@ -185,36 +185,36 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                             text: "〉"
                             align: Align{ x: 0.5, y: 0.5 }
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
+                                color: #0000
+                                color_hover: #333
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 10 } }
+                            draw_text +: { color: #666, text_style: theme.font_bold { font_size: 10 } }
                         }
 
                         menu_rename := Button {
                             width: Fit, height: 22
                             text: "Rename"
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
+                                color: #0000
+                                color_hover: #333
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: #ccc, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_branch := Button {
                             width: Fit, height: 22
                             text: "Branch"
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
+                                color: #0000
+                                color_hover: #333
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: #ccc, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_abort := Button {
@@ -222,24 +222,24 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                             text: "Abort"
                             visible: false
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_ACCENT_RED
+                                color: #0000
+                                color_hover: #ef4444
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: #ccc, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_delete := Button {
                             width: Fit, height: 22
                             text: "Delete"
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_ACCENT_RED
+                                color: #0000
+                                color_hover: #ef4444
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: #ccc, text_style: theme.font_regular { font_size: 9 } }
                         }
                     }
                 }

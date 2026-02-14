@@ -19,7 +19,7 @@ script_mod! {
             padding: Inset{left: 12 right: 12 top: 8 bottom: 8}
             show_bg: true
             draw_bg +: {
-                color: THEME_COLOR_DIFF_HEADER_BG
+                color: #1a1f2e
                 border_radius: 8.0
             }
 
@@ -35,7 +35,7 @@ script_mod! {
                     height: Fit
                     text: ""
                     draw_text +: {
-                        color: THEME_COLOR_TEXT_DIM
+                        color: #aab3bd
                         text_style: theme.font_bold {font_size: 11}
                     }
                 }
@@ -45,7 +45,7 @@ script_mod! {
                     height: Fit
                     text: ""
                     draw_text +: {
-                        color: THEME_COLOR_DIFF_ADD_TEXT
+                        color: #4dca4d
                         text_style: theme.font_bold {font_size: 11}
                     }
                 }
@@ -55,7 +55,7 @@ script_mod! {
                     height: Fit
                     text: ""
                     draw_text +: {
-                        color: THEME_COLOR_DIFF_DEL_TEXT
+                        color: #e06060
                         text_style: theme.font_bold {font_size: 11}
                     }
                 }
@@ -70,7 +70,7 @@ script_mod! {
             margin: Inset{top: 2}
             show_bg: true
             draw_bg +: {
-                color: THEME_COLOR_BG_DARKER
+                color: #1a1a1a
                 border_radius: 0.0
             }
 

@@ -21,14 +21,14 @@ script_mod! {
             Label {
                 text: "Openpad"
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_BRIGHT
+                    color: #ffffff
                     text_style: theme.font_bold { font_size: 16 }
                 }
             }
             Label {
                 text: "How can I help you today?"
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_DIM
+                    color: #aab3bd
                     text_style: theme.font_regular { font_size: 11 }
                 }
             }
@@ -58,7 +58,7 @@ script_mod! {
                         timestamp_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_DARKER,
+                                color: #444,
                                 text_style: theme.font_regular { font_size: 8 },
                             }
                             text: "..."
@@ -67,7 +67,7 @@ script_mod! {
                         Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_DARK,
+                                color: #555,
                                 text_style: theme.font_bold { font_size: 8 },
                             }
                             text: "YOU"
@@ -77,7 +77,7 @@ script_mod! {
                     msg_text := Label {
                         width: Fill, height: Fit
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_LIGHT,
+                            color: #ddd,
                             text_style: theme.font_regular { font_size: 10, line_spacing: 1.4 },
                         }
                     }
@@ -92,13 +92,13 @@ script_mod! {
                             width: Fit, height: 20
                             text: "Copy"
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
+                                color: #0000
+                                color_hover: #333
                                 border_size: 0.0
                             }
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_LIGHT
-                                color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
+                                color: #666
+                                color_hover: #aaa
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                         }
@@ -118,8 +118,8 @@ script_mod! {
                     flow: Down,
                     padding: Inset{ top: 10, bottom: 10, left: 14, right: 14 }
                     draw_bg +: {
-                        color: THEME_COLOR_BG_ASSISTANT_BUBBLE
-                        border_color: THEME_COLOR_BORDER_MEDIUM
+                        color: #252526
+                        border_color: #333
                     }
 
                     View {
@@ -138,7 +138,7 @@ script_mod! {
                             thinking_icon := Label {
                                 width: Fit, height: Fit
                                 draw_text +: {
-                                    color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                    color: #666
                                     text_style: theme.font_regular { font_size: 9 }
                                 }
                                 text: "◐"
@@ -147,7 +147,7 @@ script_mod! {
                             thinking_label := Label {
                                 width: Fit, height: Fit
                                 draw_text +: {
-                                    color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                    color: #666
                                     text_style: theme.font_bold { font_size: 9 }
                                 }
                                 text: "Working"
@@ -159,7 +159,7 @@ script_mod! {
                         thinking_timer := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_DARKER
+                                color: #444
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
@@ -169,7 +169,7 @@ script_mod! {
                     thinking_activity := Label {
                         width: Fill, height: Fit
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_MUTED_LIGHT
+                            color: #666
                             text_style: theme.font_italic { font_size: 9, line_spacing: 1.3 }}
                         text: ""
                     }
@@ -181,11 +181,11 @@ script_mod! {
                         spacing: 3,
                         margin: Inset{ top: 8 }
 
-                        tool_row_0 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_0 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_0 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_0 := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_1 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_1 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_1 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_1 := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_2 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_2 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_2 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_2 := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_3 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_3 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_3 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_3 := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_4 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_4 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_4 := Label { width: Fit, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_4 := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_0 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_0 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_0 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_0 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_1 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_1 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_1 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_1 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_2 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_2 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_2 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_2 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_3 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_3 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_3 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_3 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_4 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_4 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_4 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_4 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
                     }
                 }
             }
@@ -209,7 +209,7 @@ script_mod! {
                         model_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_DARK,
+                                color: #555,
                                 text_style: theme.font_bold { font_size: 8 },
                             }
                             text: "ASSISTANT"
@@ -218,7 +218,7 @@ script_mod! {
                         timestamp_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_DARKER,
+                                color: #444,
                                 text_style: theme.font_regular { font_size: 8 },
                             }
                             text: "..."
@@ -230,13 +230,13 @@ script_mod! {
                             width: Fit, height: 20
                             text: "Copy"
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
+                                color: #0000
+                                color_hover: #333
                                 border_size: 0.0
                             }
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_PRIMARY
-                                color_hover: THEME_COLOR_TEXT_BRIGHT
+                                color: #e6e9ee
+                                color_hover: #ffffff
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                         }
@@ -245,13 +245,13 @@ script_mod! {
                             width: Fit, height: 20
                             text: "Revert"
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
+                                color: #0000
+                                color_hover: #333
                                 border_size: 0.0
                             }
                             draw_text +: {
-                                color: THEME_COLOR_ACCENT_AMBER
-                                color_hover: THEME_COLOR_TEXT_BRIGHT
+                                color: #f59e0b
+                                color_hover: #ffffff
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                         }
@@ -268,7 +268,7 @@ script_mod! {
                         steps_summary_label := Label {
                             width: Fill, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                color: #666
                                 text_style: theme.font_regular { font_size: 9 }
                             }
                             text: ""
@@ -277,14 +277,14 @@ script_mod! {
                         steps_button := Button {
                             width: Fit, height: 20
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
+                                color: #0000
+                                color_hover: #333
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_PRIMARY
-                                color_hover: THEME_COLOR_TEXT_BRIGHT
+                                color: #e6e9ee
+                                color_hover: #ffffff
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                             text: "▸ Details"
@@ -303,16 +303,16 @@ script_mod! {
                                 width: Fill, height: Fit
                                 flow: Down
                                 spacing: 4
-                                step_row_0 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_0_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_0_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_0_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_0_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_0_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_0_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_0_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_1 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_1_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_1_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_1_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_1_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_1_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_1_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_1_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_2 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_2_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_2_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_2_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_2_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_2_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_2_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_2_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_3 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_3_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_3_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_3_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_3_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_3_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_3_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_3_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_4 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_4_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_4_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_4_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_4_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_4_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_4_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_4_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_5 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_5_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_5_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_5_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_5_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_5_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_5_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_5_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_6 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_6_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_6_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_6_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_6_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_6_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_6_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_6_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_7 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_7_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_7_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_7_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_7_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_7_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_7_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_7_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_8 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_8_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_8_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_8_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_8_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_8_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_8_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_8_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_9 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_9_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_9_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_9_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_TEXT_MUTED_DARKER, border_radius: 3.0 } }, step_row_9_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: THEME_COLOR_BORDER_MEDIUM } } }, step_row_9_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: THEME_COLOR_TRANSPARENT, color_hover: THEME_COLOR_HOVER_MEDIUM, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_9_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_9_content := Label { width: Fill, height: Fit, draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_0 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_0_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_0_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_0_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_0_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_0_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_0_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_0_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_1 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_1_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_1_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_1_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_1_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_1_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_1_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_1_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_2 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_2_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_2_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_2_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_2_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_2_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_2_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_2_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_3 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_3_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_3_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_3_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_3_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_3_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_3_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_3_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_4 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_4_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_4_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_4_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_4_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_4_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_4_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_4_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_5 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_5_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_5_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_5_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_5_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_5_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_5_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_5_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_6 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_6_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_6_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_6_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_6_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_6_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_6_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_6_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_7 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_7_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_7_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_7_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_7_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_7_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_7_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_7_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_8 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_8_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_8_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_8_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_8_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_8_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_8_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_8_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_9 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_9_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_9_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_9_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_9_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_9_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_9_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_9_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
                             }
                         }
                     }
@@ -323,7 +323,7 @@ script_mod! {
                         msg_text := Markdown {
                             width: Fill, height: Fit
                             font_size: 10
-                            font_color: THEME_COLOR_TEXT_NORMAL
+                            font_color: #ccc
                             paragraph_spacing: 8
                             pre_code_spacing: 6
                             use_code_block_widget: true
@@ -336,7 +336,7 @@ script_mod! {
                         msg_label := Label {
                             width: Fill, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_NORMAL
+                                color: #ccc
                                 text_style: theme.font_regular { font_size: 10, line_spacing: 1.4 }
                             }
                         }
@@ -346,7 +346,7 @@ script_mod! {
                         width: Fill, height: Fit
                         text: ""
                         draw_text +: {
-                            color: THEME_COLOR_ACCENT_RED
+                            color: #ef4444
                             text_style: theme.font_regular { font_size: 9, line_spacing: 1.4 }
                         }
                     }
@@ -363,7 +363,7 @@ script_mod! {
                         tokens_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                color: #666
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
@@ -372,7 +372,7 @@ script_mod! {
                         cost_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_LIGHT
+                                color: #666
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
@@ -389,13 +389,13 @@ script_mod! {
                             width: Fit, height: 20
                             text: "Copy"
                             draw_bg +: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
+                                color: #0000
+                                color_hover: #333
                                 border_size: 0.0
                             }
                             draw_text +: {
-                                color: THEME_COLOR_TEXT_MUTED_LIGHT
-                                color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
+                                color: #666
+                                color_hover: #aaa
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                         }
@@ -404,13 +404,13 @@ script_mod! {
                              width: Fit, height: 20
                              text: "Revert"
                              draw_bg +: {
-                                 color: THEME_COLOR_TRANSPARENT
-                                 color_hover: THEME_COLOR_HOVER_MEDIUM
+                                 color: #0000
+                                 color_hover: #333
                                  border_size: 0.0
                              }
                              draw_text +: {
-                                 color: THEME_COLOR_TEXT_MUTED_LIGHT
-                                 color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
+                                 color: #666
+                                 color_hover: #aaa
                                  text_style: theme.font_regular { font_size: 8 }
                              }
                          }

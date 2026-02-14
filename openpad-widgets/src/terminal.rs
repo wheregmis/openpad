@@ -19,7 +19,7 @@ script_mod! {
             spacing: 0
             show_bg: true
             draw_bg +: {
-                color: THEME_COLOR_BG_DARKER
+                color: #1a1a1a
             }
 
             output_list := PortalList {
@@ -33,7 +33,7 @@ script_mod! {
                         width: Fill
                         height: Fit
                         draw_text +: {
-                            color: THEME_COLOR_SHADE_11
+                            color: #27303a1
                             text_style: theme.font_code {font_size: 10}
                         }
                     }
@@ -52,7 +52,7 @@ script_mod! {
                         height: Fit
                         text: " % "
                         draw_text +: {
-                            color: THEME_COLOR_SHADE_11
+                            color: #27303a1
                             text_style: theme.font_code {font_size: 10}
                         }
                     }
@@ -63,14 +63,14 @@ script_mod! {
                         padding: Inset{left: 0 right: 10 top: 4 bottom: 4}
                         empty_text: ""
                         draw_bg +: {
-                            color: THEME_COLOR_TRANSPARENT
-                            color_focus: THEME_COLOR_TRANSPARENT
-                            color_empty: THEME_COLOR_TRANSPARENT
+                            color: #0000
+                            color_focus: #0000
+                            color_empty: #0000
                             border_radius: 0.0
                             border_size: 0.0
                         }
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_BRIGHT
+                            color: #ffffff
                             text_style: theme.font_code {font_size: 10}
                         }
                     }

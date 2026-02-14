@@ -14,8 +14,8 @@ script_mod! {
         show_bg: true
 
         draw_bg +: {
-            color: uniform(THEME_COLOR_SHADE_1)
-            border_color: uniform(THEME_COLOR_ACCENT_AMBER)
+            color: uniform(#27303a)
+            border_color: uniform(#f59e0b)
             border_radius: uniform(10.0)
             border_size: uniform(1.5)
 
@@ -33,7 +33,7 @@ script_mod! {
             height: Fit
             text: "Permission Request"
             draw_text +: {
-                color: THEME_COLOR_ACCENT_AMBER
+                color: #f59e0b
                 text_style: theme.font_bold {font_size: 12}
             }
         }
@@ -43,7 +43,7 @@ script_mod! {
             height: Fit
             text: ""
             draw_text +: {
-                color: THEME_COLOR_TEXT_PRIMARY
+                color: #e6e9ee
                 text_style: theme.font_regular {font_size: 11}
             }
         }
@@ -53,7 +53,7 @@ script_mod! {
             height: Fit
             text: ""
             draw_text +: {
-                color: THEME_COLOR_STATUS_DOT
+                color: #6b7b8c
                 text_style: theme.font_code {font_size: 10}
             }
         }
@@ -70,14 +70,14 @@ script_mod! {
                 height: 32
                 text: "Deny"
                 draw_bg +: {
-                    color: THEME_COLOR_SHADE_3
-                    color_hover: THEME_COLOR_SHADE_5
+                    color: #2a2f36
+                    color_hover: #313843
                     border_radius: 8.0
                     border_size: 1.0
-                    border_color: THEME_COLOR_BORDER_LIGHT
+                    border_color: #444
                 }
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_PRIMARY
+                    color: #e6e9ee
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
@@ -87,13 +87,13 @@ script_mod! {
                 height: 32
                 text: "Always"
                 draw_bg +: {
-                    color: THEME_COLOR_BG_BUTTON
-                    color_hover: THEME_COLOR_BG_BUTTON_HOVER
+                    color: #2b2f35
+                    color_hover: #353a40
                     border_radius: 8.0
                     border_size: 0.0
                 }
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_PRIMARY
+                    color: #e6e9ee
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
@@ -103,13 +103,13 @@ script_mod! {
                 height: 32
                 text: "Approve"
                 draw_bg +: {
-                    color: THEME_COLOR_ACCENT_BLUE
-                    color_hover: THEME_COLOR_ACCENT_BLUE_HOVER
+                    color: #3b82f6
+                    color_hover: #1d4fed
                     border_radius: 8.0
                     border_size: 0.0
                 }
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_BRIGHT
+                    color: #ffffff
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
@@ -120,7 +120,7 @@ script_mod! {
             height: Fit
             text: ""
             draw_text +: {
-                color: THEME_COLOR_TEXT_DIM
+                color: #aab3bd
                 text_style: theme.font_bold {font_size: 11}
             }
         }

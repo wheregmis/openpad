@@ -15,8 +15,8 @@ script_mod! {
         show_bg: true
 
         draw_bg +: {
-            color: uniform(THEME_COLOR_BG_DIALOG)
-            border_color: uniform(THEME_COLOR_BORDER_DIALOG)
+            color: uniform(#1f2329)
+            border_color: uniform(#2b3138)
             border_radius: uniform(10.0)
             border_size: uniform(1.0)
 
@@ -39,7 +39,7 @@ script_mod! {
             title := Label {
                 text: "Permission required"
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_PRIMARY
+                    color: #e6e9ee
                     text_style: theme.font_bold {font_size: 12}
                 }
             }
@@ -51,7 +51,7 @@ script_mod! {
                 height: Fit
                 padding: Inset{left: 8 right: 8 top: 4 bottom: 4}
                 draw_bg +: {
-                    color: THEME_COLOR_SHADE_1
+                    color: #27303a
                     border_radius: 10.0
                 }
 
@@ -60,7 +60,7 @@ script_mod! {
                     height: Fit
                     text: ""
                     draw_text +: {
-                        color: THEME_COLOR_SHADE_10
+                        color: #27303a0
                         text_style: theme.font_regular {font_size: 10}
                     }
                 }
@@ -72,7 +72,7 @@ script_mod! {
             height: Fit
             text: ""
             draw_text +: {
-                color: THEME_COLOR_TEXT_DIM
+                color: #aab3bd
                 text_style: theme.font_regular {font_size: 11}}
         }
 
@@ -81,7 +81,7 @@ script_mod! {
             height: 200
             padding: 10
             draw_bg +: {
-                color: THEME_COLOR_BG_INPUT
+                color: #15181d
                 border_radius: 8.0
             }
 
@@ -100,7 +100,7 @@ script_mod! {
                         height: Fit
                         text: ""
                         draw_text +: {
-                            color: THEME_COLOR_STATUS_DOT
+                            color: #6b7b8c
                             text_style: theme.font_code {font_size: 10}}
                     }
 
@@ -109,7 +109,7 @@ script_mod! {
                         height: Fit
                         text: ""
                         draw_text +: {
-                            color: THEME_COLOR_SHADE_7
+                            color: #8fa0b3
                             text_style: theme.font_regular {font_size: 10}}
                     }
                 }
@@ -128,13 +128,13 @@ script_mod! {
                 height: 32
                 text: "Reject"
                 draw_bg +: {
-                    color: THEME_COLOR_SHADE_3
-                    color_hover: THEME_COLOR_SHADE_5
+                    color: #2a2f36
+                    color_hover: #313843
                     border_radius: 8.0
                     border_size: 0.0
                 }
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_PRIMARY
+                    color: #e6e9ee
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
@@ -144,13 +144,13 @@ script_mod! {
                 height: 32
                 text: "Always allow"
                 draw_bg +: {
-                    color: THEME_COLOR_SHADE_4
-                    color_hover: THEME_COLOR_SHADE_6
+                    color: #334155
+                    color_hover: #475569
                     border_radius: 8.0
                     border_size: 0.0
                 }
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_PRIMARY
+                    color: #e6e9ee
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
@@ -160,13 +160,13 @@ script_mod! {
                 height: 32
                 text: "Allow once"
                 draw_bg +: {
-                    color: THEME_COLOR_ACCENT_BLUE
-                    color_hover: THEME_COLOR_ACCENT_BLUE_DARK
+                    color: #3b82f6
+                    color_hover: #1d4ed8
                     border_radius: 8.0
                     border_size: 0.0
                 }
                 draw_text +: {
-                    color: THEME_COLOR_TEXT_BRIGHT
+                    color: #ffffff
                     text_style: theme.font_regular {font_size: 11}
                 }
             }

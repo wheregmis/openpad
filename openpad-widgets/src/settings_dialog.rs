@@ -14,7 +14,7 @@ script_mod! {
         show_bg: true
 
         draw_bg +: {
-            color: THEME_COLOR_BG_APP
+            color: #1e1e1e
         }
 
         ScrollYView {
@@ -37,7 +37,7 @@ script_mod! {
                     Label {
                         text: "Select Provider"
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_DIM
+                            color: #aab3bd
                             text_style: theme.font_regular {font_size: 10}
                         }
                     }
@@ -49,15 +49,15 @@ script_mod! {
 
                         draw_text +: {
                             text_style: theme.font_regular {font_size: 11}
-                            color: THEME_COLOR_TEXT_PRIMARY
+                            color: #e6e9ee
                         }
 
                         draw_bg +: {
-                            color: THEME_COLOR_BG_INPUT
-                            color_hover: THEME_COLOR_HOVER_MEDIUM
+                            color: #15181d
+                            color_hover: #333
                             border_radius: 6.0
                             border_size: 1.0
-                            border_color: THEME_COLOR_BORDER_MEDIUM
+                            border_color: #333
                         }
 
                     }
@@ -72,7 +72,7 @@ script_mod! {
                     Label {
                         text: "API Key"
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_DIM
+                            color: #aab3bd
                             text_style: theme.font_regular {font_size: 10}
                         }
                     }
@@ -83,14 +83,14 @@ script_mod! {
                         is_password: true
                         empty_text: "Enter API Key"
                         draw_bg +: {
-                            color: THEME_COLOR_BG_INPUT
-                            color_focus: THEME_COLOR_BG_INPUT
+                            color: #15181d
+                            color_focus: #15181d
                             border_radius: 6.0
                             border_size: 1.0
-                            border_color: THEME_COLOR_BORDER_MEDIUM
+                            border_color: #333
                         }
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_PRIMARY
+                            color: #e6e9ee
                             text_style: theme.font_code {font_size: 10}
                         }
                     }
@@ -106,13 +106,13 @@ script_mod! {
                         height: 32
                         text: "Update Key"
                         draw_bg +: {
-                            color: THEME_COLOR_BG_BUTTON
-                            color_hover: THEME_COLOR_BG_BUTTON_HOVER
+                            color: #2b2f35
+                            color_hover: #353a40
                             border_radius: 6.0
                             border_size: 0.0
                         }
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_BRIGHT
+                            color: #ffffff
                             text_style: theme.font_bold {font_size: 11}
                         }
                     }
@@ -124,7 +124,7 @@ script_mod! {
                     width: Fill
                     height: 1
                     show_bg: true
-                    draw_bg +: {color: THEME_COLOR_BORDER_MEDIUM}
+                    draw_bg +: {color: #333}
                 }
 
                 View {
@@ -136,7 +136,7 @@ script_mod! {
                     Label {
                         text: "Current Configuration"
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_DIM
+                            color: #aab3bd
                             text_style: theme.font_regular {font_size: 10}
                         }
                     }
@@ -146,7 +146,7 @@ script_mod! {
                         height: Fit
                         text: "Loading..."
                         draw_text +: {
-                            color: THEME_COLOR_TEXT_DIM
+                            color: #aab3bd
                             text_style: theme.font_code {font_size: 9}}
                     }
                 }

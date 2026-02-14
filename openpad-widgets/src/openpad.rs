@@ -1,8 +1,6 @@
 use makepad_widgets::*;
 
 script_mod! {
-    use mod.prelude.widgets_internal.*
-    use mod.widgets.*
-
     // Consolidated module for generic Openpad script DSL definitions.
+    // No use statements here to avoid stack resolution order issues during script check.
 }

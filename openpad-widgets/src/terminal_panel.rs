@@ -14,13 +14,13 @@ script_mod! {
         open_size: 250.0
         close_size: 0.0
 
-        draw_bg +: {color: THEME_COLOR_BG_APP}
+        draw_bg +: {color: #1e1e1e}
 
         View {
             width: Fill
             height: 1
             show_bg: true
-            draw_bg +: {color: THEME_COLOR_BORDER_MEDIUM}
+            draw_bg +: {color: #333}
         }
 
         terminal_panel := mod.widgets.Terminal {
