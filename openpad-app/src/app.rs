@@ -6,7 +6,6 @@ use openpad_protocol::OpenCodeClient;
 use openpad_widgets::message_list::MessageListWidgetRefExt;
 use openpad_widgets::permission_card::PermissionCardAction;
 use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
-use openpad_widgets::terminal::{TerminalAction, TerminalWidgetRefExt};
 use openpad_widgets::terminal_panel::TerminalPanelWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_widgets::{
@@ -131,6 +130,7 @@ script_mod! {
         ui: Root{
             main_window := Window{
                 window.inner_size: vec2(1200 800)
+                window.title: "Openpad"
                 pass.clear_color: #1a1a1a
                 body +: {
                     width: Fill, height: Fill
@@ -143,18 +143,6 @@ script_mod! {
                         side_panel := SidePanel {
                             width: 260.0, height: Fill
                             open_size: 260.0
-
-                            HeaderBar {
-                                width: Fill
-                                height: 36
-                                View { width: Fill }
-                                sidebar_tabs := View {
-                                    width: Fit, height: Fill
-                                    flow: Right, spacing: 4
-                                    projects_tab := Button { width: Fit, height: 24, text: "Projects" }
-                                    settings_tab := Button { width: Fit, height: 24, text: "Settings" }
-                                }
-                            }
 
                             projects_panel := ProjectsPanel { visible: true }
                             settings_panel := SettingsDialog { visible: false width: Fill height: Fill }
@@ -184,6 +172,13 @@ script_mod! {
                             session_info := View {
                                 width: Fill, height: 32
                                 flow: Right, spacing: 8
+                                show_bg: true
+                                draw_bg +: {
+                                    color: #171a20
+                                    border_size: 1.0
+                                    border_color: #262c35
+                                }
+                                padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
                                 project_row := View {
                                     width: Fit, height: Fit
                                     project_badge := View { project_badge_label := Label { text: "No project" } }
@@ -289,7 +284,9 @@ impl App {
                 .map(|f| f.filename.clone())
                 .collect();
             let text = filenames.join(", ");
-            self.ui.label(cx, &[id!(attachments_list)]).set_text(cx, &text);
+            self.ui
+                .label(cx, &[id!(attachments_list)])
+                .set_text(cx, &text);
         }
         self.ui.redraw(cx);
     }
@@ -367,23 +364,6 @@ impl App {
         self.ui
             .widget(cx, &[id!(side_panel), id!(settings_panel)])
             .set_visible(cx, show_settings);
-
-        let projects_tab_text = if show_projects {
-            "● Projects"
-        } else {
-            "Projects"
-        };
-        let settings_tab_text = if show_settings {
-            "● Settings"
-        } else {
-            "Settings"
-        };
-        self.ui
-            .button(cx, &[id!(side_panel), id!(sidebar_tabs), id!(projects_tab)])
-            .set_text(cx, projects_tab_text);
-        self.ui
-            .button(cx, &[id!(side_panel), id!(sidebar_tabs), id!(settings_tab)])
-            .set_text(cx, settings_tab_text);
 
         // Force redraw of the side panel to ensure visibility changes take effect
         self.ui.view(cx, &[id!(side_panel)]).redraw(cx);
@@ -509,13 +489,6 @@ impl App {
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
         for action in actions {
-            // Handle TerminalAction from background thread
-            if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
-                self.ui
-                    .terminal(cx, &[id!(terminal_panel)])
-                    .handle_action(cx, terminal_action);
-            }
-
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
                     AppAction::OpenCodeEvent(oc_event) => {
@@ -761,12 +734,14 @@ impl App {
 
     fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
         // Show confirmation dialog
-        self.ui.simple_dialog(cx, &[id!(simple_dialog)]).show_confirm(
-            cx,
-            "Delete Session",
-            "Are you sure you want to delete this session? This action cannot be undone.",
-            format!("delete_session:{}", session_id),
-        );
+        self.ui
+            .simple_dialog(cx, &[id!(simple_dialog)])
+            .show_confirm(
+                cx,
+                "Delete Session",
+                "Are you sure you want to delete this session? This action cannot be undone.",
+                format!("delete_session:{}", session_id),
+            );
     }
 
     fn rename_session(&mut self, cx: &mut Cx, session_id: String) {
@@ -951,9 +926,6 @@ impl AppMain for App {
                         window.set_fullscreen(cx);
                     }
                 }
-                // Initialize terminal
-                self.ui.terminal(cx, &[id!(terminal_panel)]).init_pty(cx);
-
                 // Initialize sidebar open, terminal collapsed by default
                 self.sidebar_open = true;
                 self.sidebar_mode = SidebarMode::Projects;
@@ -963,7 +935,9 @@ impl AppMain for App {
                     .set_open(cx, false);
                 self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
                 self.set_sidebar_width(cx, self.sidebar_width);
-                self.ui.side_panel(cx, &[id!(side_panel)]).set_open(cx, true);
+                self.ui
+                    .side_panel(cx, &[id!(side_panel)])
+                    .set_open(cx, true);
                 self.ui
                     .side_panel(cx, &[id!(traffic_light_spacer)])
                     .set_open(cx, false);
@@ -1057,13 +1031,6 @@ impl AppMain for App {
                     }
                     _ => {}
                 }
-            }
-
-            // Handle TerminalAction
-            if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
-                self.ui
-                    .terminal(cx, &[id!(terminal_panel)])
-                    .handle_action(cx, terminal_action);
             }
 
             // Handle AppAction from captured UI actions (e.g. DialogConfirmed, PermissionResponded)
@@ -1263,7 +1230,9 @@ impl AppMain for App {
         }
 
         // Check for text input return
-        if let Some((text, _modifiers)) = self.ui.text_input(cx, &[id!(input_box)]).returned(&actions) {
+        if let Some((text, _modifiers)) =
+            self.ui.text_input(cx, &[id!(input_box)]).returned(&actions)
+        {
             if !text.is_empty() {
                 let processed_text = self.process_pasted_content(cx, &text);
                 self.send_message(cx, processed_text);
@@ -1272,7 +1241,11 @@ impl AppMain for App {
         }
 
         // Handle unrevert button
-        if self.ui.button(cx, &[id!(unrevert_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(unrevert_button)])
+            .clicked(&actions)
+        {
             if let Some(session_id) = &self.state.current_session_id {
                 self.unrevert_session(cx, session_id.clone());
             }
@@ -1290,13 +1263,21 @@ impl AppMain for App {
             }
         }
 
-        if self.ui.button(cx, &[id!(copy_share_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(copy_share_button)])
+            .clicked(&actions)
+        {
             if let Some(url) = self.state.current_share_url() {
                 cx.copy_to_clipboard(&url);
             }
         }
 
-        if self.ui.button(cx, &[id!(summarize_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(summarize_button)])
+            .clicked(&actions)
+        {
             let session_id = self.state.current_session_id.clone();
             if let Some(session_id) = session_id {
                 let message_id =
@@ -1313,29 +1294,12 @@ impl AppMain for App {
             }
         }
 
-        if self.ui.button(cx, &[id!(hamburger_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(hamburger_button)])
+            .clicked(&actions)
+        {
             self.toggle_sidebar(cx);
-        }
-
-        if self
-            .ui
-            .button(cx, &[id!(side_panel), id!(sidebar_tabs), id!(projects_tab)])
-            .clicked(&actions)
-        {
-            self.sidebar_mode = SidebarMode::Projects;
-            self.update_sidebar_panel_visibility(cx);
-        }
-
-        if self
-            .ui
-            .button(cx, &[id!(side_panel), id!(sidebar_tabs), id!(settings_tab)])
-            .clicked(&actions)
-        {
-            self.sidebar_mode = SidebarMode::Settings;
-            if !self.sidebar_open {
-                self.toggle_sidebar(cx);
-            }
-            self.update_sidebar_panel_visibility(cx);
         }
 
         if self.ui.button(cx, &[id!(send_button)]).clicked(&actions) {
@@ -1357,7 +1321,11 @@ impl AppMain for App {
             self.update_attachments_ui(cx);
         }
 
-        if self.ui.button(cx, &[id!(clear_skill_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(clear_skill_button)])
+            .clicked(&actions)
+        {
             self.state.selected_skill_idx = None;
             self.ui
                 .up_drop_down(cx, &[id!(input_bar_toolbar), id!(skill_dropdown)])

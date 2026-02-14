@@ -709,6 +709,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
+name = "jpeg-encoder"
+version = "0.6.1"
+
+[[package]]
 name = "js-sys"
 version = "0.3.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -829,6 +833,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "makepad-file-protocol"
+version = "1.0.0"
+dependencies = [
+ "makepad-live-id",
+ "makepad-micro-serde",
+]
+
+[[package]]
+name = "makepad-file-server"
+version = "1.0.0"
+dependencies = [
+ "makepad-file-protocol",
+ "makepad-live-id",
+ "makepad-micro-serde",
+ "makepad-rabin-karp",
+ "makepad-shell",
+]
+
+[[package]]
 name = "makepad-futures"
 version = "1.0.0"
 
@@ -935,6 +958,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "makepad-rabin-karp"
+version = "1.0.0"
+
+[[package]]
 name = "makepad-regex"
 version = "0.1.0"
 
@@ -959,12 +986,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "makepad-shell"
+version = "1.0.0"
+
+[[package]]
+name = "makepad-studio"
+version = "2.0.0"
+dependencies = [
+ "jpeg-encoder",
+ "makepad-code-editor",
+ "makepad-file-protocol",
+ "makepad-file-server",
+ "makepad-http",
+ "makepad-shell",
+ "makepad-terminal-core",
+ "makepad-widgets",
+]
+
+[[package]]
 name = "makepad-svg"
 version = "1.0.0"
 dependencies = [
  "makepad-html",
  "makepad-live-id",
 ]
+
+[[package]]
+name = "makepad-terminal-core"
+version = "1.0.0"
 
 [[package]]
 name = "makepad-wasm-bridge"
@@ -1174,6 +1223,7 @@ name = "openpad-widgets"
 version = "0.1.0"
 dependencies = [
  "hostname",
+ "makepad-studio",
  "makepad-widgets",
  "openpad-protocol",
  "portable-pty",

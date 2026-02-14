@@ -10,9 +10,9 @@ script_mod! {
         margin: Inset{left: 6}
         padding: Inset{left: 8 right: 8 top: 8 bottom: 8}
         text: ""
-        icon_walk: Walk{width: 14 height: Fit}
+        icon_walk: Walk{width: 14 height: 14}
         draw_icon +: {
-            svg_file: crate_resource("self://resources/icons/send.svg")
+            svg: crate_resource("self://resources/icons/send.svg")
             color: #8e95a6
             color_hover: #ffffff
             color_down: #b2b9c4

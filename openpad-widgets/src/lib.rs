@@ -34,12 +34,13 @@ pub use permission_dialog::{PermissionDialog, PermissionDialogAction, Permission
 pub use settings_dialog::{SettingsDialog, SettingsDialogAction, SettingsDialogRef};
 pub use side_panel::{SidePanel, SidePanelRef, SidePanelWidgetRefExt};
 pub use simple_dialog::{SimpleDialog, SimpleDialogAction, SimpleDialogRef};
-pub use terminal::{Terminal, TerminalAction, TerminalRef};
+pub use terminal::{Terminal, TerminalRef};
 pub use terminal_panel::{TerminalPanel, TerminalPanelRef};
 pub use upward_dropdown::{UpDropDown, UpDropDownRef, UpDropDownWidgetRefExt};
 
 pub fn script_mod(vm: &mut ScriptVm) {
     makepad_widgets::script_mod(vm);
+    makepad_studio::script_mod(vm);
 
     crate::theme::script_mod(vm);
 

@@ -9,63 +9,92 @@ script_mod! {
     use mod.widgets.*
     use mod.theme.*
 
-mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
+    mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
         width: Fill, height: Fill
+        flow: Down
+        padding: Inset{ left: 12, right: 10, top: 8, bottom: 8 }
+        spacing: 0
+
         list := PortalList {
+            width: Fill, height: Fill
             scroll_bar: ScrollBar {
-                bar_size: 4.0
-                bar_side_margin: 6.0
+                bar_size: 2.5
+                bar_side_margin: 2.0
                 smoothing: 0.15
             }
 
             ProjectHeader := View {
                 width: Fill, height: Fit
                 flow: Right, align: Align{y: 0.5}
-                padding: Inset{ top: 8, bottom: 2, left: 10, right: 6 }
-                chevron := View {
-                    width: 16, height: 16
+                padding: Inset{ top: 5, bottom: 2, left: 2, right: 4 }
+                folder_icon := Icon {
+                    width: 14, height: 14
+                    margin: Inset{ right: 2 }
+                    icon_walk: Walk{ width: 14, height: 14 }
+                    draw_icon +: {
+                        svg: crate_resource("self://resources/icons/folder.svg")
+                        color: #b6becc
+                    }
                 }
 
                 project_toggle := Button {
-                    width: Fill, height: 22
+                    width: Fill, height: 30
                     margin: Inset{ left: 0, right: 4 }
-                    text: "> Project"
+                    text: "Project"
                     draw_bg +: {
                         color: #0000
-                        color_hover: #ffffff10
-                        color_active: #ffffff10
-                        border_radius: 4.0
+                        color_hover: #ffffff08
+                        color_active: #272d38
+                        border_radius: 10.0
                         border_size: 0.0
                     }
                     draw_text +: {
-                        color: #ddd
-                        text_style: theme.font_bold { font_size: 11 }
+                        color: #dfe4ee
+                        text_style: theme.font_bold { font_size: 12.0 }
                     }
                 }
 
                 project_working_dot := RoundedView {
                     visible: false
-                    width: 6, height: 6
-                    margin: Inset{ right: 4 }
+                    width: 5, height: 5
+                    margin: Inset{ right: 5 }
                     show_bg: true
                     draw_bg +: {
                         color: #f59e0b
-                        border_radius: 3.0
+                        border_radius: 2.5
+                    }
+                }
+
+                chevron := Button {
+                    width: 16, height: 20
+                    margin: Inset{ left: 2, right: 2 }
+                    text: "v"
+                    draw_bg +: {
+                        color: #0000
+                        color_hover: #ffffff10
+                        color_active: #2a3040
+                        border_radius: 5.0
+                        border_size: 0.0
+                    }
+                    draw_text +: {
+                        color: #8d95a4
+                        color_hover: #c9d0db
+                        text_style: theme.font_bold { font_size: 9.5 }
                     }
                 }
 
                 new_session_header_button := Button {
-                    width: Fit, height: 20
-                    margin: Inset{ left: 4 }
+                    width: 20, height: 20
+                    margin: Inset{ left: 2 }
                     text: "+"
                     draw_bg +: {
                         color: #0000
-                        color_hover: #ffffff10
-                        color_active: #ffffff10
-                        border_radius: 4.0
+                        color_hover: #ffffff12
+                        color_active: #2c3240
+                        border_radius: 6.0
                         border_size: 0.0
                     }
-                    draw_text +: { color: #888, text_style: theme.font_bold { font_size: 12 } }
+                    draw_text +: { color: #99a0ad, text_style: theme.font_bold { font_size: 12 } }
                 }
             }
 
@@ -73,42 +102,52 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                 width: Fill, height: Fit
                 flow: Overlay
 
-                // Main row content
+                selected_pill := RoundedView {
+                    visible: false
+                    width: Fill, height: Fit
+                    margin: Inset{ left: 18, right: 4, top: 1, bottom: 1 }
+                    show_bg: true
+                    draw_bg +: {
+                        color: #ffffff12
+                        border_radius: 10.0
+                    }
+                }
+
                 View {
                     width: Fill, height: Fit
-                    padding: Inset{ top: 0, bottom: 0, left: 22, right: 8 }
+                    padding: Inset{ top: 1, bottom: 1, left: 18, right: 4 }
                     flow: Right,
-                    spacing: 2,
+                    spacing: 4,
                     align: Align{ y: 0.5 }
 
                     session_button := Button {
-                        width: Fill, height: 22
+                        width: Fill, height: 30
                         margin: Inset{ right: 4 }
                         text: "Session"
                         draw_bg +: {
                             color: #0000
-                            color_hover: #ffffff10
-                            color_active: #ffffff10
-                            border_radius: 4.0
+                            color_hover: #ffffff08
+                            color_active: #0000
+                            border_radius: 10.0
                             border_size: 0.0
                         }
                         draw_text +: {
-                            color: #ccc,
-                            text_style: theme.font_regular { font_size: 9 }}
+                            color: #cfd5df,
+                            text_style: theme.font_regular { font_size: 10.5 }}
                     }
 
                     summary_stats := View {
                         width: Fit, height: Fit
-                        margin: Inset{ right: 4 }
+                        margin: Inset{ right: 2 }
                         flow: Right
-                        spacing: 6
+                        spacing: 5
                         align: Align{ y: 0.5 }
 
                         summary_files_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: #555
-                                text_style: theme.font_regular { font_size: 7.5 }
+                                color: #6c7382
+                                text_style: theme.font_regular { font_size: 8.0 }
                             }
                             text: ""
                         }
@@ -116,8 +155,8 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         summary_add_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: #4dca4d
-                                text_style: theme.font_regular { font_size: 7.5 }
+                                color: #31c468
+                                text_style: theme.font_regular { font_size: 8.0 }
                             }
                             text: ""
                         }
@@ -125,8 +164,8 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         summary_del_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: #e06060
-                                text_style: theme.font_regular { font_size: 7.5 }
+                                color: #ef5b66
+                                text_style: theme.font_regular { font_size: 8.0 }
                             }
                             text: ""
                         }
@@ -134,33 +173,33 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
 
                     working_dot := RoundedView {
                         visible: false
-                        width: 6, height: 6
+                        width: 5, height: 5
+                        margin: Inset{ right: 2 }
                         show_bg: true
                         draw_bg +: {
                             color: #f59e0b
-                            border_radius: 3.0
+                            border_radius: 2.5
                         }
                     }
                     menu_button := Button {
-                        width: 24, height: 22
+                        width: 24, height: 26
                         text: "⋯"
                         align: Align{ x: 0.5, y: 0.5 }
                         draw_bg +: {
                             color: #0000
                             color_hover: #ffffff10
-                            color_active: #ffffff10
-                            border_radius: 4.0
+                            color_active: #2a2f3b
+                            border_radius: 6.0
                             border_size: 0.0
                         }
                         draw_text +: {
-                            color: #888
-                            color_hover: #aaa
+                            color: #818896
+                            color_hover: #c4cad5
                             text_style: theme.font_bold { font_size: 10 }
                         }
                     }
                 }
 
-                // Floating menu panel - overlays on top, right-aligned
                 View {
                     width: Fill, height: Fit
                     padding: Inset{ top: 1, bottom: 1, right: 4 }
@@ -174,10 +213,10 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                         padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
                         show_bg: true
                         draw_bg +: {
-                            color: #2a2a2a
-                            border_radius: 6.0
+                            color: #242a34
+                            border_radius: 8.0
                             border_size: 1.0
-                            border_color: #444
+                            border_color: #343d4d
                         }
 
                         menu_collapse := Button {
@@ -186,11 +225,11 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                             align: Align{ x: 0.5, y: 0.5 }
                             draw_bg +: {
                                 color: #0000
-                                color_hover: #333
+                                color_hover: #313846
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #666, text_style: theme.font_bold { font_size: 10 } }
+                            draw_text +: { color: #8c93a1, text_style: theme.font_bold { font_size: 10 } }
                         }
 
                         menu_rename := Button {
@@ -198,11 +237,11 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                             text: "Rename"
                             draw_bg +: {
                                 color: #0000
-                                color_hover: #333
+                                color_hover: #313846
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #ccc, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: #d2d7e0, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_branch := Button {
@@ -210,11 +249,11 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                             text: "Branch"
                             draw_bg +: {
                                 color: #0000
-                                color_hover: #333
+                                color_hover: #313846
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #ccc, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: #d2d7e0, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_abort := Button {
@@ -227,7 +266,7 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #ccc, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: #d2d7e0, text_style: theme.font_regular { font_size: 9 } }
                         }
 
                         menu_delete := Button {
@@ -239,14 +278,15 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text +: { color: #ccc, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: #d2d7e0, text_style: theme.font_regular { font_size: 9 } }
                         }
                     }
                 }
             }
 
-            Spacer := View { width: Fill, height: 6 }
+            Spacer := View { width: Fill, height: 4 }
         }
+
     }
 }
 
@@ -429,7 +469,9 @@ impl Widget for ProjectsPanel {
                         .clicked(&actions)
                     {
                         cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
-                    } else if widget.button(cx, &[id!(project_toggle)]).clicked(&actions) {
+                    } else if widget.button(cx, &[id!(project_toggle)]).clicked(&actions)
+                        || widget.button(cx, &[id!(chevron)]).clicked(&actions)
+                    {
                         let collapsed = self
                             .collapsed_projects
                             .get(&project_id)
@@ -526,7 +568,8 @@ impl Widget for ProjectsPanel {
                             };
                             item_widget
                                 .button(cx, &[id!(project_toggle)])
-                                .set_text(cx, &format!("{chevron} {display_name}"));
+                                .set_text(cx, display_name);
+                            item_widget.button(cx, &[id!(chevron)]).set_text(cx, chevron);
                             // Show orange dot if any session in this project is working
                             let project_working = self.sessions.iter().any(|s| {
                                 let matches_project = match project_id {
@@ -546,22 +589,17 @@ impl Widget for ProjectsPanel {
                             } else {
                                 title.clone()
                             };
-                            item_widget
-                                .button(cx, &[id!(session_button)])
-                                .set_text(cx, &display_title);
                             let selected = self
                                 .selected_session_id
                                 .as_ref()
                                 .map(|id| id == session_id)
                                 .unwrap_or(false);
-                            let display_title = if selected {
-                                format!("● {}", display_title)
-                            } else {
-                                display_title
-                            };
                             item_widget
                                 .button(cx, &[id!(session_button)])
                                 .set_text(cx, &display_title);
+                            item_widget
+                                .view(cx, &[id!(selected_pill)])
+                                .set_visible(cx, selected);
                             let working = self
                                 .working_by_session
                                 .get(session_id)

@@ -9,13 +9,12 @@ script_mod! {
         height: Fit
         flow: Right
         spacing: 8
-        padding: 10
+        padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
         align: Align{y: 0.5}
         show_bg: true
         draw_bg +: {
-            color: instance(#22262c)
-            border_color: uniform(#2c323a)
-            border_radius: uniform(8.0)
+            color: instance(#1d2128)
+            border_color: uniform(#2b313a)
             border_size: uniform(1.0)
             pixel: fn() {
                 let sdf = Sdf2d.viewport(self.pos * self.rect_size)
