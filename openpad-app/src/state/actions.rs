@@ -1,7 +1,7 @@
 use makepad_widgets::*;
 use openpad_protocol::{
     Agent, Event as OcEvent, FileDiff, HealthResponse, Message, MessageWithParts, Part,
-    PermissionReply, PermissionRequest, Project, ProvidersResponse, Session, Skill,
+    PermissionReply, PermissionRequest, Project, ProvidersResponse, SecretString, Session, Skill,
 };
 
 #[derive(Clone, Debug, DefaultNone)]
@@ -51,7 +51,7 @@ pub enum AppAction {
     UnrevertSession(String),
     DialogConfirmed {
         dialog_type: String,
-        value: String,
+        value: SecretString,
     },
     PendingPermissionsLoaded(Vec<PermissionRequest>),
     PermissionDismissed {
