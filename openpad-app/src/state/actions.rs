@@ -1,11 +1,11 @@
-use makepad_widgets::*;
 use openpad_protocol::{
     Agent, Event as OcEvent, FileDiff, HealthResponse, Message, MessageWithParts, Part,
     PermissionReply, PermissionRequest, Project, ProvidersResponse, Session, Skill,
 };
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum AppAction {
+    #[default]
     None,
     Connected,
     ConnectionFailed(String),
@@ -66,10 +66,19 @@ pub enum AppAction {
         provider_id: String,
         success: bool,
     },
+    SetSidebarMode(SidebarMode),
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum SidebarMode {
+    #[default]
+    Projects,
+    Settings,
+}
+
+#[derive(Clone, Debug, Default)]
 pub enum ProjectsPanelAction {
+    #[default]
     None,
     SelectSession(String),
     CreateSession(Option<String>),
@@ -77,4 +86,12 @@ pub enum ProjectsPanelAction {
     RenameSession(String),
     AbortSession(String),
     BranchSession(String),
+    /// Open the session context menu at the given position (avoids full list redraw).
+    OpenSessionContextMenu {
+        session_id: String,
+        x: f32,
+        y: f32,
+        working: bool,
+    },
+    CloseSessionContextMenu,
 }

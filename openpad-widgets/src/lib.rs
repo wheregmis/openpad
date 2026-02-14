@@ -34,36 +34,36 @@ pub use permission_dialog::{PermissionDialog, PermissionDialogAction, Permission
 pub use settings_dialog::{SettingsDialog, SettingsDialogAction, SettingsDialogRef};
 pub use side_panel::{SidePanel, SidePanelRef, SidePanelWidgetRefExt};
 pub use simple_dialog::{SimpleDialog, SimpleDialogAction, SimpleDialogRef};
-pub use terminal::{Terminal, TerminalAction, TerminalRef};
+pub use terminal::{Terminal, TerminalRef};
 pub use terminal_panel::{TerminalPanel, TerminalPanelRef};
 pub use upward_dropdown::{UpDropDown, UpDropDownRef, UpDropDownWidgetRefExt};
 
-pub fn live_design(cx: &mut Cx) {
-    makepad_widgets::live_design(cx);
-    crate::theme::live_design(cx);
-    crate::utils::formatters::live_design(cx);
+pub fn script_mod(vm: &mut ScriptVm) {
+    makepad_widgets::script_mod(vm);
+    makepad_studio::script_mod(vm);
 
-    crate::app_bg::live_design(cx);
-    crate::hamburger_button::live_design(cx);
-    crate::header_bar::live_design(cx);
-    crate::input_bar::live_design(cx);
-    crate::input_field::live_design(cx);
-    crate::send_button::live_design(cx);
-    crate::side_panel::live_design(cx);
-    crate::simple_dialog::live_design(cx);
-    crate::scrollable_popup_menu::live_design(cx);
-    crate::status_dot::live_design(cx);
-    crate::upward_dropdown::live_design(cx);
-    crate::openpad::live_design(cx);
+    crate::theme::script_mod(vm);
 
-    crate::user_bubble::live_design(cx);
-    crate::assistant_bubble::live_design(cx);
-    crate::permission_card::live_design(cx);
-    crate::colored_diff_text::live_design(cx);
-    crate::diff_view::live_design(cx);
-    crate::terminal::live_design(cx);
-    crate::terminal_panel::live_design(cx);
-    crate::message_list::live_design(cx);
-    crate::permission_dialog::live_design(cx);
-    crate::settings_dialog::live_design(cx);
+    crate::app_bg::script_mod(vm);
+    crate::hamburger_button::script_mod(vm);
+    crate::header_bar::script_mod(vm);
+    crate::input_field::script_mod(vm);
+    crate::send_button::script_mod(vm);
+    crate::side_panel::script_mod(vm);
+    crate::simple_dialog::script_mod(vm);
+    crate::scrollable_popup_menu::script_mod(vm);
+    crate::status_dot::script_mod(vm);
+    crate::upward_dropdown::script_mod(vm);
+    crate::input_bar::script_mod(vm);
+
+    crate::user_bubble::script_mod(vm);
+    crate::assistant_bubble::script_mod(vm);
+    crate::permission_card::script_mod(vm);
+    crate::colored_diff_text::script_mod(vm);
+    crate::diff_view::script_mod(vm);
+    crate::terminal::script_mod(vm);
+    crate::terminal_panel::script_mod(vm);
+    crate::message_list::script_mod(vm);
+    crate::permission_dialog::script_mod(vm);
+    crate::settings_dialog::script_mod(vm);
 }

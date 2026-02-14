@@ -1,48 +1,49 @@
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
 
-    pub SidePanelBase = {{SidePanel}} {}
-    pub SidePanel = <SidePanelBase> {
-        width: 280.0, height: Fill
-        flow: Down,
-        padding: 0,
-        spacing: 0,
+    mod.widgets.SidePanelBase = #(SidePanel::register_widget(vm))
+    mod.widgets.SidePanel = mod.widgets.SidePanelBase {
+        width: 260.0
+        height: Fill
+        flow: Down
+        padding: 0
+        spacing: 0
         clip_x: true
         show_bg: true
-        open_size: 280.0
+        open_size: 260.0
         close_size: 0.0
-        draw_bg: {
-            color: #1e1e1e
-            uniform border_color: #333
-            uniform border_size: 1.0
-            fn pixel(self) -> vec4 {
-                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                sdf.rect(0.0, 0.0, self.rect_size.x, self.rect_size.y);
-                sdf.fill_keep(self.color);
-                // Draw only right border
-                sdf.move_to(self.rect_size.x - 1.0, 0.0);
-                sdf.line_to(self.rect_size.x - 1.0, self.rect_size.y);
-                sdf.stroke(self.border_color, self.border_size);
-                return sdf.result;
+
+        draw_bg +: {
+            color: instance(#1e1e1e)
+            border_color: uniform(#333)
+            border_size: uniform(1.0)
+            pixel: fn() {
+                let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+                sdf.rect(0.0 0.0 self.rect_size.x self.rect_size.y)
+                sdf.fill_keep(self.color)
+                sdf.move_to(self.rect_size.x - 1.0 0.0)
+                sdf.line_to(self.rect_size.x - 1.0 self.rect_size.y)
+                sdf.stroke(self.border_color self.border_size)
+                return sdf.result
             }
         }
-        animator: {
-            open = {
-                default: off,
-                off = {
+
+        animator: Animator {
+            open: {
+                default: @off
+                off: {
                     redraw: true
                     from: {all: Forward {duration: 0.4}}
-                    ease: ExpDecay {d1: 0.80, d2: 0.97}
+                    ease: ExpDecay {d1: 0.80 d2: 0.97}
                     apply: {animator_panel_progress: 0.0}
                 }
-                on = {
+                on: {
                     redraw: true
                     from: {all: Forward {duration: 0.4}}
-                    ease: ExpDecay {d1: 0.80, d2: 0.97}
+                    ease: ExpDecay {d1: 0.80 d2: 0.97}
                     apply: {animator_panel_progress: 1.0}
                 }
             }
@@ -50,21 +51,24 @@ live_design! {
     }
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget, Animator)]
 pub struct SidePanel {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
 
     #[live]
     animator_panel_progress: f32,
 
-    #[live(280.0)]
+    #[live(260.0)]
     open_size: f32,
 
     #[live(0.0)]
     close_size: f32,
 
-    #[animator]
+    #[apply_default]
     animator: Animator,
 }
 
@@ -97,6 +101,11 @@ impl SidePanel {
             self.animator_play(cx, &[id!(open), id!(off)]);
         }
     }
+
+    pub fn set_open_size(&mut self, cx: &mut Cx, open_size: f32) {
+        self.open_size = open_size;
+        self.redraw(cx);
+    }
 }
 
 impl SidePanelRef {
@@ -111,6 +120,12 @@ impl SidePanelRef {
     pub fn set_open(&self, cx: &mut Cx, open: bool) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.set_open(cx, open);
+        }
+    }
+
+    pub fn set_open_size(&self, cx: &mut Cx, open_size: f32) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.set_open_size(cx, open_size);
         }
     }
 }

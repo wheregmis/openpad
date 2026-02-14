@@ -1,16 +1,13 @@
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::theme::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
 
-    pub AppBg = <View> {
-        width: Fill, height: Fill
+    mod.widgets.AppBg = View{
+        width: Fill
+        height: Fill
         show_bg: true
-        draw_bg: {
-            color: (THEME_COLOR_BG_APP)
-        }
+        draw_bg.color: #1e1e1e
     }
 }
