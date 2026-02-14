@@ -35,6 +35,9 @@ script_mod! {
         }
 
         list := PortalList {
+            auto_tail: true
+            smooth_tail: true
+            drag_scrolling: false
             scroll_bar: ScrollBar {}
 
             UserMsg := View {
@@ -181,11 +184,11 @@ script_mod! {
                         spacing: 3,
                         margin: Inset{ top: 8 }
 
-                        tool_row_0 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_0 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_0 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_0 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_1 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_1 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_1 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_1 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_2 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_2 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_2 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_2 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_3 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_3 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_3 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_3 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_4 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_4 := Label { width: Fit, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_4 := Label { width: Fit, height: Fit, draw_text +: { color: #666, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_4 := Label { width: Fill, height: Fit, draw_text +: { color: #444, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_0 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_0 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_0 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_0 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_1 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_1 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_1 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_1 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_2 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_2 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_2 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_2 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_3 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_3 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_3 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_3 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_4 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_4 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_4 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_4 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
                     }
                 }
             }
@@ -268,7 +271,7 @@ script_mod! {
                         steps_summary_label := Label {
                             width: Fill, height: Fit
                             draw_text +: {
-                                color: #666
+                                color: #e0e7f2
                                 text_style: theme.font_regular { font_size: 9 }
                             }
                             text: ""
@@ -303,16 +306,16 @@ script_mod! {
                                 width: Fill, height: Fit
                                 flow: Down
                                 spacing: 4
-                                step_row_0 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_0_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_0_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_0_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_0_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_0_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_0_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_0_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_1 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_1_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_1_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_1_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_1_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_1_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_1_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_1_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_2 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_2_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_2_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_2_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_2_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_2_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_2_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_2_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_3 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_3_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_3_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_3_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_3_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_3_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_3_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_3_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_4 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_4_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_4_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_4_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_4_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_4_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_4_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_4_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_5 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_5_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_5_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_5_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_5_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_5_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_5_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_5_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_6 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_6_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_6_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_6_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_6_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_6_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_6_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_6_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_7 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_7_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_7_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_7_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_7_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_7_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_7_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_7_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_8 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_8_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_8_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_8_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_8_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_8_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_8_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_8_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_9 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_9_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_9_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_9_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_9_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_9_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_9_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_9_content := Label { width: Fill, height: Fit, draw_text +: { color: #666, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_0 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_0_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_0_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_0_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_0_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_0_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_0_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_0_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_1 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_1_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_1_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_1_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_1_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_1_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_1_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_1_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_2 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_2_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_2_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_2_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_2_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_2_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_2_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_2_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_3 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_3_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_3_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_3_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_3_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_3_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_3_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_3_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_4 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_4_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_4_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_4_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_4_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_4_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_4_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_4_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_5 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_5_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_5_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_5_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_5_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_5_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_5_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_5_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_6 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_6_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_6_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_6_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_6_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_6_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_6_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_6_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_7 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_7_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_7_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_7_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_7_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_7_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_7_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_7_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_8 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_8_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_8_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_8_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_8_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_8_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_8_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_8_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_9 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_9_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_9_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_9_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_9_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_9_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_9_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_9_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
                             }
                         }
                     }
@@ -323,7 +326,7 @@ script_mod! {
                         msg_text := Markdown {
                             width: Fill, height: Fit
                             font_size: 10
-                            font_color: #ccc
+                            font_color: #f2f6ff
                             paragraph_spacing: 8
                             pre_code_spacing: 6
                             use_code_block_widget: true
@@ -336,7 +339,7 @@ script_mod! {
                         msg_label := Label {
                             width: Fill, height: Fit
                             draw_text +: {
-                                color: #ccc
+                                color: #f2f6ff
                                 text_style: theme.font_regular { font_size: 10, line_spacing: 1.4 }
                             }
                         }
@@ -363,7 +366,7 @@ script_mod! {
                         tokens_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: #666
+                                color: #b8c2d3
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
@@ -372,7 +375,7 @@ script_mod! {
                         cost_label := Label {
                             width: Fit, height: Fit
                             draw_text +: {
-                                color: #666
+                                color: #b8c2d3
                                 text_style: theme.font_regular { font_size: 8 }
                             }
                             text: ""
@@ -454,6 +457,10 @@ pub struct MessageList {
     last_timer_secs: u64,
     #[rust]
     cached_timer_text: String,
+    #[rust]
+    tail_follow: bool,
+    #[rust]
+    streaming_anim_item: Option<usize>,
 }
 
 impl MessageList {
@@ -477,6 +484,20 @@ impl MessageList {
             "▸ Details".to_string()
         }
     }
+
+    fn total_items(&self) -> usize {
+        self.messages.len() + self.pending_permissions.len() + if self.is_working { 1 } else { 0 }
+    }
+
+    fn tail_to_end(&mut self, cx: &mut Cx) {
+        let total = self.total_items();
+        if total == 0 {
+            return;
+        }
+        let list = self.view.portal_list(cx, &[id!(list)]);
+        list.set_tail_range(true);
+        list.set_first_id_and_scroll(total.saturating_sub(1), 0.0);
+    }
 }
 
 impl Widget for MessageList {
@@ -499,6 +520,11 @@ impl Widget for MessageList {
         });
 
         let list = self.view.portal_list(cx, &[id!(list)]);
+        if list.scrolled(&actions) {
+            let at_end = list.is_at_end();
+            self.tail_follow = at_end;
+            list.set_tail_range(at_end);
+        }
         for (item_id, widget) in list.items_with_actions(&actions) {
             if item_id >= self.messages.len() {
                 continue;
@@ -731,6 +757,16 @@ impl Widget for MessageList {
                         item_widget.draw_all(cx, scope);
                     } else {
                         let msg = &self.messages[item_id];
+                        let fallback_text = if msg.text.trim().is_empty() && !msg.steps.is_empty() {
+                            msg.cached_steps_summary.as_str()
+                        } else {
+                            msg.text.as_str()
+                        };
+                        let last_assistant_idx =
+                            self.messages.iter().rposition(|m| m.role == "assistant");
+                        let streaming_msg = self.is_working
+                            && msg.role == "assistant"
+                            && last_assistant_idx == Some(item_id);
                         let template = if msg.role == "user" {
                             live_id!(UserMsg)
                         } else {
@@ -739,14 +775,29 @@ impl Widget for MessageList {
                         let item_widget = list.item(cx, item_id, template);
 
                         if msg.role == "user" {
-                            item_widget.widget(cx, &[id!(msg_text)]).set_text(cx, &msg.text);
+                            item_widget.widget(cx, &[id!(msg_text)]).set_text(cx, fallback_text);
                         } else {
-                            if msg.cached_needs_markdown {
+                            let use_markdown = false;
+                            if use_markdown {
                                 item_widget.view(cx, &[id!(label_view)]).set_visible(cx, false);
                                 item_widget
                                     .view(cx, &[id!(markdown_view)])
                                     .set_visible(cx, true);
-                                item_widget.widget(cx, &[id!(msg_text)]).set_text(cx, &msg.text);
+                                let mut markdown = item_widget.markdown(cx, &[id!(msg_text)]);
+                                markdown.set_text(cx, fallback_text);
+                                if streaming_msg {
+                                    if self.streaming_anim_item != Some(item_id) {
+                                        self.streaming_anim_item = Some(item_id);
+                                        markdown.reset_all_streaming_animations();
+                                    } else {
+                                        markdown.start_streaming_animation();
+                                    }
+                                } else if self.streaming_anim_item == Some(item_id) {
+                                    markdown.stop_streaming_animation();
+                                    if markdown.is_streaming_animation_done() {
+                                        self.streaming_anim_item = None;
+                                    }
+                                }
                             } else {
                                 item_widget
                                     .view(cx, &[id!(markdown_view)])
@@ -754,7 +805,7 @@ impl Widget for MessageList {
                                 item_widget.view(cx, &[id!(label_view)]).set_visible(cx, true);
                                 item_widget
                                     .widget(cx, &[id!(msg_label)])
-                                    .set_text(cx, &msg.text);
+                                    .set_text(cx, fallback_text);
                             }
                         }
 
@@ -763,8 +814,6 @@ impl Widget for MessageList {
                             .as_ref()
                             .and_then(|id| self.revert_message_id.as_ref().map(|rev| rev == id))
                             .unwrap_or(false);
-                        let last_assistant_idx =
-                            self.messages.iter().rposition(|m| m.role == "assistant");
                         let show_revert = is_revert_point
                             || (self.revert_message_id.is_none()
                                 && last_assistant_idx == Some(item_id));
@@ -994,6 +1043,7 @@ impl MessageListRef {
         revert_message_id: Option<String>,
     ) {
         if let Some(mut inner) = self.borrow_mut() {
+            let had_messages = !inner.messages.is_empty();
             let last_had_running_steps = inner
                 .messages
                 .last()
@@ -1005,6 +1055,11 @@ impl MessageListRef {
                 .unwrap_or(false);
             inner.messages = MessageProcessor::rebuild_from_parts(messages_with_parts);
             inner.revert_message_id = revert_message_id;
+            for msg in inner.messages.iter_mut() {
+                if msg.role == "assistant" && msg.text.is_empty() && !msg.steps.is_empty() {
+                    msg.show_steps = true;
+                }
+            }
             if let Some(last) = inner.messages.last_mut() {
                 if last.role == "assistant" && last.text.is_empty() && !last.steps.is_empty() {
                     if last.steps.iter().any(|s| s.has_running) || last_had_running_steps {
@@ -1012,12 +1067,12 @@ impl MessageListRef {
                     }
                 }
             }
+            if !had_messages {
+                inner.tail_follow = true;
+            }
             let msg_count = inner.messages.len();
-            if msg_count > 0 {
-                inner
-                    .view
-                    .portal_list(cx, &[id!(list)])
-                    .set_first_id(msg_count.saturating_sub(1));
+            if inner.tail_follow && msg_count > 0 {
+                inner.tail_to_end(cx);
             }
             inner.redraw(cx);
         }
@@ -1033,6 +1088,9 @@ impl MessageListRef {
                         last.show_steps = false;
                     }
                     MessageProcessor::refresh_message_caches(last);
+                    if inner.tail_follow {
+                        inner.tail_to_end(cx);
+                    }
                     inner.redraw(cx);
                     return;
                 }
@@ -1062,6 +1120,9 @@ impl MessageListRef {
             };
             MessageProcessor::refresh_message_caches(&mut msg);
             inner.messages.push(msg);
+            if inner.tail_follow {
+                inner.tail_to_end(cx);
+            }
             inner.redraw(cx);
         }
     }
@@ -1097,6 +1158,9 @@ impl MessageListRef {
             };
             MessageProcessor::refresh_message_caches(&mut msg);
             inner.messages.push(msg);
+            if inner.tail_follow {
+                inner.tail_to_end(cx);
+            }
             inner.redraw(cx);
         }
     }
@@ -1104,6 +1168,8 @@ impl MessageListRef {
     pub fn clear(&self, cx: &mut Cx) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.messages.clear();
+            inner.tail_follow = true;
+            inner.streaming_anim_item = None;
             inner.redraw(cx);
         }
     }
@@ -1117,8 +1183,12 @@ impl MessageListRef {
                 inner.frame_count = 0;
                 inner.last_timer_secs = 0;
                 inner.cached_timer_text = String::new();
+                if inner.tail_follow {
+                    inner.tail_to_end(cx);
+                }
             } else if !working {
                 inner.working_since = None;
+                inner.streaming_anim_item = None;
             }
             inner.redraw(cx);
         }
@@ -1127,6 +1197,9 @@ impl MessageListRef {
     pub fn set_pending_permissions(&self, cx: &mut Cx, permissions: &[PendingPermissionDisplay]) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.pending_permissions = permissions.to_vec();
+            if inner.tail_follow {
+                inner.tail_to_end(cx);
+            }
             inner.redraw(cx);
         }
     }

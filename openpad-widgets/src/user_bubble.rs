@@ -5,9 +5,10 @@ script_mod! {
     use mod.widgets.*
 
     mod.widgets.UserBubble = RoundedView{
-        width: Fit
+        width: Fill
         height: Fit
         flow: Down
+        new_batch: true
         padding: Inset{top: 8 bottom: 8 left: 14 right: 14}
         draw_bg.color: #2d2d30
         draw_bg.border_radius: 12.0

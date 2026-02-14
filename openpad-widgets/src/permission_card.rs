@@ -9,6 +9,7 @@ script_mod! {
         width: Fill
         height: Fit
         flow: Down
+        new_batch: true
         padding: Inset{left: 14 right: 14 top: 12 bottom: 12}
         spacing: 10
         show_bg: true

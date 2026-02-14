@@ -27,13 +27,18 @@ script_mod! {
                 width: Fill, height: Fit
                 flow: Right, align: Align{y: 0.5}
                 padding: Inset{ top: 5, bottom: 2, left: 2, right: 4 }
+                chevron := Label {
+                    width: 12, height: Fit
+                    text: "v"
+                    draw_text +: { color: #8f97a6, text_style: theme.font_bold { font_size: 10.0 } }
+                }
                 folder_icon := Icon {
-                    width: 14, height: 14
-                    margin: Inset{ right: 2 }
-                    icon_walk: Walk{ width: 14, height: 14 }
+                    width: 15, height: 15
+                    margin: Inset{ right: 4 }
+                    icon_walk: Walk{ width: 15, height: 15 }
                     draw_icon +: {
                         svg: crate_resource("self://resources/icons/folder.svg")
-                        color: #b6becc
+                        color: #bac2cf
                     }
                 }
 
@@ -62,24 +67,6 @@ script_mod! {
                     draw_bg +: {
                         color: #f59e0b
                         border_radius: 2.5
-                    }
-                }
-
-                chevron := Button {
-                    width: 16, height: 20
-                    margin: Inset{ left: 2, right: 2 }
-                    text: "v"
-                    draw_bg +: {
-                        color: #0000
-                        color_hover: #ffffff10
-                        color_active: #2a3040
-                        border_radius: 5.0
-                        border_size: 0.0
-                    }
-                    draw_text +: {
-                        color: #8d95a4
-                        color_hover: #c9d0db
-                        text_style: theme.font_bold { font_size: 9.5 }
                     }
                 }
 
@@ -469,9 +456,7 @@ impl Widget for ProjectsPanel {
                         .clicked(&actions)
                     {
                         cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
-                    } else if widget.button(cx, &[id!(project_toggle)]).clicked(&actions)
-                        || widget.button(cx, &[id!(chevron)]).clicked(&actions)
-                    {
+                    } else if widget.button(cx, &[id!(project_toggle)]).clicked(&actions) {
                         let collapsed = self
                             .collapsed_projects
                             .get(&project_id)
@@ -569,7 +554,7 @@ impl Widget for ProjectsPanel {
                             item_widget
                                 .button(cx, &[id!(project_toggle)])
                                 .set_text(cx, display_name);
-                            item_widget.button(cx, &[id!(chevron)]).set_text(cx, chevron);
+                            item_widget.label(cx, &[id!(chevron)]).set_text(cx, chevron);
                             // Show orange dot if any session in this project is working
                             let project_working = self.sessions.iter().any(|s| {
                                 let matches_project = match project_id {

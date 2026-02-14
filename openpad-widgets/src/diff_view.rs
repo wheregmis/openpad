@@ -16,6 +16,7 @@ script_mod! {
             visible: false
             width: Fill
             height: Fit
+            new_batch: true
             padding: Inset{left: 12 right: 12 top: 8 bottom: 8}
             show_bg: true
             draw_bg +: {
@@ -66,6 +67,7 @@ script_mod! {
             width: Fill
             height: Fit
             visible: false
+            new_batch: true
             padding: Inset{left: 12 right: 12 top: 8 bottom: 8}
             margin: Inset{top: 2}
             show_bg: true

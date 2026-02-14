@@ -223,7 +223,7 @@ impl MessageProcessor {
                         diffs: Vec::new(),
                         show_diffs: false,
                         steps,
-                        show_steps: false,
+                        show_steps: true,
                         duration_ms,
                         cached_steps_summary: String::new(),
                         cached_needs_markdown: false,
@@ -304,6 +304,9 @@ impl MessageProcessor {
             display.push(msg);
         }
         if let Some(mut prev) = pending_steps_only.take() {
+            if prev.role == "assistant" && prev.text.is_empty() && !prev.steps.is_empty() {
+                prev.show_steps = true;
+            }
             Self::refresh_message_caches(&mut prev);
             display.push(prev);
         }
@@ -544,7 +547,7 @@ impl MessageProcessor {
         }
         if formatted_parts.is_empty() {
             if input.len() > 50 {
-                format!("{}...", &input[..47])
+                format!("{}...", input.chars().take(47).collect::<String>())
             } else {
                 input.to_string()
             }

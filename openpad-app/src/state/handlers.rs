@@ -704,6 +704,9 @@ fn handle_part_updated(
 
     let mut should_update_work = false;
     let mut work_session_id: Option<String> = None;
+    let mut did_mutate_parts = false;
+    let mut requires_full_rebuild = false;
+    let mut incremental_append: Option<(String, String)> = None;
     if let Some(mwp) = state
         .messages_data
         .iter_mut()
@@ -719,32 +722,58 @@ fn handle_part_updated(
             work_session_id = Some(mwp.info.session_id().to_string());
         }
 
-        // Handle text parts with IDs (for deduplication)
-        if let openpad_protocol::Part::Text { id, .. } = &part {
-            if !id.is_empty() {
-                if let Some(existing) = mwp
-                    .parts
-                    .iter_mut()
-                    .find(|p| matches!(p, openpad_protocol::Part::Text { id: existing_id, .. } if existing_id == id))
-                {
-                    *existing = part.clone();
-                } else {
-                    mwp.parts.push(part.clone());
-                }
-            } else {
-                mwp.parts.push(part.clone());
-            }
-        } else {
-            // For non-text parts (StepStart, Tool, StepFinish), always append
-            // These are incremental updates during streaming
-            mwp.parts.push(part.clone());
-        }
+        let role = match &mwp.info {
+            openpad_protocol::Message::Assistant(_) => "assistant",
+            openpad_protocol::Message::User(_) => "user",
+        };
 
-        ui.message_list(cx, &[id!(message_list)]).set_messages(
-            cx,
-            &state.messages_data,
-            state.current_revert_message_id(),
-        );
+        match part {
+            openpad_protocol::Part::Text { id, text, .. } => {
+                if !id.is_empty() {
+                    if let Some(existing) = mwp.parts.iter_mut().find(|p| {
+                        matches!(p, openpad_protocol::Part::Text { id: existing_id, .. } if existing_id == id)
+                    }) {
+                        *existing = part.clone();
+                        did_mutate_parts = true;
+                        // Existing-id replacement may be non-delta content; keep correctness.
+                        requires_full_rebuild = true;
+                    } else {
+                        mwp.parts.push(part.clone());
+                        did_mutate_parts = true;
+                        if !text.is_empty() {
+                            incremental_append = Some((role.to_string(), text.clone()));
+                        }
+                    }
+                } else {
+                    // Text parts without IDs are treated as streaming deltas.
+                    // Append part and incrementally update UI text.
+                    mwp.parts.push(part.clone());
+                    did_mutate_parts = true;
+                    if !text.is_empty() {
+                        incremental_append = Some((role.to_string(), text.clone()));
+                    }
+                }
+            }
+            _ => {
+                // For non-text parts (StepStart, Tool, StepFinish), always append.
+                mwp.parts.push(part.clone());
+                did_mutate_parts = true;
+                requires_full_rebuild = true;
+            }
+        };
+    }
+
+    if did_mutate_parts {
+        if requires_full_rebuild {
+            ui.message_list(cx, &[id!(message_list)]).set_messages(
+                cx,
+                &state.messages_data,
+                state.current_revert_message_id(),
+            );
+        } else if let Some((role, text)) = incremental_append {
+            ui.message_list(cx, &[id!(message_list)])
+                .append_text_for_message(cx, &role, msg_id, &text);
+        }
     }
 
     if should_update_work {
