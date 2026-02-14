@@ -9,7 +9,7 @@ script_mod! {
         width: Fill
         height: Fit
         flow: Down
-        padding: {left: 14 right: 14 top: 12 bottom: 12}
+        padding: Inset{left: 14 right: 14 top: 12 bottom: 12}
         spacing: 10
         visible: false
         show_bg: true
@@ -29,16 +29,16 @@ script_mod! {
             }
         }
 
-        header_row = View {
+        header_row := View {
             width: Fill
             height: Fit
             flow: Right
             spacing: 8
-            align: {y: 0.5}
+            align: Align{y: 0.5}
 
-            title = Label {
+            title := Label {
                 text: "Permission required"
-                draw_text: {
+                draw_text +: {
                     color: THEME_COLOR_TEXT_PRIMARY
                     text_style: theme.font_bold {font_size: 12}
                 }
@@ -46,20 +46,20 @@ script_mod! {
 
             View {width: Fill}
 
-            permission_badge = RoundedView {
+            permission_badge := RoundedView {
                 width: Fit
                 height: Fit
-                padding: {left: 8 right: 8 top: 4 bottom: 4}
-                draw_bg: {
+                padding: Inset{left: 8 right: 8 top: 4 bottom: 4}
+                draw_bg +: {
                     color: THEME_COLOR_SHADE_1
                     border_radius: 10.0
                 }
 
-                permission_type = Label {
+                permission_type := Label {
                     width: Fit
                     height: Fit
                     text: ""
-                    draw_text: {
+                    draw_text +: {
                         color: THEME_COLOR_SHADE_10
                         text_style: theme.font_regular {font_size: 10}
                     }
@@ -67,22 +67,20 @@ script_mod! {
             }
         }
 
-        description = Label {
+        description := Label {
             width: Fill
             height: Fit
             text: ""
-            draw_text: {
+            draw_text +: {
                 color: THEME_COLOR_TEXT_DIM
-                text_style: theme.font_regular {font_size: 11}
-                wrap: Word
-            }
+                text_style: theme.font_regular {font_size: 11}}
         }
 
-        details_view = RoundedView {
+        details_view := RoundedView {
             width: Fill
             height: 200
             padding: 10
-            draw_bg: {
+            draw_bg +: {
                 color: THEME_COLOR_BG_INPUT
                 border_radius: 8.0
             }
@@ -97,81 +95,77 @@ script_mod! {
                     flow: Down
                     spacing: 6
 
-                    pattern = Label {
+                    pattern := Label {
                         width: Fill
                         height: Fit
                         text: ""
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_STATUS_DOT
-                            text_style: theme.font_code {font_size: 10}
-                            wrap: Word
-                        }
+                            text_style: theme.font_code {font_size: 10}}
                     }
 
-                    context = Label {
+                    context := Label {
                         width: Fill
                         height: Fit
                         text: ""
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_SHADE_7
-                            text_style: theme.font_regular {font_size: 10}
-                            wrap: Word
-                        }
+                            text_style: theme.font_regular {font_size: 10}}
                     }
                 }
             }
         }
 
-        buttons_row = View {
+        buttons_row := View {
             width: Fill
             height: Fit
             flow: Right
             spacing: 10
-            align: {x: 1.0 y: 0.5}
+            align: Align{x: 1.0 y: 0.5}
 
-            reject_button = Button {
+            reject_button := Button {
                 width: 90
                 height: 32
                 text: "Reject"
-                draw_bg: {
+                draw_bg +: {
                     color: THEME_COLOR_SHADE_3
                     color_hover: THEME_COLOR_SHADE_5
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: {
+                draw_text +: {
                     color: THEME_COLOR_TEXT_PRIMARY
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
 
-            always_button = Button {
+            always_button := Button {
                 width: 120
                 height: 32
                 text: "Always allow"
-                draw_bg: {
+                draw_bg +: {
                     color: THEME_COLOR_SHADE_4
                     color_hover: THEME_COLOR_SHADE_6
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: {
+                draw_text +: {
                     color: THEME_COLOR_TEXT_PRIMARY
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
 
-            accept_button = Button {
+            accept_button := Button {
                 width: 110
                 height: 32
                 text: "Allow once"
-                draw_bg: {
+                draw_bg +: {
                     color: THEME_COLOR_ACCENT_BLUE
                     color_hover: THEME_COLOR_ACCENT_BLUE_DARK
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: {
+                draw_text +: {
                     color: THEME_COLOR_TEXT_BRIGHT
                     text_style: theme.font_regular {font_size: 11}
                 }

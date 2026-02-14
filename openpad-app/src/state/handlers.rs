@@ -304,6 +304,7 @@ impl AppState {
 
     /// Updates projects panel with current data
     pub fn update_projects_panel(&self, ui: &WidgetRef, cx: &mut Cx) {
+        // Keep both lookup paths while the sidebar tree is being stabilized.
         ui.projects_panel(cx, &[id!(projects_panel)]).set_data(
             cx,
             self.projects.clone(),
@@ -311,6 +312,14 @@ impl AppState {
             self.selected_session_id.clone(),
             self.working_by_session.clone(),
         );
+        ui.projects_panel(cx, &[id!(side_panel), id!(projects_panel)])
+            .set_data(
+                cx,
+                self.projects.clone(),
+                self.sessions.clone(),
+                self.selected_session_id.clone(),
+                self.working_by_session.clone(),
+            );
     }
 
     /// Clears all messages and updates the UI

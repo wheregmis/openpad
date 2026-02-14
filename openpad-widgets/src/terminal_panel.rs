@@ -20,10 +20,10 @@ script_mod! {
             width: Fill
             height: 1
             show_bg: true
-            draw_bg: {color: THEME_COLOR_BORDER_MEDIUM}
+            draw_bg +: {color: THEME_COLOR_BORDER_MEDIUM}
         }
 
-        terminal_panel = mod.widgets.Terminal {
+        terminal_panel := mod.widgets.Terminal {
             width: Fill
             height: Fill
         }

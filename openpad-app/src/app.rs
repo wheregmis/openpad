@@ -53,7 +53,6 @@ app_main!(App);
 script_mod! {
     use mod.prelude.widgets_internal.*
     use mod.widgets.*
-    use mod.widgets.CodeView
     use mod.theme.*
 
     let ChatPanel = View {
@@ -61,207 +60,66 @@ script_mod! {
         flow: Down
         spacing: 0
 
-        View { width: Fill, height: 1, show_bg: true, draw_bg: { color: THEME_COLOR_SHADE_2 } }
-
-        session_summary = RoundedView {
+        session_summary := View {
             visible: false
             width: Fill, height: Fit
-            padding: { left: 16, right: 16, top: 12, bottom: 12 }
             flow: Down
-            spacing: 8
-            show_bg: true
-            draw_bg: {
-                color: THEME_COLOR_BG_DIALOG
-                border_color: THEME_COLOR_BORDER_DIALOG
-                border_radius: 8.0
-                border_size: 1.0
+            spacing: 6
 
-                pixel: fn() {
-                    let sdf = Sdf2d.viewport(self.pos * self.rect_size);
-                    sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
-                    sdf.fill_keep(self.color);
-                    sdf.stroke(self.border_color, self.border_size);
-                    return sdf.result;
-                }
-            }
-
-            summary_header = View {
+            summary_header := View {
                 width: Fill, height: Fit
                 flow: Right
-                align: { y: 0.5 }
-
-                summary_title = Label {
-                    text: "Session Summary"
-                    draw_text: { color: THEME_COLOR_TEXT_PRIMARY, text_style: theme.font_bold { font_size: 10 } }
-                }
+                summary_title := Label { text: "Session Summary" }
                 View { width: Fill }
             }
 
-            summary_stats_label = Label {
-                width: Fill, height: Fit
-                text: ""
-                draw_text: { color: THEME_COLOR_TEXT_DIM, text_style: theme.font_regular { font_size: 9 } }
-            }
-
-            summary_diff = Markdown {
-                width: Fill, height: Fit
-                font_size: 9
-                font_color: THEME_COLOR_TEXT_NORMAL
-                paragraph_spacing: 6
-                pre_code_spacing: 6
-                use_code_block_widget: true
-
-                code_block = View {
-                    width: Fill, height: Fit
-                    flow: Down
-                    padding: { left: 8, right: 8, top: 6, bottom: 6 }
-                    margin: { top: 4, bottom: 4 }
-                    draw_bg: {
-                        color: THEME_COLOR_BG_INPUT
-                        border_radius: 6.0
-                    }
-
-                    code_view = CodeView {
-                        editor: {
-                            width: Fill
-                            height: Fit
-                            draw_bg: { color: THEME_COLOR_BG_INPUT }
-                        }
-                    }
-                }
-
-                draw_normal: {
-                    text_style: theme.font_regular { font_size: 9, line_spacing: 1.4 }
-                    color: THEME_COLOR_TEXT_NORMAL
-                }
-                draw_italic: {
-                    text_style: theme.font_italic { font_size: 9 }
-                    color: THEME_COLOR_TEXT_NORMAL
-                }
-                draw_bold: {
-                    text_style: theme.font_bold { font_size: 9 }
-                    color: THEME_COLOR_TEXT_BOLD
-                }
-                draw_fixed: {
-                    text_style: theme.font_code { font_size: 8 }
-                    color: THEME_COLOR_TEXT_CODE
-                }
-            }
+            summary_stats_label := Label { width: Fill, height: Fit, text: "" }
+            summary_diff := Markdown { width: Fill, height: Fit }
         }
 
-        // Chat area - Unified
         View {
             width: Fill, height: Fill
-            flow: Down
-            spacing: 0
-            show_bg: true
-            draw_bg: { color: THEME_COLOR_BG_APP }
+            message_list := MessageList { width: Fill, height: Fill }
+        }
 
-            View {
-                width: Fill, height: Fill
-                message_list = MessageList { width: Fill, height: Fill }
+        input_row := View {
+            width: Fill, height: Fit
+            flow: Down, spacing: 8
+
+            attachments_preview := View {
+                visible: false
+                width: Fill, height: Fit
+                flow: Right, spacing: 8
+                attachments_label := Label { text: "Attached:" }
+                attachments_list := Label { text: "" }
+                View { width: Fill }
+                clear_attachments_button := Button { width: Fit, height: 20, text: "Clear" }
             }
 
-            input_row = View {
+            skill_preview := View {
+                visible: false
                 width: Fill, height: Fit
-                padding: { left: 32, right: 32, top: 12, bottom: 20 }
-                flow: Down, spacing: 8
-                clip_y: false
-
-                // Attachments preview area
-                attachments_preview = RoundedView {
-                    visible: false
+                flow: Down, spacing: 4
+                skill_header := View {
                     width: Fill, height: Fit
                     flow: Right, spacing: 8
-                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
-                    show_bg: true
-                    draw_bg: {
-                        color: THEME_COLOR_SHADE_2
-                        border_radius: 8.0
-                    }
-
-                    attachments_label = Label {
-                        text: "Attached:"
-                        draw_text: { color: THEME_COLOR_TEXT_MUTED, text_style: theme.font_regular { font_size: 9 } }
-                    }
-                    attachments_list = Label {
-                        text: ""
-                        draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHTER, text_style: theme.font_regular { font_size: 9 } }
-                    }
+                    skill_name_label := Label { text: "Skill" }
                     View { width: Fill }
-                    clear_attachments_button = Button {
-                        width: Fit, height: 20
-                        text: "Clear"
-                        draw_text: { color: THEME_COLOR_ACCENT_AMBER, text_style: theme.font_regular { font_size: 9 } }
-                        draw_bg: {
-                            color: THEME_COLOR_TRANSPARENT
-                            color_hover: THEME_COLOR_HOVER_MEDIUM
-                        }
-                    }
+                    clear_skill_button := Button { width: Fit, height: 20, text: "Clear" }
                 }
+                skill_desc_label := Label { text: "" }
+            }
 
-                skill_preview = RoundedView {
-                    visible: false
-                    width: Fill, height: Fit
-                    flow: Down, spacing: 4
-                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
-                    show_bg: true
-                    draw_bg: {
-                        color: THEME_COLOR_SHADE_2
-                        border_radius: 8.0
-                    }
-
-                    skill_header = View {
-                        width: Fill, height: Fit
-                        flow: Right, spacing: 8
-                        align: { y: 0.5 }
-
-                        skill_name_label = Label {
-                            text: "Skill"
-                            draw_text: { color: THEME_COLOR_SHADE_8, text_style: theme.font_bold { font_size: 9 } }
-                        }
-                        View { width: Fill }
-                        clear_skill_button = Button {
-                            width: Fit, height: 20
-                            text: "Clear"
-                            draw_text: { color: THEME_COLOR_ACCENT_AMBER, text_style: theme.font_regular { font_size: 9 } }
-                            draw_bg: {
-                                color: THEME_COLOR_TRANSPARENT
-                                color_hover: THEME_COLOR_HOVER_MEDIUM
-                            }
-                        }
-                    }
-
-                    skill_desc_label = Label {
-                        text: ""
-                        draw_text: { color: THEME_COLOR_SHADE_9, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 }, word: Wrap }
-                    }
-                }
-
-                InputBar {
-                    width: Fill
-                    input_box = InputField {}
-                    input_bar_toolbar = InputBarToolbar {
-                        agent_dropdown = InputBarDropDown {
-                             labels: ["Agent"]
-                         }
-                         skill_dropdown = InputBarDropDown {
-                             width: 120
-                             labels: ["Skill"]
-                         }
-                         provider_dropdown = InputBarDropDown {
-                             width: 120
-                             labels: ["Provider"]
-                         }
-                         model_dropdown = InputBarDropDown {
-                             width: 150
-                             labels: ["Model"]
-                         }
-                        View { width: Fill }
-                        send_button = SendButton {
-                            margin: { left: 0 }
-                        }
-                    }
+            InputBar {
+                width: Fill
+                input_box := InputField {}
+                input_bar_toolbar := InputBarToolbar {
+                    agent_dropdown := InputBarDropDown { labels: ["Agent"] }
+                    skill_dropdown := InputBarDropDown { width: 120 labels: ["Skill"] }
+                    provider_dropdown := InputBarDropDown { width: 120 labels: ["Provider"] }
+                    model_dropdown := InputBarDropDown { width: 150 labels: ["Model"] }
+                    View { width: Fill }
+                    send_button := SendButton { margin: Inset{ left: 0 } }
                 }
             }
         }
@@ -269,298 +127,94 @@ script_mod! {
 
     let TerminalPanelWrap = TerminalPanel {}
 
-    let app = startup() do #(App::script_component(vm)){
+    startup() do #(App::script_component(vm)){
         ui: Root{
             main_window := Window{
-            window: { inner_size: vec2(1200, 800) }
-            pass: { clear_color: THEME_COLOR_BG_DARKER }
-
-            body = View {
-                width: Fill, height: Fill
-                flow: Overlay
-
-                AppBg {
-                width: Fill, height: Fill
-                flow: Down,
-                spacing: 0,
-                padding: 0,
-
-                View {
+                window.inner_size: vec2(1200 800)
+                pass.clear_color: #1a1a1a
+                body +: {
                     width: Fill, height: Fill
-                    flow: Right,
-                    spacing: 0,
-
-                    side_panel = SidePanel {
-                        width: 260.0, height: Fill
-                        open_size: 260.0
-
-                        HeaderBar {
-                            height: 36
-                            width: Fill
-                            padding: { left: 80, right: 10 }
-                            draw_bg: {
-                                color: THEME_COLOR_BG_APP
-                                border_color: THEME_COLOR_BORDER_MEDIUM
-                                border_radius: 0.0
-                                border_size: 1.0
-                            }
-
-                            View { width: Fill }
-
-                            sidebar_tabs = View {
-                                width: Fit, height: Fill
-                                flow: Right
-                                spacing: 4
-                                align: { y: 0.5 }
-
-                                projects_tab = Button {
-                                    width: Fit, height: 24
-                                    padding: { left: 8, right: 8, top: 4, bottom: 4 }
-                                    text: "Projects"
-                                    draw_bg: {
-                                        color: THEME_COLOR_TRANSPARENT
-                                        color_hover: THEME_COLOR_HOVER_MEDIUM
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: {
-                                        color: THEME_COLOR_TEXT_MUTED
-                                        text_style: theme.font_regular { font_size: 10 }
-                                    }
-                                }
-
-                                settings_tab = Button {
-                                    width: Fit, height: 24
-                                    padding: { left: 8, right: 8, top: 4, bottom: 4 }
-                                    text: "Settings"
-                                    draw_bg: {
-                                        color: THEME_COLOR_TRANSPARENT
-                                        color_hover: THEME_COLOR_HOVER_MEDIUM
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: {
-                                        color: THEME_COLOR_TEXT_MUTED
-                                        text_style: theme.font_regular { font_size: 10 }
-                                    }
-                                }
-                            }
-                        }
-
-                        projects_panel = ProjectsPanel {
-                            visible: true
-                        }
-
-                        settings_panel = SettingsDialog {
-                            visible: false
-                            width: Fill, height: Fill
-                        }
-                    }
-                    sidebar_resize_handle = View {
-                        width: 6, height: Fill
-                        show_bg: true
-                        draw_bg: { color: THEME_COLOR_BORDER_MEDIUM }
-                    }
+                    flow: Overlay
 
                     View {
                         width: Fill, height: Fill
-                        flow: Down,
-                        spacing: 0,
+                        flow: Right
 
-                        // Main Header
-                        main_header = HeaderBar {
-                            height: 36
-                            padding: { left: 16, right: 10 }
-                            draw_bg: {
-                                color: THEME_COLOR_BG_APP
-                                border_color: THEME_COLOR_BORDER_MEDIUM
-                                border_radius: 0.0
-                            }
+                        side_panel := SidePanel {
+                            width: 260.0, height: Fill
+                            open_size: 260.0
 
-                            // This spacer expands when the sidebar closes to keep traffic lights clear
-                            traffic_light_spacer = SidePanel {
-                                width: 0.0, height: Fill
-                                open_size: 80.0
-                                close_size: 0.0
-                                draw_bg: { color: THEME_COLOR_TRANSPARENT, border_size: 0.0 } // Transparent!
-                            }
-
-                            hamburger_button = HamburgerButton {
-                                width: 32, height: 32
-                            }
-                            View { width: 4 }
-                            app_title = Label {
-                                text: "Openpad"
-                                draw_text: { color: THEME_COLOR_TEXT_MUTED, text_style: theme.font_regular { font_size: 10 } }
-                            }
-                            View { width: Fill }
-                            status_row = View {
-                                width: Fit, height: Fit
-                                flow: Right
-                                spacing: 8
-                                align: { y: 0.5 }
-                                work_indicator = View {
-                                    visible: false
-                                    width: Fit, height: Fit
-                                    flow: Right, spacing: 4, align: { y: 0.5 }
-                                    StatusDot {
-                                        draw_bg: {
-                                            pixel: fn() {
-                                                let sdf = Sdf2d.viewport(self.pos * self.rect_size);
-                                                let c = self.rect_size * 0.5;
-                                                let r = min(c.x, c.y) - 1.0;
-                                                sdf.circle(c.x, c.y, r);
-                                                let color = THEME_COLOR_ACCENT_AMBER;
-                                                // Pulse effect using time
-                                                let pulse = 0.8 + 0.2 * sin(self.time * 5.0);
-                                                return sdf.fill(color * pulse);
-                                            }
-                                        }
-                                    }
-                                    Label {
-                                        text: "Working..."
-                                        draw_text: { color: THEME_COLOR_ACCENT_AMBER, text_style: theme.font_regular { font_size: 9 } }
-                                    }
-                                }
-                                status_dot = StatusDot {}
-                                status_label = Label {
-                                    text: "Connected"
-                                    draw_text: { color: THEME_COLOR_TEXT_MUTED_DARK, text_style: theme.font_regular { font_size: 9 } }
+                            HeaderBar {
+                                width: Fill
+                                height: 36
+                                View { width: Fill }
+                                sidebar_tabs := View {
+                                    width: Fit, height: Fill
+                                    flow: Right, spacing: 4
+                                    projects_tab := Button { width: Fit, height: 24, text: "Projects" }
+                                    settings_tab := Button { width: Fit, height: 24, text: "Settings" }
                                 }
                             }
+
+                            projects_panel := ProjectsPanel { visible: true }
+                            settings_panel := SettingsDialog { visible: false width: Fill height: Fill }
                         }
 
-                        // Slim Breadcrumbs Bar
-                        session_info = View {
-                            width: Fill, height: 32
-                            padding: { left: 16, right: 16 }
-                            flow: Right,
-                            spacing: 8,
-                            align: { y: 0.5 }
-                            show_bg: true
-                            draw_bg: { color: THEME_COLOR_BG_APP }
+                        sidebar_resize_handle := View { width: 6, height: Fill }
 
-                            project_row = View {
-                                width: Fit, height: Fit
-                                flow: Right, spacing: 4, align: {y: 0.5}
-                                project_badge = View {
+                        View {
+                            width: Fill, height: Fill
+                            flow: Down
+
+                            main_header := HeaderBar {
+                                width: Fill, height: 36
+                                traffic_light_spacer := SidePanel { width: 0.0 height: Fill open_size: 80.0 close_size: 0.0 }
+                                hamburger_button := HamburgerButton { width: 32, height: 32 }
+                                app_title := Label { text: "Openpad" }
+                                View { width: Fill }
+                                status_row := View {
                                     width: Fit, height: Fit
-                                    project_badge_label = Label {
-                                        text: "No project"
-                                        draw_text: { color: THEME_COLOR_TEXT_MUTED, text_style: theme.font_regular { font_size: 10 } }
-                                    }
+                                    flow: Right, spacing: 8
+                                    work_indicator := View { visible: false Label { text: "Working..." } }
+                                    status_dot := StatusDot {}
+                                    status_label := Label { text: "Connected" }
                                 }
                             }
 
-                            Label { text: "/", draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 10 } } }
-
-                            session_row = View {
-                                width: Fit, height: Fit
-                                session_title = Label {
-                                    text: "New Session"
-                                    draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHTER, text_style: theme.font_bold { font_size: 10 } }
-                                }
-                            }
-
-                            project_path_wrap = View {
-                                visible: false
-                                project_path_label = Label { text: "" }
-                            }
-
-                            View { width: Fill }
-
-                            share_wrap = View {
-                                width: Fit, height: Fit
-                                flow: Right,
-                                spacing: 6,
-                                align: { y: 0.5 }
-
-                                share_button = Button {
-                                    width: Fit, height: 20
-                                    text: "Share"
-                                    draw_bg: {
-                                        color: THEME_COLOR_TRANSPARENT
-                                        color_hover: THEME_COLOR_HOVER_MEDIUM
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }
-                                }
-
-                                unshare_button = Button {
-                                    width: Fit, height: 20
-                                    visible: false
-                                    text: "Unshare"
-                                    draw_bg: {
-                                        color: THEME_COLOR_TRANSPARENT
-                                        color_hover: THEME_COLOR_HOVER_MEDIUM
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }
-                                }
-
-                                copy_share_button = Button {
-                                    width: Fit, height: 20
-                                    visible: false
-                                    text: "Copy link"
-                                    draw_bg: {
-                                        color: THEME_COLOR_TRANSPARENT
-                                        color_hover: THEME_COLOR_HOVER_MEDIUM
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }
-                                }
-
-                                share_url_label = Label {
+                            session_info := View {
+                                width: Fill, height: 32
+                                flow: Right, spacing: 8
+                                project_row := View {
                                     width: Fit, height: Fit
-                                    text: ""
-                                    draw_text: { color: THEME_COLOR_TEXT_MUTED_DARKER, text_style: theme.font_regular { font_size: 9 } }
+                                    project_badge := View { project_badge_label := Label { text: "No project" } }
                                 }
+                                Label { text: "/" }
+                                session_row := View { session_title := Label { text: "New Session" } }
+                                project_path_wrap := View { visible: false project_path_label := Label { text: "" } }
+                                View { width: Fill }
+                                share_wrap := View {
+                                    width: Fit, height: Fit
+                                    flow: Right, spacing: 6
+                                    share_button := Button { width: Fit, height: 20, text: "Share" }
+                                    unshare_button := Button { width: Fit, height: 20, visible: false, text: "Unshare" }
+                                    copy_share_button := Button { width: Fit, height: 20, visible: false, text: "Copy link" }
+                                    share_url_label := Label { text: "" }
+                                }
+                                summarize_button := Button { width: Fit, height: 20, text: "Summarize" }
+                                revert_indicator := View { visible: false revert_indicator_label := Label { text: "Reverted" } }
+                                unrevert_wrap := View { visible: false unrevert_button := Button { width: Fit, height: 20, text: "Unrevert" } }
                             }
 
-                            summarize_button = Button {
-                                width: Fit, height: 20
-                                text: "Summarize"
-                                draw_bg: {
-                                    color: THEME_COLOR_TRANSPARENT
-                                    color_hover: THEME_COLOR_HOVER_MEDIUM
-                                    border_radius: 4.0
-                                    border_size: 0.0
-                                }
-                                draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 9 } }
-                            }
-
-                            revert_indicator = View {
-                                visible: false
-                                revert_indicator_label = Label {
-                                    text: "⟲ Reverted"
-                                    draw_text: { color: THEME_COLOR_ACCENT_AMBER, text_style: theme.font_regular { font_size: 9 } }
-                                }
-                            }
-                            unrevert_wrap = View {
-                                visible: false
-                                unrevert_button = Button {
-                                    width: Fit, height: 20
-                                    text: "Unrevert"
-                                    draw_text: { color: THEME_COLOR_ACCENT_BLUE, text_style: theme.font_regular { font_size: 9 } }
-                                }
-                            }
+                            ChatPanel {}
+                            terminal_panel_wrap := TerminalPanelWrap {}
                         }
-                        ChatPanel {}
-                        terminal_panel_wrap = TerminalPanelWrap {}
                     }
-                }
-                }
 
-                // Simple dialog for confirmations and inputs (shown as overlay)
-                simple_dialog = SimpleDialog {}
-            }
+                    simple_dialog := SimpleDialog {}
+                }
             }
         }
     }
-    app
 }
 #[derive(Script, ScriptHook)]
 pub struct App {

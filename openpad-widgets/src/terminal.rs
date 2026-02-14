@@ -12,64 +12,64 @@ script_mod! {
     mod.widgets.Terminal = mod.widgets.TerminalBase {
         width: Fill
         height: Fill
-        terminal_output = View {
+        terminal_output := View {
             width: Fill
             height: Fill
             flow: Down
             spacing: 0
             show_bg: true
-            draw_bg: {
+            draw_bg +: {
                 color: THEME_COLOR_BG_DARKER
             }
 
-            output_list = PortalList {
+            output_list := PortalList {
                 auto_tail: true
-                OutputLine = View {
+                OutputLine := View {
                     width: Fill
                     height: Fit
-                    padding: {left: 10 right: 10 top: 0 bottom: 0}
+                    padding: Inset{left: 10 right: 10 top: 0 bottom: 0}
 
-                    line_label = Label {
+                    line_label := Label {
                         width: Fill
                         height: Fit
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_SHADE_11
                             text_style: theme.font_code {font_size: 10}
                         }
                     }
                 }
 
-                InputLine = View {
+                InputLine := View {
                     width: Fill
                     height: Fit
                     flow: Right
-                    padding: {left: 10 right: 10 top: 0 bottom: 0}
+                    padding: Inset{left: 10 right: 10 top: 0 bottom: 0}
                     spacing: 0
-                    align: { y: 0.5 }
+                    align: Align{ y: 0.5 }
 
-                    prompt_label = Label {
+                    prompt_label := Label {
                         width: Fit
                         height: Fit
                         text: " % "
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_SHADE_11
                             text_style: theme.font_code {font_size: 10}
                         }
                     }
 
-                    input_field = TextInput {
+                    input_field := TextInput {
                         width: Fill
                         height: Fit
-                        padding: {left: 0 right: 10 top: 4 bottom: 4}
+                        padding: Inset{left: 0 right: 10 top: 4 bottom: 4}
                         empty_text: ""
-                        draw_bg: {
+                        draw_bg +: {
                             color: THEME_COLOR_TRANSPARENT
                             color_focus: THEME_COLOR_TRANSPARENT
                             color_empty: THEME_COLOR_TRANSPARENT
                             border_radius: 0.0
                             border_size: 0.0
                         }
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_BRIGHT
                             text_style: theme.font_code {font_size: 10}
                         }

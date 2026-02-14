@@ -79,6 +79,8 @@ pub struct UpDropDown {
     menu_scroll_max: f64,
     #[rust]
     menu_visible_height: f64,
+    #[rust]
+    popup_defer_frames: u8,
 }
 
 #[derive(Default, Clone)]
@@ -135,6 +137,7 @@ impl UpDropDown {
         self.menu_scroll = 0.0;
         self.menu_scroll_max = 0.0;
         self.menu_visible_height = 0.0;
+        self.popup_defer_frames = 1;
         self.draw_bg.redraw(cx);
         let global = cx.global::<PopupMenuGlobal>().clone();
         let mut map = global.map.borrow_mut();
@@ -149,6 +152,7 @@ impl UpDropDown {
         self.menu_scroll = 0.0;
         self.menu_scroll_max = 0.0;
         self.menu_visible_height = 0.0;
+        self.popup_defer_frames = 0;
         self.draw_bg.redraw(cx);
         cx.sweep_unlock(self.draw_bg.area());
     }
@@ -175,6 +179,11 @@ impl UpDropDown {
         cx.add_nav_stop(self.draw_bg.area(), NavRole::DropDown, Inset::default());
 
         if self.is_active && !self.popup_menu.is_nil() {
+            if self.popup_defer_frames > 0 {
+                self.popup_defer_frames -= 1;
+                cx.new_next_frame();
+                return;
+            }
             let global = cx.global::<PopupMenuGlobal>().clone();
             let mut map = global.map.borrow_mut();
             let popup_menu = map.get_mut(&self.popup_menu).unwrap();

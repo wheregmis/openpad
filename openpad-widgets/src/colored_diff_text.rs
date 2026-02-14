@@ -8,12 +8,13 @@ const DIFF_COLOR_HEADER: Vec4 = vec4(0.533, 0.690, 0.859, 1.0);
 script_mod! {
     use mod.prelude.widgets_internal.*
     use mod.widgets.*
+    use mod.theme.*
 
     mod.widgets.ColoredDiffText = #(ColoredDiffText::register_widget(vm)) {
         width: Fill
         height: Fit
 
-        draw_text: {
+        draw_text +: {
             text_style: theme.font_code {font_size: 10 line_spacing: 1.2}
             get_color: fn() {
                 return self.color

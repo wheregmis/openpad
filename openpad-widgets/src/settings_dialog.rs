@@ -21,12 +21,12 @@ script_mod! {
             width: Fill
             height: Fill
 
-            content = View {
+            content := View {
                 width: Fill
                 height: Fit
                 flow: Down
                 spacing: 12
-                padding: {left: 16 right: 16 top: 16 bottom: 16}
+                padding: Inset{left: 16 right: 16 top: 16 bottom: 16}
 
                 View {
                     width: Fill
@@ -36,75 +36,30 @@ script_mod! {
 
                     Label {
                         text: "Select Provider"
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_DIM
                             text_style: theme.font_regular {font_size: 10}
                         }
                     }
 
-                    provider_dropdown = mod.widgets.UpDropDown {
+                    provider_dropdown := mod.widgets.UpDropDown {
                         width: Fill
                         height: 32
-                        padding: {left: 10 right: 10 top: 6 bottom: 6}
+                        padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
 
-                        animator: Animator {
-                            disabled: {
-                                default: @off
-                                off: {apply: {draw_bg: {disabled: 0.0}}}
-                                on: {apply: {draw_bg: {disabled: 1.0}}}
-                            }
-                            hover: {
-                                default: @off
-                                off: {
-                                    from: {all: Forward {duration: 0.15}}
-                                    apply: {draw_bg: {hover: 0.0}}
-                                }
-                                on: {
-                                    from: {all: Forward {duration: 0.15}}
-                                    apply: {draw_bg: {hover: 1.0}}
-                                }
-                            }
-                            focus: {
-                                default: @off
-                                off: {apply: {draw_bg: {focus: 0.0}}}
-                                on: {apply: {draw_bg: {focus: 1.0}}}
-                            }
-                        }
-
-                        draw_text: {
+                        draw_text +: {
                             text_style: theme.font_regular {font_size: 11}
-                            get_color: fn() {
-                                return mix(THEME_COLOR_TEXT_PRIMARY, THEME_COLOR_TEXT_BRIGHT, self.hover)
-                            }
+                            color: THEME_COLOR_TEXT_PRIMARY
                         }
 
                         draw_bg +: {
-                            hover: instance(0.0)
-                            focus: instance(0.0)
-                            active: instance(0.0)
-                            disabled: instance(0.0)
-                            pixel: fn() {
-                                let sdf = Sdf2d.viewport(self.pos * self.rect_size)
-                                sdf.box(1.0, 1.0, self.rect_size.x - 2.0, self.rect_size.y - 2.0, 6.0)
-
-                                let bg_color = mix(THEME_COLOR_BG_INPUT, THEME_COLOR_HOVER_MEDIUM, self.hover)
-                                sdf.fill_keep(bg_color)
-
-                                let stroke_color = mix(THEME_COLOR_BORDER_MEDIUM, THEME_COLOR_BORDER_LIGHT, self.hover)
-                                sdf.stroke(stroke_color, 1.0)
-
-                                return sdf.result
-                            }
+                            color: THEME_COLOR_BG_INPUT
+                            color_hover: THEME_COLOR_HOVER_MEDIUM
+                            border_radius: 6.0
+                            border_size: 1.0
+                            border_color: THEME_COLOR_BORDER_MEDIUM
                         }
 
-                        popup_menu: {
-                            draw_bg: {
-                                color: THEME_COLOR_BG_DARKER
-                                border_radius: 6.0
-                                border_size: 1.0
-                                border_color: THEME_COLOR_BORDER_MEDIUM
-                            }
-                        }
                     }
                 }
 
@@ -116,25 +71,25 @@ script_mod! {
 
                     Label {
                         text: "API Key"
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_DIM
                             text_style: theme.font_regular {font_size: 10}
                         }
                     }
 
-                    key_input = TextInput {
+                    key_input := TextInput {
                         width: Fill
                         height: 32
                         is_password: true
                         empty_text: "Enter API Key"
-                        draw_bg: {
+                        draw_bg +: {
                             color: THEME_COLOR_BG_INPUT
                             color_focus: THEME_COLOR_BG_INPUT
                             border_radius: 6.0
                             border_size: 1.0
                             border_color: THEME_COLOR_BORDER_MEDIUM
                         }
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_PRIMARY
                             text_style: theme.font_code {font_size: 10}
                         }
@@ -144,19 +99,19 @@ script_mod! {
                 View {
                     width: Fill
                     height: Fit
-                    align: {x: 1.0}
+                    align: Align{x: 1.0}
 
-                    save_button = Button {
+                    save_button := Button {
                         width: 100
                         height: 32
                         text: "Update Key"
-                        draw_bg: {
+                        draw_bg +: {
                             color: THEME_COLOR_BG_BUTTON
                             color_hover: THEME_COLOR_BG_BUTTON_HOVER
                             border_radius: 6.0
                             border_size: 0.0
                         }
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_BRIGHT
                             text_style: theme.font_bold {font_size: 11}
                         }
@@ -165,11 +120,11 @@ script_mod! {
 
                 View {height: 10}
 
-                separator2 = View {
+                separator2 := View {
                     width: Fill
                     height: 1
                     show_bg: true
-                    draw_bg: {color: THEME_COLOR_BORDER_MEDIUM}
+                    draw_bg +: {color: THEME_COLOR_BORDER_MEDIUM}
                 }
 
                 View {
@@ -180,21 +135,19 @@ script_mod! {
 
                     Label {
                         text: "Current Configuration"
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_DIM
                             text_style: theme.font_regular {font_size: 10}
                         }
                     }
 
-                    config_display = Label {
+                    config_display := Label {
                         width: Fill
                         height: Fit
                         text: "Loading..."
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_DIM
-                            text_style: theme.font_code {font_size: 9}
-                            wrap: Word
-                        }
+                            text_style: theme.font_code {font_size: 9}}
                     }
                 }
             }

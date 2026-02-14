@@ -11,175 +11,151 @@ script_mod! {
 
 mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
         width: Fill, height: Fill
-        list = PortalList {
+        list := PortalList {
             scroll_bar: ScrollBar {
                 bar_size: 4.0
                 bar_side_margin: 6.0
                 smoothing: 0.15
             }
 
-            ProjectHeader = View {
+            ProjectHeader := View {
                 width: Fill, height: Fit
-                flow: Right, align: {y: 0.5}
-                padding: { top: 12, bottom: 4, left: 8 }
-                cursor: Hand
-
-                chevron = View {
+                flow: Right, align: Align{y: 0.5}
+                padding: Inset{ top: 8, bottom: 2, left: 10, right: 6 }
+                chevron := View {
                     width: 16, height: 16
-                    align: { x: 0.5, y: 0.5 }
-                    show_bg: true
-                    draw_bg: {
-                        rotation: instance(0.0)
-                        pixel: fn() {
-                            let sdf = Sdf2d.viewport(self.pos * self.rect_size);
-                            let cx = self.rect_size.x * 0.5;
-                            let cy = self.rect_size.y * 0.5;
-                            let sz = 3.0;
-
-                            // Draw a triangle chevron
-                            sdf.rotate(self.rotation, cx, cy);
-                            sdf.move_to(cx - sz, cy - sz * 0.6);
-                            sdf.line_to(cx + sz, cy - sz * 0.6);
-                            sdf.line_to(cx, cy + sz * 0.6);
-                            sdf.close_path();
-                            sdf.fill(#888);
-                            return sdf.result;
-                        }
-                    }
                 }
 
-                project_name = Label {
-                    width: Fill
-                    margin: { left: 4 }
-                    draw_text: { color: THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 10 } }
-                }
-
-                project_working_dot = View {
-                    visible: false
-                    width: 6, height: 6
-                    margin: { right: 4 }
-                    show_bg: true
-                    draw_bg: {
-                        color: THEME_COLOR_ACCENT_AMBER
-                        pixel: fn() {
-                            let sdf = Sdf2d.viewport(self.pos * self.rect_size);
-                            let c = self.rect_size * 0.5;
-                            let r = min(c.x, c.y) - 0.5;
-                            sdf.circle(c.x, c.y, r);
-                            sdf.fill(self.color);
-                            return sdf.result;
-                        }
-                    }
-                }
-
-                new_session_header_button = Button {
-                    width: Fit, height: 20
-                    margin: { right: 4 }
-                    text: "+"
-                    draw_bg: {
+                project_toggle := Button {
+                    width: Fill, height: 22
+                    margin: Inset{ left: 0, right: 4 }
+                    text: "> Project"
+                    draw_bg +: {
                         color: THEME_COLOR_TRANSPARENT
-                        color_hover: THEME_COLOR_HOVER_MEDIUM
+                        color_hover: THEME_COLOR_HOVER_SUBTLE
+                        color_active: THEME_COLOR_HOVER_SUBTLE
                         border_radius: 4.0
                         border_size: 0.0
                     }
-                    draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_regular { font_size: 11 } }
+                    draw_text +: {
+                        color: THEME_COLOR_TEXT_LIGHT
+                        text_style: theme.font_bold { font_size: 11 }
+                    }
+                }
+
+                project_working_dot := RoundedView {
+                    visible: false
+                    width: 6, height: 6
+                    margin: Inset{ right: 4 }
+                    show_bg: true
+                    draw_bg +: {
+                        color: THEME_COLOR_ACCENT_AMBER
+                        border_radius: 3.0
+                    }
+                }
+
+                new_session_header_button := Button {
+                    width: Fit, height: 20
+                    margin: Inset{ left: 4 }
+                    text: "+"
+                    draw_bg +: {
+                        color: THEME_COLOR_TRANSPARENT
+                        color_hover: THEME_COLOR_HOVER_SUBTLE
+                        color_active: THEME_COLOR_HOVER_SUBTLE
+                        border_radius: 4.0
+                        border_size: 0.0
+                    }
+                    draw_text +: { color: THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 12 } }
                 }
             }
 
-            SessionRow = View {
+            SessionRow := View {
                 width: Fill, height: Fit
                 flow: Overlay
 
                 // Main row content
                 View {
                     width: Fill, height: Fit
-                    padding: { top: 1, bottom: 1, left: 16 }
+                    padding: Inset{ top: 0, bottom: 0, left: 22, right: 8 }
                     flow: Right,
                     spacing: 2,
-                    align: { y: 0.5 }
+                    align: Align{ y: 0.5 }
 
-                    session_button = Button {
-                        width: Fill, height: 24
-                        margin: { right: 8 }
+                    session_button := Button {
+                        width: Fill, height: 22
+                        margin: Inset{ right: 4 }
                         text: "Session"
-                        draw_bg: {
+                        draw_bg +: {
                             color: THEME_COLOR_TRANSPARENT
                             color_hover: THEME_COLOR_HOVER_SUBTLE
+                            color_active: THEME_COLOR_HOVER_SUBTLE
                             border_radius: 4.0
                             border_size: 0.0
                         }
-                        draw_text: {
+                        draw_text +: {
                             color: THEME_COLOR_TEXT_NORMAL,
-                            text_style: theme.font_regular { font_size: 10 }
-                            word: Wrap
-                        }
+                            text_style: theme.font_regular { font_size: 9 }}
                     }
 
-                    summary_stats = View {
+                    summary_stats := View {
                         width: Fit, height: Fit
-                        margin: { right: 6 }
+                        margin: Inset{ right: 4 }
                         flow: Right
                         spacing: 6
-                        align: { y: 0.5 }
+                        align: Align{ y: 0.5 }
 
-                        summary_files_label = Label {
+                        summary_files_label := Label {
                             width: Fit, height: Fit
-                            draw_text: {
+                            draw_text +: {
                                 color: THEME_COLOR_TEXT_MUTED_DARK
-                                text_style: theme.font_regular { font_size: 8 }
+                                text_style: theme.font_regular { font_size: 7.5 }
                             }
                             text: ""
                         }
 
-                        summary_add_label = Label {
+                        summary_add_label := Label {
                             width: Fit, height: Fit
-                            draw_text: {
+                            draw_text +: {
                                 color: THEME_COLOR_DIFF_ADD_TEXT
-                                text_style: theme.font_regular { font_size: 8 }
+                                text_style: theme.font_regular { font_size: 7.5 }
                             }
                             text: ""
                         }
 
-                        summary_del_label = Label {
+                        summary_del_label := Label {
                             width: Fit, height: Fit
-                            draw_text: {
+                            draw_text +: {
                                 color: THEME_COLOR_DIFF_DEL_TEXT
-                                text_style: theme.font_regular { font_size: 8 }
+                                text_style: theme.font_regular { font_size: 7.5 }
                             }
                             text: ""
                         }
                     }
 
-                    working_dot = View {
+                    working_dot := RoundedView {
                         visible: false
                         width: 6, height: 6
                         show_bg: true
-                        draw_bg: {
+                        draw_bg +: {
                             color: THEME_COLOR_ACCENT_AMBER
-                            pixel: fn() {
-                                let sdf = Sdf2d.viewport(self.pos * self.rect_size);
-                                let c = self.rect_size * 0.5;
-                                let r = min(c.x, c.y) - 0.5;
-                                sdf.circle(c.x, c.y, r);
-                                sdf.fill(self.color);
-                                return sdf.result;
-                            }
+                            border_radius: 3.0
                         }
                     }
-                    menu_button = Button {
-                        width: 28, height: 28
+                    menu_button := Button {
+                        width: 24, height: 22
                         text: "⋯"
-                        align: { x: 0.5, y: 0.5 }
-                        draw_bg: {
+                        align: Align{ x: 0.5, y: 0.5 }
+                        draw_bg +: {
                             color: THEME_COLOR_TRANSPARENT
-                            color_hover: THEME_COLOR_HOVER_MEDIUM
-                            border_radius: 6.0
+                            color_hover: THEME_COLOR_HOVER_SUBTLE
+                            color_active: THEME_COLOR_HOVER_SUBTLE
+                            border_radius: 4.0
                             border_size: 0.0
                         }
-                        draw_text: {
-                            color: THEME_COLOR_TEXT_MUTED_LIGHT
+                        draw_text +: {
+                            color: THEME_COLOR_TEXT_MUTED
                             color_hover: THEME_COLOR_TEXT_MUTED_LIGHTER
-                            text_style: theme.font_bold { font_size: 12 }
+                            text_style: theme.font_bold { font_size: 10 }
                         }
                     }
                 }
@@ -187,89 +163,89 @@ mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
                 // Floating menu panel - overlays on top, right-aligned
                 View {
                     width: Fill, height: Fit
-                    padding: { top: 1, bottom: 1, right: 4 }
-                    align: { x: 1.0, y: 0.5 }
+                    padding: Inset{ top: 1, bottom: 1, right: 4 }
+                    align: Align{ x: 1.0, y: 0.5 }
 
-                    menu_panel = RoundedView {
+                    menu_panel := RoundedView {
                         visible: false
                         width: Fit, height: Fit
                         flow: Right,
                         spacing: 2,
-                        padding: { left: 4, right: 6, top: 2, bottom: 2 }
+                        padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
                         show_bg: true
-                        draw_bg: {
+                        draw_bg +: {
                             color: #2a2a2a
                             border_radius: 6.0
                             border_size: 1.0
                             border_color: #444
                         }
 
-                        menu_collapse = Button {
+                        menu_collapse := Button {
                             width: 22, height: 22
                             text: "〉"
-                            align: { x: 0.5, y: 0.5 }
-                            draw_bg: {
+                            align: Align{ x: 0.5, y: 0.5 }
+                            draw_bg +: {
                                 color: THEME_COLOR_TRANSPARENT
                                 color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 10 } }
+                            draw_text +: { color: THEME_COLOR_TEXT_MUTED_LIGHT, text_style: theme.font_bold { font_size: 10 } }
                         }
 
-                        menu_rename = Button {
+                        menu_rename := Button {
                             width: Fit, height: 22
                             text: "Rename"
-                            draw_bg: {
+                            draw_bg +: {
                                 color: THEME_COLOR_TRANSPARENT
                                 color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
                         }
 
-                        menu_branch = Button {
+                        menu_branch := Button {
                             width: Fit, height: 22
                             text: "Branch"
-                            draw_bg: {
+                            draw_bg +: {
                                 color: THEME_COLOR_TRANSPARENT
                                 color_hover: THEME_COLOR_HOVER_MEDIUM
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
                         }
 
-                        menu_abort = Button {
+                        menu_abort := Button {
                             width: Fit, height: 22
                             text: "Abort"
                             visible: false
-                            draw_bg: {
+                            draw_bg +: {
                                 color: THEME_COLOR_TRANSPARENT
                                 color_hover: THEME_COLOR_ACCENT_RED
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
                         }
 
-                        menu_delete = Button {
+                        menu_delete := Button {
                             width: Fit, height: 22
                             text: "Delete"
-                            draw_bg: {
+                            draw_bg +: {
                                 color: THEME_COLOR_TRANSPARENT
                                 color_hover: THEME_COLOR_ACCENT_RED
                                 border_radius: 4.0
                                 border_size: 0.0
                             }
-                            draw_text: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
+                            draw_text +: { color: THEME_COLOR_TEXT_NORMAL, text_style: theme.font_regular { font_size: 9 } }
                         }
                     }
                 }
             }
 
-            Spacer = View { width: Fill, height: 12 }
+            Spacer := View { width: Fill, height: 6 }
         }
     }
 }
@@ -359,7 +335,7 @@ impl ProjectsPanel {
                 .collapsed_projects
                 .get(&project_id)
                 .copied()
-                .unwrap_or(true);
+                .unwrap_or(false);
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: project_id.clone(),
@@ -390,7 +366,7 @@ impl ProjectsPanel {
             .collect();
 
         if !ungrouped.is_empty() {
-            let collapsed = self.collapsed_projects.get(&None).copied().unwrap_or(true);
+            let collapsed = self.collapsed_projects.get(&None).copied().unwrap_or(false);
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: None,
@@ -453,12 +429,12 @@ impl Widget for ProjectsPanel {
                         .clicked(&actions)
                     {
                         cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
-                    } else if widget.as_view().finger_up(&actions).is_some() {
+                    } else if widget.button(cx, &[id!(project_toggle)]).clicked(&actions) {
                         let collapsed = self
                             .collapsed_projects
                             .get(&project_id)
                             .copied()
-                            .unwrap_or(true);
+                            .unwrap_or(false);
                         self.collapsed_projects
                             .insert(project_id.clone(), !collapsed);
                         self.dirty = true;
@@ -541,11 +517,16 @@ impl Widget for ProjectsPanel {
                                 .collapsed_projects
                                 .get(project_id)
                                 .copied()
-                                .unwrap_or(true);
-                            let chevron = if collapsed { "▸" } else { "▾" };
+                                .unwrap_or(false);
+                            let chevron = if collapsed { ">" } else { "v" };
+                            let display_name = if name.trim().is_empty() {
+                                "(project)"
+                            } else {
+                                name.as_str()
+                            };
                             item_widget
-                                .label(cx, &[id!(project_name)])
-                                .set_text(cx, &format!("{chevron} {name}"));
+                                .button(cx, &[id!(project_toggle)])
+                                .set_text(cx, &format!("{chevron} {display_name}"));
                             // Show orange dot if any session in this project is working
                             let project_working = self.sessions.iter().any(|s| {
                                 let matches_project = match project_id {
@@ -560,18 +541,23 @@ impl Widget for ProjectsPanel {
                                 .set_visible(cx, project_working);
                         }
                         PanelItemKind::SessionRow { session_id, title } => {
+                            let display_title = if title.trim().is_empty() {
+                                "Untitled session".to_string()
+                            } else {
+                                title.clone()
+                            };
                             item_widget
                                 .button(cx, &[id!(session_button)])
-                                .set_text(cx, title);
+                                .set_text(cx, &display_title);
                             let selected = self
                                 .selected_session_id
                                 .as_ref()
                                 .map(|id| id == session_id)
                                 .unwrap_or(false);
                             let display_title = if selected {
-                                format!("● {}", title)
+                                format!("● {}", display_title)
                             } else {
-                                title.clone()
+                                display_title
                             };
                             item_widget
                                 .button(cx, &[id!(session_button)])

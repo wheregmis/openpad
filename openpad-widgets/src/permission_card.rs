@@ -9,7 +9,7 @@ script_mod! {
         width: Fill
         height: Fit
         flow: Down
-        padding: {left: 14 right: 14 top: 12 bottom: 12}
+        padding: Inset{left: 14 right: 14 top: 12 bottom: 12}
         spacing: 10
         show_bg: true
 
@@ -28,101 +28,98 @@ script_mod! {
             }
         }
 
-        header_label = Label {
+        header_label := Label {
             width: Fit
             height: Fit
             text: "Permission Request"
-            draw_text: {
+            draw_text +: {
                 color: THEME_COLOR_ACCENT_AMBER
                 text_style: theme.font_bold {font_size: 12}
             }
         }
 
-        permission_label = Label {
+        permission_label := Label {
             width: Fill
             height: Fit
             text: ""
-            draw_text: {
+            draw_text +: {
                 color: THEME_COLOR_TEXT_PRIMARY
                 text_style: theme.font_regular {font_size: 11}
-                wrap: Word
             }
         }
 
-        patterns_label = Label {
+        patterns_label := Label {
             width: Fill
             height: Fit
             text: ""
-            draw_text: {
+            draw_text +: {
                 color: THEME_COLOR_STATUS_DOT
                 text_style: theme.font_code {font_size: 10}
-                wrap: Word
             }
         }
 
-        buttons_row = View {
+        buttons_row := View {
             width: Fill
             height: Fit
             flow: Right
             spacing: 10
-            align: {x: 1.0 y: 0.5}
+            align: Align{x: 1.0 y: 0.5}
 
-            deny_button = Button {
+            deny_button := Button {
                 width: 80
                 height: 32
                 text: "Deny"
-                draw_bg: {
+                draw_bg +: {
                     color: THEME_COLOR_SHADE_3
                     color_hover: THEME_COLOR_SHADE_5
                     border_radius: 8.0
                     border_size: 1.0
                     border_color: THEME_COLOR_BORDER_LIGHT
                 }
-                draw_text: {
+                draw_text +: {
                     color: THEME_COLOR_TEXT_PRIMARY
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
 
-            always_button = Button {
+            always_button := Button {
                 width: 100
                 height: 32
                 text: "Always"
-                draw_bg: {
+                draw_bg +: {
                     color: THEME_COLOR_BG_BUTTON
                     color_hover: THEME_COLOR_BG_BUTTON_HOVER
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: {
+                draw_text +: {
                     color: THEME_COLOR_TEXT_PRIMARY
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
 
-            approve_button = Button {
+            approve_button := Button {
                 width: 100
                 height: 32
                 text: "Approve"
-                draw_bg: {
+                draw_bg +: {
                     color: THEME_COLOR_ACCENT_BLUE
                     color_hover: THEME_COLOR_ACCENT_BLUE_HOVER
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: {
+                draw_text +: {
                     color: THEME_COLOR_TEXT_BRIGHT
                     text_style: theme.font_regular {font_size: 11}
                 }
             }
         }
 
-        status_label = Label {
+        status_label := Label {
             width: Fill
             height: Fit
-            visible: false
             text: ""
-            draw_text: {
+            draw_text +: {
                 color: THEME_COLOR_TEXT_DIM
                 text_style: theme.font_bold {font_size: 11}
             }

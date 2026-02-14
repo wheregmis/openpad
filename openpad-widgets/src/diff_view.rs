@@ -12,50 +12,49 @@ script_mod! {
         flow: Down
         visible: false
 
-        summary_header = RoundedView {
+        summary_header := RoundedView {
             visible: false
             width: Fill
             height: Fit
-            padding: {left: 12 right: 12 top: 8 bottom: 8}
-            cursor: Hand
+            padding: Inset{left: 12 right: 12 top: 8 bottom: 8}
             show_bg: true
-            draw_bg: {
+            draw_bg +: {
                 color: THEME_COLOR_DIFF_HEADER_BG
                 border_radius: 8.0
             }
 
-            summary_row = View {
+            summary_row := View {
                 width: Fill
                 height: Fit
                 flow: Right
                 spacing: 8
-                align: {y: 0.5}
+                align: Align{y: 0.5}
 
-                summary_files_label = Label {
+                summary_files_label := Label {
                     width: Fit
                     height: Fit
                     text: ""
-                    draw_text: {
+                    draw_text +: {
                         color: THEME_COLOR_TEXT_DIM
                         text_style: theme.font_bold {font_size: 11}
                     }
                 }
 
-                summary_add_label = Label {
+                summary_add_label := Label {
                     width: Fit
                     height: Fit
                     text: ""
-                    draw_text: {
+                    draw_text +: {
                         color: THEME_COLOR_DIFF_ADD_TEXT
                         text_style: theme.font_bold {font_size: 11}
                     }
                 }
 
-                summary_del_label = Label {
+                summary_del_label := Label {
                     width: Fit
                     height: Fit
                     text: ""
-                    draw_text: {
+                    draw_text +: {
                         color: THEME_COLOR_DIFF_DEL_TEXT
                         text_style: theme.font_bold {font_size: 11}
                     }
@@ -63,14 +62,14 @@ script_mod! {
             }
         }
 
-        diff_content = RoundedView {
+        diff_content := RoundedView {
             width: Fill
             height: Fit
             visible: false
-            padding: {left: 12 right: 12 top: 8 bottom: 8}
-            margin: {top: 2}
+            padding: Inset{left: 12 right: 12 top: 8 bottom: 8}
+            margin: Inset{top: 2}
             show_bg: true
-            draw_bg: {
+            draw_bg +: {
                 color: THEME_COLOR_BG_DARKER
                 border_radius: 0.0
             }
@@ -79,7 +78,7 @@ script_mod! {
                 width: Fill
                 height: Fit
 
-                diff_text = mod.widgets.ColoredDiffText {
+                diff_text := mod.widgets.ColoredDiffText {
                     width: Fill
                     height: Fit
                 }
