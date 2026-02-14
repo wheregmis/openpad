@@ -54,7 +54,6 @@ pub fn script_mod(vm: &mut ScriptVm) {
     crate::status_dot::script_mod(vm);
     crate::upward_dropdown::script_mod(vm);
     crate::input_bar::script_mod(vm);
-    crate::openpad::script_mod(vm);
 
     crate::user_bubble::script_mod(vm);
     crate::assistant_bubble::script_mod(vm);
