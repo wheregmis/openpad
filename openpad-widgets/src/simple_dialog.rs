@@ -1,4 +1,5 @@
 use makepad_widgets::*;
+use openpad_protocol::SecretString;
 
 live_design! {
     use link::theme::*;
@@ -129,7 +130,10 @@ pub enum DialogType {
 
 #[derive(Clone, Debug, DefaultNone)]
 pub enum SimpleDialogAction {
-    Confirmed { dialog_type: String, value: String },
+    Confirmed {
+        dialog_type: String,
+        value: SecretString,
+    },
     Cancelled,
     None,
 }
@@ -174,7 +178,7 @@ impl Widget for SimpleDialog {
                 &scope.path,
                 SimpleDialogAction::Confirmed {
                     dialog_type: self.callback_data.clone(),
-                    value,
+                    value: SecretString::new(value),
                 },
             );
 

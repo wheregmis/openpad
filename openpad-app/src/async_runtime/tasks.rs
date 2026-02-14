@@ -4,7 +4,7 @@ use crate::utils::path_utils::normalize_worktree_canonical;
 use makepad_widgets::{log, Cx};
 use openpad_protocol::{
     ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest,
-    PermissionRuleset, Project, PromptRequest, Session, SessionCreateRequest,
+    PermissionRuleset, Project, PromptRequest, SecretString, Session, SessionCreateRequest,
 };
 use std::sync::Arc;
 
@@ -601,14 +601,14 @@ pub fn spawn_auth_setter(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     provider_id: String,
-    api_key: String,
+    api_key: SecretString,
 ) {
     use openpad_protocol::AuthSetRequest;
 
     runtime.spawn(async move {
         let request = AuthSetRequest {
             auth_type: "api".to_string(),
-            key: api_key.into(),
+            key: api_key,
         };
         match client.set_auth(&provider_id, request).await {
             Ok(success) => {

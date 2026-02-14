@@ -128,12 +128,44 @@ pub struct PathInfo {
 // Config API types
 // ============================================================================
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
     pub model: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("model", &self.model)
+            .field("extra", &ExtraMasked(&self.extra))
+            .finish()
+    }
+}
+
+/// Helper to mask sensitive keys in a HashMap when debugging.
+struct ExtraMasked<'a>(&'a HashMap<String, serde_json::Value>);
+
+impl<'a> fmt::Debug for ExtraMasked<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut map = f.debug_map();
+        for (k, v) in self.0 {
+            let key_lower = k.to_lowercase();
+            if key_lower.contains("key")
+                || key_lower.contains("token")
+                || key_lower.contains("secret")
+                || key_lower.contains("auth")
+                || key_lower.contains("password")
+            {
+                map.entry(k, &"<REDACTED>");
+            } else {
+                map.entry(k, v);
+            }
+        }
+        map.finish()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

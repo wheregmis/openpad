@@ -7,3 +7,8 @@
 **Vulnerability:** Accidental leakage of API keys in debug logs and potential Denial of Service (DoS) from unvalidated network latency.
 **Learning:** `derive(Debug)` on structs containing credentials can lead to accidental exposure. `reqwest::Client` has no default timeout, which can hang an application if a remote server is slow or malicious.
 **Prevention:** Use a `SecretString` wrapper with a redacted `Debug` implementation for all credentials. Always set explicit timeouts on network requests (excluding long-running streams like SSE).
+
+## 2025-02-05 – Config Redaction and SecretString Propagation
+**Vulnerability:** Accidental leakage of sensitive configuration keys and API keys in debug logs.
+**Learning:** `derive(Debug)` on structs with sensitive data (like `Config` with an `extra` HashMap) can lead to leaks. Using a `SecretString` wrapper is good, but it must be propagated through all layers (dialogs, actions, handlers, async tasks) to be effective.
+**Prevention:** Implement manual `Debug` for structs containing sensitive collections to redact specific keys. Use `SecretString` for all credential-carrying types and method signatures.
