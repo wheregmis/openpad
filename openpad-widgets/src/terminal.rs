@@ -75,6 +75,75 @@ live_design! {
     }
 }
 
+impl TerminalRef {
+    pub fn init_pty(&self, cx: &mut Cx) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.init_pty(cx);
+        }
+    }
+    pub fn handle_action(&self, cx: &mut Cx, action: &TerminalAction) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.handle_action(cx, action);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_prompt_only() {
+        let mut backend = TerminalBackend::default();
+        backend.prompt_string = "user@host dir % ".to_string();
+
+        // Exact match
+        backend.partial_spans = vec![TerminalSpan {
+            text: "user@host dir % ".to_string(),
+            color: Vec4::default(),
+        }];
+        assert!(backend.is_prompt_only());
+
+        // Match with control characters (should be stripped)
+        backend.partial_spans = vec![
+            TerminalSpan {
+                text: "user@host ".to_string(),
+                color: Vec4::default(),
+            },
+            TerminalSpan {
+                text: "dir \x07% ".to_string(),
+                color: Vec4::default(),
+            },
+        ];
+        assert!(backend.is_prompt_only());
+
+        // Not a prompt
+        backend.partial_spans = vec![TerminalSpan {
+            text: "ls -la".to_string(),
+            color: Vec4::default(),
+        }];
+        assert!(!backend.is_prompt_only());
+
+        // Partial match with special characters
+        backend.partial_spans = vec![TerminalSpan {
+            text: "user@host % ".to_string(),
+            color: Vec4::default(),
+        }];
+        assert!(backend.is_prompt_only());
+
+        // Just a simple prompt
+        backend.partial_spans = vec![TerminalSpan {
+            text: "$ ".to_string(),
+            color: Vec4::default(),
+        }];
+        assert!(backend.is_prompt_only());
+
+        // Empty input
+        backend.partial_spans = vec![];
+        assert!(backend.is_prompt_only());
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct TerminalSpan {
     pub text: String,
@@ -93,6 +162,10 @@ pub struct TerminalBackend {
     pub current_color: Vec4,
     pub prompt_string: String,
     pub pty_writer: Option<Arc<Mutex<Box<dyn Write + Send>>>>,
+    /// Persistent buffer for the current span being built to avoid repeated allocations
+    pub current_text_buffer: String,
+    /// Persistent buffer for string normalization (stripping control chars) during prompt detection
+    pub normalization_buffer: String,
 }
 
 impl Default for TerminalBackend {
@@ -108,6 +181,8 @@ impl Default for TerminalBackend {
             },
             prompt_string: Self::build_prompt_string(&std::path::PathBuf::from(".")),
             pty_writer: None,
+            current_text_buffer: String::with_capacity(256),
+            normalization_buffer: String::with_capacity(256),
         }
     }
 }
@@ -239,43 +314,31 @@ impl TerminalBackend {
         }
     }
 
-    pub fn normalize_for_prompt_check(line: &str) -> String {
-        let mut result = String::with_capacity(line.len());
-        let mut chars = line.chars().peekable();
-        while let Some(ch) = chars.next() {
-            if ch == '\x1b' {
-                if chars.peek() == Some(&'[') {
-                    chars.next();
-                    while let Some(&next) = chars.peek() {
-                        chars.next();
-                        if next.is_ascii_alphabetic() || next == '~' {
-                            break;
-                        }
-                    }
+    /// Optimization: checks if the current partial_spans represent a prompt-only line
+    /// without allocating intermediate full-text strings. Reuses normalization_buffer.
+    pub fn is_prompt_only(&mut self) -> bool {
+        self.normalization_buffer.clear();
+        for span in &self.partial_spans {
+            // Since TerminalSpan.text already has ANSI codes stripped during processing
+            // in append_output, we only need to filter out other control characters.
+            for ch in span.text.chars() {
+                if !ch.is_control() || ch == '\n' {
+                    self.normalization_buffer.push(ch);
                 }
-            } else if !ch.is_control() || ch == '\n' {
-                result.push(ch);
             }
         }
-        result.trim().to_string()
-    }
 
-    pub fn is_prompt_only_line(line: &str, our_prompt: &str) -> bool {
-        let t = Self::normalize_for_prompt_check(line);
+        let t = self.normalization_buffer.trim();
         if t.is_empty() {
             return true;
         }
-        let our_trimmed = our_prompt.trim();
+
+        let our_trimmed = self.prompt_string.trim();
         if t == our_trimmed {
             return true;
         }
-        if t.ends_with('%')
-            || t.ends_with("% ")
-            || t.ends_with('$')
-            || t.ends_with("$ ")
-            || t.ends_with('#')
-            || t.ends_with("# ")
-        {
+
+        if t.ends_with('%') || t.ends_with('$') || t.ends_with('#') {
             if (t.contains('@') && t.len() < our_trimmed.len() + 5)
                 || t == "%"
                 || t == "$"
@@ -287,30 +350,31 @@ impl TerminalBackend {
         false
     }
 
-    fn push_current_text(&mut self, current_text: &mut String) {
-        if !current_text.is_empty() {
+    fn push_current_text(&mut self) {
+        if !self.current_text_buffer.is_empty() {
             if let Some(last) = self.partial_spans.last_mut() {
                 if last.color == self.current_color {
-                    last.text.push_str(current_text);
-                    current_text.clear();
+                    last.text.push_str(&self.current_text_buffer);
+                    self.current_text_buffer.clear();
                     return;
                 }
             }
+            // Optimization: use std::mem::take to move the string out of the buffer,
+            // avoiding a clone and subsequent heap allocation.
             self.partial_spans.push(TerminalSpan {
-                text: current_text.clone(),
+                text: std::mem::take(&mut self.current_text_buffer),
                 color: self.current_color,
             });
-            current_text.clear();
         }
     }
 
     pub fn append_output(&mut self, text: &str) {
         let mut chars = text.chars().peekable();
-        let mut current_text = String::new();
+        // Optimization: reuse current_text_buffer to avoid heap allocation on every append_output call
         while let Some(ch) = chars.next() {
             match ch {
                 '\x1b' => {
-                    self.push_current_text(&mut current_text);
+                    self.push_current_text();
                     if chars.next() == Some('[') {
                         while let Some(&next) = chars.peek() {
                             if next == '?' || next == '>' || next == '=' || next == '!' {
@@ -338,26 +402,30 @@ impl TerminalBackend {
                     }
                 }
                 '\n' => {
-                    self.push_current_text(&mut current_text);
-                    let line_spans = std::mem::take(&mut self.partial_spans);
-                    let full_text: String = line_spans.iter().map(|s| s.text.as_str()).collect();
-                    if !Self::is_prompt_only_line(&full_text, &self.prompt_string) {
+                    self.push_current_text();
+                    // Optimization: check prompt before creating full_text string to avoid redundant allocation
+                    if !self.is_prompt_only() {
+                        let line_spans = std::mem::take(&mut self.partial_spans);
+                        let full_text: String = line_spans.iter().map(|s| s.text.as_str()).collect();
                         self.output_lines.push(TerminalLine {
                             spans: line_spans,
                             cached_text: full_text,
                         });
+                    } else {
+                        // It was just a prompt, clear it to prepare for next output
+                        self.partial_spans.clear();
                     }
                 }
                 '\r' => match chars.peek() {
                     Some(&'\n') | Some(&'\r') | None => {}
                     _ => {
                         self.partial_spans.clear();
-                        current_text.clear();
+                        self.current_text_buffer.clear();
                     }
                 },
                 '\x08' => {
-                    if !current_text.is_empty() {
-                        current_text.pop();
+                    if !self.current_text_buffer.is_empty() {
+                        self.current_text_buffer.pop();
                     } else if let Some(last_span) = self.partial_spans.last_mut() {
                         last_span.text.pop();
                         if last_span.text.is_empty() {
@@ -366,15 +434,15 @@ impl TerminalBackend {
                     }
                 }
                 '\t' => {
-                    current_text.push_str("    ");
+                    self.current_text_buffer.push_str("    ");
                 }
                 ch if ch.is_control() => {}
                 _ => {
-                    current_text.push(ch);
+                    self.current_text_buffer.push(ch);
                 }
             }
         }
-        self.push_current_text(&mut current_text);
+        self.push_current_text();
         const MAX_LINES: usize = 2000;
         if self.output_lines.len() > MAX_LINES {
             let remove_count = self.output_lines.len() - MAX_LINES;
@@ -564,17 +632,4 @@ pub enum TerminalAction {
     OutputReceived(String),
     ScrollToBottom,
     None,
-}
-
-impl TerminalRef {
-    pub fn init_pty(&self, cx: &mut Cx) {
-        if let Some(mut inner) = self.borrow_mut() {
-            inner.init_pty(cx);
-        }
-    }
-    pub fn handle_action(&self, cx: &mut Cx, action: &TerminalAction) {
-        if let Some(mut inner) = self.borrow_mut() {
-            inner.handle_action(cx, action);
-        }
-    }
 }
