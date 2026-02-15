@@ -128,12 +128,50 @@ pub struct PathInfo {
 // Config API types
 // ============================================================================
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
     pub model: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("model", &self.model)
+            .field("extra", &ExtraMasked(&self.extra))
+            .finish()
+    }
+}
+
+/// Helper to redact sensitive keys in the config extra map during debug output.
+struct ExtraMasked<'a>(&'a HashMap<String, serde_json::Value>);
+
+impl<'a> fmt::Debug for ExtraMasked<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut map = f.debug_map();
+        for (k, v) in self.0 {
+            let lk = k.to_lowercase();
+            let is_sensitive = lk == "key"
+                || lk == "token"
+                || lk == "secret"
+                || lk == "password"
+                || lk == "auth"
+                || lk.ends_with("_key")
+                || lk.ends_with("_token")
+                || lk.ends_with("_secret")
+                || lk.ends_with("_auth")
+                || lk.ends_with("_password");
+
+            if is_sensitive {
+                map.entry(k, &"<REDACTED>");
+            } else {
+                map.entry(k, v);
+            }
+        }
+        map.finish()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1141,4 +1179,36 @@ pub enum Event {
     Error(String),
     /// An unknown event type was received
     Unknown(String),
+}
+
+#[cfg(test)]
+mod config_tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_config_debug_redaction() {
+        let mut extra = HashMap::new();
+        extra.insert("anthropic_key".to_string(), json!("sk-ant-123"));
+        extra.insert("token".to_string(), json!("secret-token"));
+        extra.insert("max_tokens".to_string(), json!(4096));
+        extra.insert("temperature".to_string(), json!(0.7));
+
+        let config = Config {
+            model: Some("claude-3".to_string()),
+            extra,
+        };
+
+        let debug_output = format!("{:?}", config);
+        assert!(debug_output.contains("claude-3"));
+        assert!(debug_output.contains("max_tokens"));
+        assert!(debug_output.contains("4096"));
+        assert!(debug_output.contains("temperature"));
+        assert!(debug_output.contains("0.7"));
+
+        // Ensure secrets are redacted
+        assert!(!debug_output.contains("sk-ant-123"));
+        assert!(!debug_output.contains("secret-token"));
+        assert!(debug_output.contains("<REDACTED>"));
+    }
 }
