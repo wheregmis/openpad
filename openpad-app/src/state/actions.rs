@@ -72,7 +72,7 @@ pub enum AppAction {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub enum SidebarMode {
     #[default]
-    Projects,
+    Files,
     Settings,
 }
 

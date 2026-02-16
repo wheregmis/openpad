@@ -1,3 +1,6 @@
+//! Sessions panel for IDE-style right sidebar.
+//! Shows sessions grouped by project, with select/create/delete/rename/abort.
+
 use crate::async_runtime;
 use crate::state::actions::ProjectsPanelAction;
 use makepad_widgets::*;
@@ -9,7 +12,7 @@ script_mod! {
     use mod.widgets.*
     use mod.theme.*
 
-    mod.widgets.ProjectsPanel = #(ProjectsPanel::register_widget(vm)) {
+    mod.widgets.SessionsPanel = #(SessionsPanel::register_widget(vm)) {
         width: Fill, height: Fill
         flow: Down
         padding: Inset{ left: 10, right: 8, top: 8, bottom: 8 }
@@ -306,7 +309,7 @@ script_mod! {
 
                 empty_label := Label {
                     width: Fill, height: Fit
-                    text: "No projects yet"
+                    text: "No sessions yet"
                     draw_text +: {
                         color: theme.THEME_COLOR_TEXT_MUTED
                         text_style: theme.font_regular { font_size: 11 }
@@ -315,7 +318,7 @@ script_mod! {
 
                 empty_hint := Label {
                     width: Fill, height: Fit
-                    text: "Add a project to get started"
+                    text: "Create a session to get started"
                     draw_text +: {
                         color: theme.THEME_COLOR_TEXT_MUTED
                         text_style: theme.font_regular { font_size: 9 }
@@ -327,7 +330,7 @@ script_mod! {
 }
 
 #[derive(Clone, Debug)]
-pub enum PanelItemKind {
+pub enum SessionsPanelItemKind {
     ProjectHeader {
         project_id: Option<String>,
         name: String,
@@ -341,7 +344,7 @@ pub enum PanelItemKind {
 }
 
 #[derive(Script, ScriptHook, Widget)]
-pub struct ProjectsPanel {
+pub struct SessionsPanel {
     #[source]
     source: ScriptObjectRef,
 
@@ -356,26 +359,22 @@ pub struct ProjectsPanel {
     #[rust]
     working_by_session: HashMap<String, bool>,
     #[rust]
-    items: Vec<PanelItemKind>,
+    items: Vec<SessionsPanelItemKind>,
     #[rust]
     dirty: bool,
     #[rust]
     collapsed_projects: HashMap<Option<String>, bool>,
     #[rust]
     open_menu_session_id: Option<String>,
-    /// When false, only project headers are shown (no sessions). Used for IDE-style left panel.
-    #[rust]
-    show_sessions: bool,
 }
 
-impl ProjectsPanel {
+impl SessionsPanel {
     fn derive_project_name(project: &Project) -> String {
         if let Some(name) = &project.name {
             if !name.is_empty() {
                 return name.clone();
             }
         }
-        // For "." worktree, resolve to actual current directory name
         let worktree = if project.worktree == "." {
             std::env::current_dir()
                 .ok()
@@ -384,7 +383,6 @@ impl ProjectsPanel {
         } else {
             project.worktree.clone()
         };
-        // Derive name from last component of worktree path
         std::path::Path::new(&worktree)
             .file_name()
             .and_then(|n| n.to_str())
@@ -404,7 +402,6 @@ impl ProjectsPanel {
 
         let mut items = Vec::new();
         for project in &self.projects {
-            // Skip the global project (worktree "/") and empty worktrees
             if project.worktree == "/" || project.worktree.is_empty() {
                 continue;
             }
@@ -417,26 +414,25 @@ impl ProjectsPanel {
                 .copied()
                 .unwrap_or(false);
 
-            items.push(PanelItemKind::ProjectHeader {
+            items.push(SessionsPanelItemKind::ProjectHeader {
                 project_id: project_id.clone(),
                 name,
             });
 
-            if !collapsed && self.show_sessions {
+            if !collapsed {
                 if let Some(sessions) = grouped.get(&project_id) {
                     for session in sessions {
                         let title = async_runtime::get_session_title(session);
-                        items.push(PanelItemKind::SessionRow {
+                        items.push(SessionsPanelItemKind::SessionRow {
                             session_id: session.id.clone(),
                             title,
                         });
                     }
                 }
             }
-            items.push(PanelItemKind::Spacer);
+            items.push(SessionsPanelItemKind::Spacer);
         }
 
-        // Collect ungrouped sessions (no matching project)
         let project_ids: std::collections::HashSet<String> =
             self.projects.iter().map(|p| p.id.clone()).collect();
         let ungrouped: Vec<&Session> = self
@@ -448,15 +444,15 @@ impl ProjectsPanel {
         if !ungrouped.is_empty() {
             let collapsed = self.collapsed_projects.get(&None).copied().unwrap_or(false);
 
-            items.push(PanelItemKind::ProjectHeader {
+            items.push(SessionsPanelItemKind::ProjectHeader {
                 project_id: None,
                 name: "Other".to_string(),
             });
 
-            if !collapsed && self.show_sessions {
+            if !collapsed {
                 for session in ungrouped {
                     let title = async_runtime::get_session_title(session);
-                    items.push(PanelItemKind::SessionRow {
+                    items.push(SessionsPanelItemKind::SessionRow {
                         session_id: session.id.clone(),
                         title,
                     });
@@ -465,7 +461,7 @@ impl ProjectsPanel {
         }
 
         if items.is_empty() {
-            items.push(PanelItemKind::EmptyState);
+            items.push(SessionsPanelItemKind::EmptyState);
         }
 
         self.items = items;
@@ -494,9 +490,8 @@ impl ProjectsPanel {
     }
 }
 
-impl Widget for ProjectsPanel {
+impl Widget for SessionsPanel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        // Pointer position for popup placement; not available from Event directly here.
         let _pointer_pos: Option<(f32, f32)> = None;
 
         let actions = cx.capture_actions(|cx| {
@@ -511,7 +506,7 @@ impl Widget for ProjectsPanel {
             }
             let panel_item = self.items[item_id].clone();
             match panel_item {
-                PanelItemKind::ProjectHeader { project_id, .. } => {
+                SessionsPanelItemKind::ProjectHeader { project_id, .. } => {
                     if widget
                         .button(cx, &[id!(new_session_header_button)])
                         .clicked(&actions)
@@ -529,7 +524,7 @@ impl Widget for ProjectsPanel {
                         self.redraw(cx);
                     }
                 }
-                PanelItemKind::SessionRow { session_id, .. } => {
+                SessionsPanelItemKind::SessionRow { session_id, .. } => {
                     if widget.button(cx, &[id!(session_button)]).clicked(&actions) {
                         cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                     }
@@ -575,11 +570,9 @@ impl Widget for ProjectsPanel {
             }
         }
 
-        // Fallback: items_with_actions may omit items when the menu button's action
-        // isn't associated with the list item. Check each SessionRow for menu button click.
         if !menu_opened {
             for (item_id, panel_item) in self.items.iter().enumerate() {
-                if let PanelItemKind::SessionRow { session_id, .. } = panel_item {
+                if let SessionsPanelItemKind::SessionRow { session_id, .. } = panel_item {
                     let widget = list.item(cx, item_id, live_id!(SessionRow));
                     if widget.button(cx, &[id!(menu_button)]).clicked(&actions) {
                         let (x, y) = _pointer_pos.unwrap_or((0.0, 0.0));
@@ -606,6 +599,9 @@ impl Widget for ProjectsPanel {
             self.rebuild_items();
         }
 
+        // Keep sidebar content top-aligned even when there are only a few rows.
+        self.view.portal_list(cx, &[id!(list)]).set_tail_range(false);
+
         while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
             if let Some(mut list) = item.as_portal_list().borrow_mut() {
                 if self.items.is_empty() {
@@ -620,15 +616,15 @@ impl Widget for ProjectsPanel {
                     }
                     let panel_item = self.items[item_id].clone();
                     let template = match &panel_item {
-                        PanelItemKind::ProjectHeader { .. } => live_id!(ProjectHeader),
-                        PanelItemKind::SessionRow { .. } => live_id!(SessionRow),
-                        PanelItemKind::Spacer => live_id!(Spacer),
-                        PanelItemKind::EmptyState => live_id!(EmptyState),
+                        SessionsPanelItemKind::ProjectHeader { .. } => live_id!(ProjectHeader),
+                        SessionsPanelItemKind::SessionRow { .. } => live_id!(SessionRow),
+                        SessionsPanelItemKind::Spacer => live_id!(Spacer),
+                        SessionsPanelItemKind::EmptyState => live_id!(EmptyState),
                     };
                     let item_widget = list.item(cx, item_id, template);
 
                     match &panel_item {
-                        PanelItemKind::ProjectHeader {
+                        SessionsPanelItemKind::ProjectHeader {
                             name, project_id, ..
                         } => {
                             let collapsed = self
@@ -646,7 +642,6 @@ impl Widget for ProjectsPanel {
                                 .button(cx, &[id!(project_toggle)])
                                 .set_text(cx, display_name);
                             item_widget.label(cx, &[id!(chevron)]).set_text(cx, chevron);
-                            // Show orange dot if any session in this project is working
                             let project_working = self.sessions.iter().any(|s| {
                                 let matches_project = match project_id {
                                     Some(pid) => &s.project_id == pid,
@@ -659,7 +654,7 @@ impl Widget for ProjectsPanel {
                                 .view(cx, &[id!(project_working_dot)])
                                 .set_visible(cx, project_working);
                         }
-                        PanelItemKind::SessionRow { session_id, title } => {
+                        SessionsPanelItemKind::SessionRow { session_id, title } => {
                             let display_title = if title.trim().is_empty() {
                                 "Untitled session".to_string()
                             } else {
@@ -737,7 +732,7 @@ impl Widget for ProjectsPanel {
     }
 }
 
-impl ProjectsPanelRef {
+impl SessionsPanelRef {
     pub fn set_data(
         &self,
         cx: &mut Cx,
@@ -753,17 +748,6 @@ impl ProjectsPanelRef {
             inner.working_by_session = working_by_session;
             inner.dirty = true;
             inner.redraw(cx);
-        }
-    }
-
-    /// When false, only project headers are shown (no sessions). For IDE-style left panel.
-    pub fn set_show_sessions(&self, cx: &mut Cx, show: bool) {
-        if let Some(mut inner) = self.borrow_mut() {
-            if inner.show_sessions != show {
-                inner.show_sessions = show;
-                inner.dirty = true;
-                inner.redraw(cx);
-            }
         }
     }
 }

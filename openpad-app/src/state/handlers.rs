@@ -1,5 +1,6 @@
 use crate::async_runtime::tasks;
-use crate::components::projects_panel::ProjectsPanelWidgetRefExt;
+use crate::components::files_panel::FilesPanelWidgetRefExt;
+use crate::components::sessions_panel::SessionsPanelWidgetRefExt;
 use crate::constants::*;
 use crate::state::actions::AppAction;
 use crate::ui::state_updates;
@@ -109,7 +110,8 @@ impl AppState {
 
     /// Refresh all session-related UI components
     pub fn refresh_session_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
-        self.update_projects_panel(ui, cx);
+        self.update_files_panel(ui, cx);
+        self.update_sessions_panel(ui, cx);
         self.update_session_title_ui(ui, cx);
         self.update_project_context_ui(ui, cx);
         self.update_session_meta_ui(ui, cx);
@@ -302,17 +304,15 @@ impl AppState {
         state_updates::update_project_context_ui(ui, cx, project);
     }
 
-    /// Updates projects panel with current data
-    pub fn update_projects_panel(&self, ui: &WidgetRef, cx: &mut Cx) {
-        // Keep both lookup paths while the sidebar tree is being stabilized.
-        ui.projects_panel(cx, &[id!(projects_panel)]).set_data(
-            cx,
-            self.projects.clone(),
-            self.sessions.clone(),
-            self.selected_session_id.clone(),
-            self.working_by_session.clone(),
-        );
-        ui.projects_panel(cx, &[id!(side_panel), id!(projects_panel)])
+    /// Updates left files panel (projects + file tree) with current data
+    pub fn update_files_panel(&self, ui: &WidgetRef, cx: &mut Cx) {
+        ui.files_panel(cx, &[id!(side_panel), id!(files_panel)])
+            .set_data(cx, self.projects.clone());
+    }
+
+    /// Updates right sessions panel with current data
+    pub fn update_sessions_panel(&self, ui: &WidgetRef, cx: &mut Cx) {
+        ui.sessions_panel(cx, &[id!(right_side_panel), id!(sessions_panel)])
             .set_data(
                 cx,
                 self.projects.clone(),
@@ -380,7 +380,8 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::ProjectsLoaded(projects) => {
             state.projects = projects.clone();
-            state.update_projects_panel(ui, cx);
+            state.update_files_panel(ui, cx);
+            state.update_sessions_panel(ui, cx);
             state.update_project_context_ui(ui, cx);
         }
         AppAction::CurrentProjectLoaded(project) => {
@@ -812,7 +813,7 @@ fn set_session_working(
             .working_by_session
             .insert(session_id.to_string(), false);
     }
-    state.update_projects_panel(ui, cx);
+    state.update_sessions_panel(ui, cx);
 }
 
 fn enqueue_pending_permission(state: &mut AppState, request: &PermissionRequest) {

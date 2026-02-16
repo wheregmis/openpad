@@ -21,6 +21,9 @@ static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
 const SIDEBAR_DEFAULT_WIDTH: f32 = 260.0;
 const SIDEBAR_MIN_WIDTH: f32 = 200.0;
 const SIDEBAR_MAX_WIDTH: f32 = 420.0;
+const RIGHT_SIDEBAR_DEFAULT_WIDTH: f32 = 260.0;
+const RIGHT_SIDEBAR_MIN_WIDTH: f32 = 200.0;
+const RIGHT_SIDEBAR_MAX_WIDTH: f32 = 420.0;
 
 fn get_image_data_url_regex() -> &'static Regex {
     IMAGE_DATA_URL_REGEX.get_or_init(|| {
@@ -47,10 +50,6 @@ script_mod! {
     use mod.prelude.widgets_internal.*
     use mod.widgets.*
     use mod.theme.*
-
-    // Register widgets from components so they're accessible in this script_mod
-    mod.widgets.SidebarHeader = #(crate::components::sidebar_header::SidebarHeader::register_widget(vm))
-    mod.widgets.SessionOptionsPopup = #(crate::components::session_options_popup::SessionOptionsPopup::register_widget(vm))
 
     let ChatPanel = View {
         width: Fill, height: Fill
@@ -143,15 +142,15 @@ script_mod! {
                             open_size: 260.0
                             flow: Down
 
-                            sidebar_header := mod.widgets.SidebarHeader {}
+                            sidebar_header := SidebarHeader {}
 
-                            projects_panel := ProjectsPanel { visible: true }
+                            files_panel := FilesPanel { visible: true }
                             settings_panel := SettingsDialog { visible: false width: Fill height: Fill }
                         }
 
                         sidebar_resize_handle := View { width: 6, height: Fill }
 
-                        View {
+                        main_content := View {
                             width: Fill, height: Fill
                             flow: Down
 
@@ -215,11 +214,39 @@ script_mod! {
                             ChatPanel {}
                             terminal_panel_wrap := TerminalPanelWrap {}
                         }
+
+                        right_sidebar_resize_handle := View { width: 6, height: Fill }
+
+                        right_side_panel := SidePanel {
+                            width: 260.0, height: Fill
+                            open_size: 260.0
+                            flow: Down
+
+                            sessions_header := View {
+                                width: Fill, height: Fit
+                                flow: Down
+                                padding: Inset{ left: 10, right: 8, top: 6, bottom: 6 }
+                                spacing: 4
+                                sessions_title := Label {
+                                    text: "Sessions"
+                                    draw_text +: {
+                                        color: theme.THEME_COLOR_TEXT_PRIMARY
+                                        text_style: theme.font_bold { font_size: 12 }
+                                    }
+                                }
+                                View {
+                                    width: Fill, height: 1
+                                    show_bg: true
+                                    draw_bg +: { color: theme.THEME_COLOR_BORDER_MEDIUM }
+                                }
+                            }
+                            sessions_panel := SessionsPanel { width: Fill, height: Fill }
+                        }
                     }
 
                     simple_dialog := SimpleDialog {}
 
-                    session_options_popup := mod.widgets.SessionOptionsPopup { visible: false }
+                    session_options_popup := SessionOptionsPopup { visible: false }
                 }
             }
         }
@@ -239,6 +266,12 @@ pub struct App {
     #[rust]
     sidebar_drag_start: Option<(f64, f32)>,
     #[rust]
+    right_sidebar_open: bool,
+    #[rust]
+    right_sidebar_width: f32,
+    #[rust]
+    right_sidebar_drag_start: Option<(f64, f32)>,
+    #[rust]
     sidebar_mode: SidebarMode,
     #[rust]
     terminal_open: bool,
@@ -257,7 +290,8 @@ impl App {
         makepad_widgets::script_mod(vm);
         makepad_code_editor::script_mod(vm);
         openpad_widgets::script_mod(vm);
-        crate::components::projects_panel::script_mod(vm);
+        crate::components::files_panel::script_mod(vm);
+        crate::components::sessions_panel::script_mod(vm);
         crate::components::sidebar_header::script_mod(vm);
         crate::components::session_options_popup::script_mod(vm);
         App::from_script_mod(vm, self::script_mod)
@@ -338,6 +372,18 @@ impl App {
         self.ui
             .view(cx, &[id!(sidebar_resize_handle)])
             .set_visible(cx, self.sidebar_open);
+        self.ui
+            .view(cx, &[id!(right_sidebar_resize_handle)])
+            .set_visible(cx, self.right_sidebar_open);
+    }
+
+    fn set_right_sidebar_width(&mut self, cx: &mut Cx, width: f32) {
+        let clamped = width.clamp(RIGHT_SIDEBAR_MIN_WIDTH, RIGHT_SIDEBAR_MAX_WIDTH);
+        self.right_sidebar_width = clamped;
+        self.ui
+            .side_panel(cx, &[id!(right_side_panel)])
+            .set_open_size(cx, clamped);
+        self.ui.redraw(cx);
     }
 
     fn toggle_sidebar(&mut self, cx: &mut Cx) {
@@ -370,13 +416,13 @@ impl App {
     }
 
     fn update_sidebar_panel_visibility(&mut self, cx: &mut Cx) {
-        let show_projects = self.sidebar_mode == SidebarMode::Projects;
+        let show_files = self.sidebar_mode == SidebarMode::Files;
         let show_settings = self.sidebar_mode == SidebarMode::Settings;
 
-        // Use widget() for custom widgets (ProjectsPanel, SettingsDialog).
+        // Use widget() for custom widgets (FilesPanel, SettingsDialog).
         self.ui
-            .widget(cx, &[id!(side_panel), id!(projects_panel)])
-            .set_visible(cx, show_projects);
+            .widget(cx, &[id!(side_panel), id!(files_panel)])
+            .set_visible(cx, show_files);
         self.ui
             .widget(cx, &[id!(side_panel), id!(settings_panel)])
             .set_visible(cx, show_settings);
@@ -427,6 +473,49 @@ impl App {
             }
             Hit::FingerUp(_) => {
                 self.sidebar_drag_start = None;
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_right_sidebar_resize(&mut self, cx: &mut Cx, event: &Event) {
+        if !self.right_sidebar_open {
+            self.right_sidebar_drag_start = None;
+            return;
+        }
+
+        let handle_area = self
+            .ui
+            .view(cx, &[id!(right_sidebar_resize_handle)])
+            .area();
+        let hit = event.hits_with_options(
+            cx,
+            handle_area,
+            HitOptions::new().with_margin(Inset {
+                left: 4.0,
+                right: 4.0,
+                top: 0.0,
+                bottom: 0.0,
+            }),
+        );
+
+        match hit {
+            Hit::FingerHoverIn(_) => {
+                cx.set_cursor(MouseCursor::ColResize);
+            }
+            Hit::FingerDown(f) => {
+                cx.set_cursor(MouseCursor::ColResize);
+                self.right_sidebar_drag_start = Some((f.abs.x, self.right_sidebar_width));
+            }
+            Hit::FingerMove(f) => {
+                if let Some((start_x, start_width)) = self.right_sidebar_drag_start {
+                    let delta = (f.abs.x - start_x) as f32;
+                    // Right panel: drag left = bigger, drag right = smaller
+                    self.set_right_sidebar_width(cx, start_width - delta);
+                }
+            }
+            Hit::FingerUp(_) => {
+                self.right_sidebar_drag_start = None;
             }
             _ => {}
         }
@@ -944,19 +1033,25 @@ impl AppMain for App {
                 }
                 // Initialize sidebar open, terminal collapsed by default
                 self.sidebar_open = true;
-                self.sidebar_mode = SidebarMode::Projects;
+                self.sidebar_mode = SidebarMode::Files;
                 self.terminal_open = false;
                 self.ui
                     .terminal_panel(cx, &[id!(terminal_panel_wrap)])
                     .set_open(cx, false);
                 self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
                 self.set_sidebar_width(cx, self.sidebar_width);
+                self.right_sidebar_open = true;
+                self.right_sidebar_width = RIGHT_SIDEBAR_DEFAULT_WIDTH;
+                self.set_right_sidebar_width(cx, self.right_sidebar_width);
                 self.ui
                     .side_panel(cx, &[id!(side_panel)])
                     .set_open(cx, true);
                 self.ui
                     .side_panel(cx, &[id!(traffic_light_spacer)])
                     .set_open(cx, false);
+                self.ui
+                    .side_panel(cx, &[id!(right_side_panel)])
+                    .set_open(cx, true);
                 self.ui
                     .view(cx, &[id!(hamburger_button)])
                     .animator_play(cx, &[id!(open), id!(on)]);
@@ -986,6 +1081,7 @@ impl AppMain for App {
         }
 
         self.handle_sidebar_resize(cx, event);
+        self.handle_right_sidebar_resize(cx, event);
 
         // Handle UI events and capture actions
         let actions = cx.capture_actions(|cx| {
@@ -1031,7 +1127,8 @@ impl AppMain for App {
                             None,
                         );
                         crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
-                        self.state.update_projects_panel(&self.ui, cx);
+                        self.state.update_files_panel(&self.ui, cx);
+                        self.state.update_sessions_panel(&self.ui, cx);
                         self.state.update_session_title_ui(&self.ui, cx);
                         self.state.update_project_context_ui(&self.ui, cx);
                         self.state.update_session_meta_ui(&self.ui, cx);

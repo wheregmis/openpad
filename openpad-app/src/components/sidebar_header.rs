@@ -18,7 +18,7 @@ script_mod! {
 
             projects_tab := Button {
                 width: Fit, height: 28
-                text: "Projects"
+                text: "Files"
                 draw_bg +: {
                     color: theme.THEME_COLOR_TRANSPARENT
                     color_hover: theme.THEME_COLOR_HOVER_SUBTLE
@@ -75,7 +75,7 @@ impl Widget for SidebarHeader {
         });
 
         if self.view.button(cx, &[id!(projects_tab)]).clicked(&actions) {
-            cx.action(AppAction::SetSidebarMode(SidebarMode::Projects));
+            cx.action(AppAction::SetSidebarMode(SidebarMode::Files));
         }
         if self.view.button(cx, &[id!(settings_tab)]).clicked(&actions) {
             cx.action(AppAction::SetSidebarMode(SidebarMode::Settings));
