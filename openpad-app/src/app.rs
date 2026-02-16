@@ -4,7 +4,7 @@ use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use makepad_widgets::*;
-use openpad_protocol::OpenCodeClient;
+use openpad_protocol::{OpenCodeClient, SecretString};
 use openpad_widgets::message_list::MessageListWidgetRefExt;
 use openpad_widgets::permission_card::PermissionCardAction;
 use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
@@ -1354,7 +1354,7 @@ impl App {
         async_runtime::spawn_session_unreverter(runtime, client, session_id, directory);
     }
 
-    fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {
+    fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: SecretString) {
         // Parse the dialog_type which is in format "action:data"
         let Some((action, data)) = dialog_type.split_once(':') else {
             return;
@@ -1380,7 +1380,7 @@ impl App {
                         runtime,
                         client,
                         data.to_string(),
-                        value,
+                        value.to_string(),
                         directory,
                     );
                 }
@@ -1640,42 +1640,26 @@ impl AppMain for App {
             }
 
             // Handle PermissionDialogAction
-            if let Some(action) = action.downcast_ref::<PermissionDialogAction>() {
-                match action {
-                    PermissionDialogAction::Responded {
-                        session_id,
-                        request_id,
-                        reply,
-                    } => {
-                        state::handle_permission_responded(
-                            &mut self.state,
-                            &self.ui,
-                            cx,
-                            request_id,
-                        );
-                        self.respond_to_permission(
-                            cx,
-                            session_id.clone(),
-                            request_id.clone(),
-                            reply.clone(),
-                        );
-                    }
-                    _ => {}
-                }
+            if let Some(PermissionDialogAction::Responded {
+                session_id,
+                request_id,
+                reply,
+            }) = action.downcast_ref::<PermissionDialogAction>()
+            {
+                state::handle_permission_responded(&mut self.state, &self.ui, cx, request_id);
+                self.respond_to_permission(
+                    cx,
+                    session_id.clone(),
+                    request_id.clone(),
+                    reply.clone(),
+                );
             }
 
             // Handle SettingsDialogAction
-            if let Some(action) = action.downcast_ref::<SettingsDialogAction>() {
-                match action {
-                    SettingsDialogAction::UpdateKey { provider_id, key } => {
-                        self.handle_dialog_confirmed(
-                            cx,
-                            format!("set_auth:{}", provider_id),
-                            key.clone(),
-                        );
-                    }
-                    _ => {}
-                }
+            if let Some(SettingsDialogAction::UpdateKey { provider_id, key }) =
+                action.downcast_ref::<SettingsDialogAction>()
+            {
+                self.handle_dialog_confirmed(cx, format!("set_auth:{}", provider_id), key.clone());
             }
 
             // Handle SimpleDialogAction from openpad-widgets

@@ -1,6 +1,6 @@
 use crate::upward_dropdown::UpDropDownWidgetExt;
 use makepad_widgets::*;
-use openpad_protocol::{Config, Provider};
+use openpad_protocol::{Config, Provider, SecretString};
 
 live_design! {
     use link::theme::*;
@@ -197,7 +197,10 @@ live_design! {
 #[derive(Clone, Debug, DefaultNone)]
 pub enum SettingsDialogAction {
     None,
-    UpdateKey { provider_id: String, key: String },
+    UpdateKey {
+        provider_id: String,
+        key: SecretString,
+    },
 }
 
 #[derive(Live, LiveHook, Widget)]
@@ -240,7 +243,7 @@ impl Widget for SettingsDialog {
                     if !key.is_empty() {
                         cx.action(SettingsDialogAction::UpdateKey {
                             provider_id: provider.id.clone(),
-                            key,
+                            key: SecretString::from(key),
                         });
                     }
                 }

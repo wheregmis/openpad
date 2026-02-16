@@ -7,3 +7,8 @@
 **Vulnerability:** Accidental leakage of API keys in debug logs and potential Denial of Service (DoS) from unvalidated network latency.
 **Learning:** `derive(Debug)` on structs containing credentials can lead to accidental exposure. `reqwest::Client` has no default timeout, which can hang an application if a remote server is slow or malicious.
 **Prevention:** Use a `SecretString` wrapper with a redacted `Debug` implementation for all credentials. Always set explicit timeouts on network requests (excluding long-running streams like SSE).
+
+## 2025-02-05 – API Key Exposure in Action Logs
+**Vulnerability:** Sensitive credentials (API keys) handled as plain `String` in Makepad actions and app state are leaked in debug logs when using `derive(Debug)`.
+**Learning:** Using `SecretString` for credentials in actions ensures they are redacted in the UI action stream and logs, while still being accessible for legitimate operations.
+**Prevention:** Always use `SecretString` for any data structure (actions, events, state) that carries credentials or sensitive user data.

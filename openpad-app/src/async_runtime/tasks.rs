@@ -4,7 +4,7 @@ use crate::utils::path_utils::normalize_worktree_canonical;
 use makepad_widgets::{log, Cx};
 use openpad_protocol::{
     ModelSpec, OpenCodeClient, PartInput, PermissionReply, PermissionReplyRequest,
-    PermissionRuleset, Project, PromptRequest, Session, SessionCreateRequest,
+    PermissionRuleset, Project, PromptRequest, SecretString, Session, SessionCreateRequest,
 };
 use std::sync::Arc;
 
@@ -135,11 +135,8 @@ pub fn spawn_message_loader(
         // Use session-specific directory if provided
         let target_client = get_directory_client(client, directory);
 
-        match target_client.list_messages(&session_id).await {
-            Ok(messages) => {
-                Cx::post_action(AppAction::MessagesLoaded(messages));
-            }
-            Err(_) => {}
+        if let Ok(messages) = target_client.list_messages(&session_id).await {
+            Cx::post_action(AppAction::MessagesLoaded(messages));
         }
     });
 }
@@ -288,11 +285,8 @@ pub fn spawn_pending_permissions_loader(
     client: Arc<OpenCodeClient>,
 ) {
     runtime.spawn(async move {
-        match client.list_pending_permissions().await {
-            Ok(permissions) => {
-                Cx::post_action(AppAction::PendingPermissionsLoaded(permissions));
-            }
-            Err(_) => {}
+        if let Ok(permissions) = client.list_pending_permissions().await {
+            Cx::post_action(AppAction::PendingPermissionsLoaded(permissions));
         }
     });
 }
@@ -601,14 +595,14 @@ pub fn spawn_auth_setter(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     provider_id: String,
-    api_key: String,
+    api_key: SecretString,
 ) {
     use openpad_protocol::AuthSetRequest;
 
     runtime.spawn(async move {
         let request = AuthSetRequest {
             auth_type: "api".to_string(),
-            key: api_key.into(),
+            key: api_key,
         };
         match client.set_auth(&provider_id, request).await {
             Ok(success) => {
@@ -617,11 +611,8 @@ pub fn spawn_auth_setter(
                     success,
                 });
                 // Reload providers to update status if server reflects it
-                match client.get_providers().await {
-                    Ok(providers_response) => {
-                        Cx::post_action(AppAction::ProvidersLoaded(providers_response));
-                    }
-                    Err(_) => {}
+                if let Ok(providers_response) = client.get_providers().await {
+                    Cx::post_action(AppAction::ProvidersLoaded(providers_response));
                 }
             }
             Err(e) => {
