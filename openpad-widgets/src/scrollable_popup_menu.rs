@@ -75,17 +75,17 @@ script_mod! {
                 let sdf = Sdf2d.viewport(self.pos * self.rect_size)
 
                 let border_sz_uv = vec2(
-                    self.border_size / self.rect_size.x
+                    self.border_size / self.rect_size.x,
                     self.border_size / self.rect_size.y
                 )
 
                 let sz_inner_px = vec2(
-                    self.rect_size.x - self.border_size * 2.
+                    self.rect_size.x - self.border_size * 2.,
                     self.rect_size.y - self.border_size * 2.
                 )
 
                 let scale_factor_fill = vec2(
-                    self.rect_size.x / sz_inner_px.x
+                    self.rect_size.x / sz_inner_px.x,
                     self.rect_size.y / sz_inner_px.y
                 )
 
@@ -105,7 +105,7 @@ script_mod! {
                 if self.color_2.x > -0.5 {
                     let dither = Math.random_2d(self.pos.xy) * 0.04 * self.color_dither
                     let gradient_fill = vec2(
-                        self.pos.x * scale_factor_fill.x - border_sz_uv.x * 2. + dither
+                        self.pos.x * scale_factor_fill.x - border_sz_uv.x * 2. + dither,
                         self.pos.y * scale_factor_fill.y - border_sz_uv.y * 2. + dither
                     )
                     let dir = if self.gradient_fill_horizontal > 0.5 gradient_fill.x else gradient_fill.y
@@ -123,7 +123,7 @@ script_mod! {
                 if self.border_color_2.x > -0.5 {
                     let dither = Math.random_2d(self.pos.xy) * 0.04 * self.color_dither
                     let gradient_border = vec2(
-                        self.pos.x + dither
+                        self.pos.x + dither,
                         self.pos.y + dither
                     )
                     let dir = if self.gradient_border_horizontal > 0.5 gradient_border.x else gradient_border.y
@@ -178,7 +178,6 @@ script_mod! {
                     }
                 }
                 on: AnimatorState{
-                    cursor: MouseCursor.Hand
                     from: {all: Snap}
                     apply: {
                         draw_bg: {hover: 1.0}
@@ -211,7 +210,7 @@ script_mod! {
     mod.widgets.ScrollablePopupMenuFlat = set_type_default() do mod.widgets.ScrollablePopupMenuBase{
         width: 150.0
         height: Fit
-        flow: Flow.Down
+        flow: Down
         padding: theme.mspace_1
 
         menu_item: mod.widgets.ScrollablePopupMenuItem{}
@@ -236,29 +235,29 @@ script_mod! {
                 let border_color_2 = if self.border_color_2.x > -0.5 self.border_color_2 else self.border_color
 
                 let border_sz_uv = vec2(
-                    self.border_size / self.rect_size.x
+                    self.border_size / self.rect_size.x,
                     self.border_size / self.rect_size.y
                 )
 
                 let gradient_border = vec2(
-                    self.pos.x + dither
+                    self.pos.x + dither,
                     self.pos.y + dither
                 )
 
                 let gradient_border_dir = if self.gradient_border_horizontal > 0.5 gradient_border.x else gradient_border.y
 
                 let sz_inner_px = vec2(
-                    self.rect_size.x - self.border_size * 2.
+                    self.rect_size.x - self.border_size * 2.,
                     self.rect_size.y - self.border_size * 2.
                 )
 
                 let scale_factor_fill = vec2(
-                    self.rect_size.x / sz_inner_px.x
+                    self.rect_size.x / sz_inner_px.x,
                     self.rect_size.y / sz_inner_px.y
                 )
 
                 let gradient_fill = vec2(
-                    self.pos.x * scale_factor_fill.x - border_sz_uv.x * 2. + dither
+                    self.pos.x * scale_factor_fill.x - border_sz_uv.x * 2. + dither,
                     self.pos.y * scale_factor_fill.y - border_sz_uv.y * 2. + dither
                 )
 

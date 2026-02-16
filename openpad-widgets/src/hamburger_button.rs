@@ -23,12 +23,13 @@ script_mod! {
 
             pixel: fn() {
                 let sdf = Sdf2d.viewport(self.pos * self.rect_size)
-                let c = self.rect_size * 0.5
+                let cx = self.rect_size.x * 0.5
+                let cy = self.rect_size.y * 0.5;
                 let w = self.rect_size.x * 0.28
                 let h = self.line_thickness
                 let gap = self.line_gap
                 let t = self.open
-                let ang = t * 0.785398 // 45deg
+                let ang = t * 0.785398
 
                 let base = self.color
                 let hover = self.color_hover
@@ -37,18 +38,18 @@ script_mod! {
 
                 sdf.clear(self.bg_color)
 
-                sdf.rotate(ang, c.x, c.y)
-                sdf.rect(c.x - w, c.y - gap - h * 0.5 * (1.0 - t), w * 2.0, h)
+                sdf.rotate(ang, cx, cy)
+                sdf.rect(cx - w, cy - gap - h * 0.5 * (1.0 - t), w * 2.0, h)
                 sdf.fill_keep(color)
-                sdf.rotate(-ang, c.x, c.y)
+                sdf.rotate(-ang, cx, cy)
 
-                sdf.rect(c.x - w, c.y - h * 0.5, w * 2.0, h)
+                sdf.rect(cx - w, cy - h * 0.5, w * 2.0, h)
                 sdf.fill_keep(color * (1.0 - t))
 
-                sdf.rotate(-ang, c.x, c.y)
-                sdf.rect(c.x - w, c.y + gap - h * 0.5 * (1.0 - t), w * 2.0, h)
+                sdf.rotate(-ang, cx, cy)
+                sdf.rect(cx - w, cy + gap - h * 0.5 * (1.0 - t), w * 2.0, h)
                 sdf.fill_keep(color)
-                sdf.rotate(ang, c.x, c.y)
+                sdf.rotate(ang, cx, cy)
 
                 return sdf.result
             }

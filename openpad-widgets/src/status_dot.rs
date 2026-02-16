@@ -12,9 +12,10 @@ script_mod! {
             color: instance(#6b7b8c)
             pixel: fn() {
                 let sdf = Sdf2d.viewport(self.pos * self.rect_size)
-                let c = self.rect_size * 0.5
-                let r = min(c.x c.y) - 1.0
-                sdf.circle(c.x c.y r)
+                let cx = self.rect_size.x * 0.5
+                let cy = self.rect_size.y * 0.5
+                let r = min(cx, cy) - 1.0
+                sdf.circle(cx, cy, r)
                 sdf.fill(self.color)
                 return sdf.result
             }
