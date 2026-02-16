@@ -1,12 +1,12 @@
 use {
     crate::scrollable_popup_menu::{ScrollablePopupMenu, ScrollablePopupMenuAction},
-    makepad_widgets::{makepad_derive_widget::*, makepad_draw::*, widget::*},
+    makepad_widgets::*,
     std::cell::RefCell,
     std::rc::Rc,
 };
 
-#[derive(Copy, Clone, Debug, Live, LiveHook)]
-#[live_ignore]
+#[derive(Script, ScriptHook, Clone, Copy, Debug)]
+#[repr(C)]
 pub enum PopupMenuPosition {
     #[pick]
     AboveInput,
@@ -14,24 +14,30 @@ pub enum PopupMenuPosition {
     BelowInput,
 }
 
-live_design! {
-    link widgets;
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::scrollable_popup_menu::ScrollablePopupMenu;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
 
-    pub UpDrawLabelText = {{UpDrawLabelText}} {}
-    pub UpDropDownBase = {{UpDropDown}} {}
+    mod.widgets.PopupMenuPosition = #(PopupMenuPosition::script_component(vm))
+    mod.widgets.UpDrawLabelTextBase = #(UpDrawLabelText::script_component(vm))
+    mod.widgets.UpDropDownBase = #(UpDropDown::register_widget(vm))
 
-    pub UpDropDown = <UpDropDownBase> {
-        popup_menu: <ScrollablePopupMenu> {}
+    set_type_default() do #(UpDrawLabelText::script_shader(vm)){
+        ..mod.draw.DrawText
+    }
+
+    mod.widgets.UpDropDown = mod.widgets.UpDropDownBase {
+        popup_menu: mod.widgets.ScrollablePopupMenu {}
     }
 }
 
-#[derive(Live, Widget)]
+#[derive(Script, Widget, Animator)]
 pub struct UpDropDown {
-    #[animator]
+    #[uid]
+    uid: WidgetUid,
+    #[source]
+    source: ScriptObjectRef,
+    #[apply_default]
     animator: Animator,
 
     #[redraw]
@@ -49,12 +55,12 @@ pub struct UpDropDown {
     bind_enum: String,
 
     #[live]
-    popup_menu: Option<LivePtr>,
+    popup_menu: ScriptValue,
 
     #[live]
     labels: Vec<String>,
     #[live]
-    values: Vec<LiveValue>,
+    values: Vec<ScriptValue>,
 
     #[live]
     popup_menu_position: PopupMenuPosition,
@@ -74,14 +80,16 @@ pub struct UpDropDown {
     menu_scroll_max: f64,
     #[rust]
     menu_visible_height: f64,
+    #[rust]
+    popup_defer_frames: u8,
 }
 
 #[derive(Default, Clone)]
 struct PopupMenuGlobal {
-    map: Rc<RefCell<ComponentMap<LivePtr, ScrollablePopupMenu>>>,
+    map: Rc<RefCell<ComponentMap<ScriptValue, ScrollablePopupMenu>>>,
 }
 
-#[derive(Live, LiveHook, LiveRegister)]
+#[derive(Script, ScriptHook)]
 #[repr(C)]
 struct UpDrawLabelText {
     #[deref]
@@ -92,26 +100,35 @@ struct UpDrawLabelText {
     hover: f32,
 }
 
-impl LiveHook for UpDropDown {
-    fn after_apply(&mut self, cx: &mut Cx, apply: &mut Apply, _index: usize, _nodes: &[LiveNode]) {
-        if self.popup_menu.is_none() || !apply.from.is_from_doc() {
+impl ScriptHook for UpDropDown {
+    fn on_after_apply(
+        &mut self,
+        vm: &mut ScriptVm,
+        _apply: &Apply,
+        _scope: &mut Scope,
+        _obj: ScriptValue,
+    ) {
+        if self.popup_menu.is_nil() {
             return;
         }
-        let global = cx.global::<PopupMenuGlobal>().clone();
-        let mut map = global.map.borrow_mut();
+        vm.with_cx_mut(|cx| {
+            let global = cx.global::<PopupMenuGlobal>().clone();
+            let Ok(mut map) = global.map.try_borrow_mut() else {
+                return;
+            };
 
-        // when live styling clean up old style references
-        map.retain(|k, _| cx.live_registry.borrow().generation_valid(*k));
-
-        let list_box = self.popup_menu.unwrap();
-        map.get_or_insert(cx, list_box, |cx| {
-            ScrollablePopupMenu::new_from_ptr(cx, Some(list_box))
+            let popup_menu_val = self.popup_menu;
+            map.get_or_insert(cx, popup_menu_val, |cx| {
+                cx.with_vm(|vm| ScrollablePopupMenu::script_from_value(vm, popup_menu_val))
+            });
         });
     }
 }
-#[derive(Clone, Debug, DefaultNone)]
+
+#[derive(Clone, Debug, Default)]
 pub enum UpDropDownAction {
-    Select(usize, LiveValue),
+    Select(usize, ScriptValue),
+    #[default]
     None,
 }
 
@@ -121,13 +138,13 @@ impl UpDropDown {
         self.menu_scroll = 0.0;
         self.menu_scroll_max = 0.0;
         self.menu_visible_height = 0.0;
-        self.draw_bg.apply_over(cx, live! {active: 1.0});
+        self.popup_defer_frames = 1;
         self.draw_bg.redraw(cx);
         let global = cx.global::<PopupMenuGlobal>().clone();
         let mut map = global.map.borrow_mut();
-        let lb = map.get_mut(&self.popup_menu.unwrap()).unwrap();
+        let menu = map.get_mut(&self.popup_menu).unwrap();
         let node_id = LiveId(self.selected_item as u64).into();
-        lb.init_select_item(node_id);
+        menu.init_select_item(node_id);
         cx.sweep_lock(self.draw_bg.area());
     }
 
@@ -136,7 +153,7 @@ impl UpDropDown {
         self.menu_scroll = 0.0;
         self.menu_scroll_max = 0.0;
         self.menu_visible_height = 0.0;
-        self.draw_bg.apply_over(cx, live! {active: 0.0});
+        self.popup_defer_frames = 0;
         self.draw_bg.redraw(cx);
         cx.sweep_unlock(self.draw_bg.area());
     }
@@ -149,13 +166,7 @@ impl UpDropDown {
     }
 
     pub fn draw_walk(&mut self, cx: &mut Cx2d, walk: Walk) {
-        //cx.clear_sweep_lock(self.draw_bg.area());
-        // ok so what if. what do we have
-        // we have actions
-        // and we have applying states/values in response
-
         self.draw_bg.begin(cx, walk, self.layout);
-        //let start_pos = cx.turtle().rect().pos;
 
         if let Some(val) = self.labels.get(self.selected_item) {
             self.draw_text
@@ -166,15 +177,17 @@ impl UpDropDown {
         }
         self.draw_bg.end(cx);
 
-        cx.add_nav_stop(self.draw_bg.area(), NavRole::DropDown, Margin::default());
+        cx.add_nav_stop(self.draw_bg.area(), NavRole::DropDown, Inset::default());
 
-        if self.is_active && self.popup_menu.is_some() {
-            //cx.set_sweep_lock(self.draw_bg.area());
-            // ok so if self was not active, we need to
-            // ok so how will we solve this one
+        if self.is_active && !self.popup_menu.is_nil() {
+            if self.popup_defer_frames > 0 {
+                self.popup_defer_frames -= 1;
+                cx.new_next_frame();
+                return;
+            }
             let global = cx.global::<PopupMenuGlobal>().clone();
             let mut map = global.map.borrow_mut();
-            let popup_menu = map.get_mut(&self.popup_menu.unwrap()).unwrap();
+            let popup_menu = map.get_mut(&self.popup_menu).unwrap();
             let window_size = cx.current_pass_size();
             let anchor = self.draw_bg.area().rect(cx);
 
@@ -184,7 +197,6 @@ impl UpDropDown {
                 return;
             }
 
-            // we kinda need to draw it twice.
             let padding = 4.0;
             let window_top = padding;
             let window_bottom = (window_size.y - padding).max(padding);
@@ -209,6 +221,7 @@ impl UpDropDown {
                 PopupMenuPosition::OnSelected => available_above.max(available_below),
             }
             .max(1.0);
+
             popup_menu.set_max_height(max_height);
             popup_menu.set_scroll(self.menu_scroll);
             popup_menu.begin(cx);
@@ -221,24 +234,21 @@ impl UpDropDown {
                         if i == self.selected_item {
                             item_pos = Some(cx.turtle().pos());
                         }
-                        popup_menu.draw_item(cx, node_id, &item);
+                        popup_menu.draw_item(cx, node_id, item);
                     }
 
                     let menu_height = cx.turtle().used_height();
                     popup_menu.set_content_height(menu_height);
 
-                    let mut desired_visible_height = menu_height.min(max_height);
                     let mut desired_scroll_max = 0.0;
                     if menu_height > max_height {
                         desired_scroll_max = menu_height - max_height;
                     }
 
                     let mut needs_redraw = false;
-                    if (self.menu_visible_height - desired_visible_height).abs() > 0.5
-                        || (self.menu_scroll_max - desired_scroll_max).abs() > 0.5
-                    {
+                    if (self.menu_scroll_max - desired_scroll_max).abs() > 0.5 {
                         self.menu_visible_height = if desired_scroll_max > 0.0 {
-                            desired_visible_height
+                            menu_height.min(max_height)
                         } else {
                             0.0
                         };
@@ -255,8 +265,6 @@ impl UpDropDown {
                     }
 
                     let drawn_height = menu_height.min(max_height);
-
-                    // ok we shift the entire menu. however we shouldnt go outside the screen area
                     let mut shift = -item_pos.unwrap_or(dvec2(0.0, 0.0));
                     let mut shift_y = shift.y;
                     let mut top = anchor.pos.y + shift_y;
@@ -274,24 +282,21 @@ impl UpDropDown {
                 PopupMenuPosition::AboveInput => {
                     for (i, item) in self.labels.iter().enumerate() {
                         let node_id = LiveId(i as u64).into();
-                        popup_menu.draw_item(cx, node_id, &item);
+                        popup_menu.draw_item(cx, node_id, item);
                     }
 
                     let menu_height = cx.turtle().used_height();
                     popup_menu.set_content_height(menu_height);
 
-                    let mut desired_visible_height = menu_height.min(max_height);
                     let mut desired_scroll_max = 0.0;
                     if menu_height > max_height {
                         desired_scroll_max = menu_height - max_height;
                     }
 
                     let mut needs_redraw = false;
-                    if (self.menu_visible_height - desired_visible_height).abs() > 0.5
-                        || (self.menu_scroll_max - desired_scroll_max).abs() > 0.5
-                    {
+                    if (self.menu_scroll_max - desired_scroll_max).abs() > 0.5 {
                         self.menu_visible_height = if desired_scroll_max > 0.0 {
-                            desired_visible_height
+                            menu_height.min(max_height)
                         } else {
                             0.0
                         };
@@ -320,31 +325,27 @@ impl UpDropDown {
                         shift_y -= bottom - window_bottom;
                     }
 
-                    let shift = DVec2 { x: 0.0, y: shift_y };
-
+                    let shift = Vec2d { x: 0.0, y: shift_y };
                     popup_menu.end(cx, self.draw_bg.area(), shift);
                 }
                 PopupMenuPosition::BelowInput => {
                     for (i, item) in self.labels.iter().enumerate() {
                         let node_id = LiveId(i as u64).into();
-                        popup_menu.draw_item(cx, node_id, &item);
+                        popup_menu.draw_item(cx, node_id, item);
                     }
 
                     let menu_height = cx.turtle().used_height();
                     popup_menu.set_content_height(menu_height);
 
-                    let mut desired_visible_height = menu_height.min(max_height);
                     let mut desired_scroll_max = 0.0;
                     if menu_height > max_height {
                         desired_scroll_max = menu_height - max_height;
                     }
 
                     let mut needs_redraw = false;
-                    if (self.menu_visible_height - desired_visible_height).abs() > 0.5
-                        || (self.menu_scroll_max - desired_scroll_max).abs() > 0.5
-                    {
+                    if (self.menu_scroll_max - desired_scroll_max).abs() > 0.5 {
                         self.menu_visible_height = if desired_scroll_max > 0.0 {
-                            desired_visible_height
+                            menu_height.min(max_height)
                         } else {
                             0.0
                         };
@@ -373,8 +374,7 @@ impl UpDropDown {
                         shift_y -= bottom - window_bottom;
                     }
 
-                    let shift = DVec2 { x: 0.0, y: shift_y };
-
+                    let shift = Vec2d { x: 0.0, y: shift_y };
                     popup_menu.end(cx, self.draw_bg.area(), shift);
                 }
             }
@@ -397,44 +397,14 @@ impl Widget for UpDropDown {
         self.animator_in_state(cx, &[id!(disabled), id!(on)])
     }
 
-    fn widget_to_data(
-        &self,
-        _cx: &mut Cx,
-        actions: &Actions,
-        nodes: &mut LiveNodeVec,
-        path: &[LiveId],
-    ) -> bool {
-        match actions.find_widget_action_cast(self.widget_uid()) {
-            UpDropDownAction::Select(_, value) => {
-                nodes.write_field_value(path, value.clone());
-                true
-            }
-            _ => false,
-        }
-    }
-
-    fn data_to_widget(&mut self, cx: &mut Cx, nodes: &[LiveNode], path: &[LiveId]) {
-        if let Some(value) = nodes.read_field_value(path) {
-            if let Some(index) = self.values.iter().position(|v| v == value) {
-                if self.selected_item != index {
-                    self.selected_item = index;
-                    self.redraw(cx);
-                }
-            } else {
-                error!("Value not in values list {:?}", value);
-            }
-        }
-    }
-
-    fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
+    fn handle_event(&mut self, cx: &mut Cx, event: &Event, _scope: &mut Scope) {
         self.animator_handle_event(cx, event);
         let uid = self.widget_uid();
 
-        if self.is_active && self.popup_menu.is_some() {
-            // ok so how will we solve this one
+        if self.is_active && !self.popup_menu.is_nil() {
             let global = cx.global::<PopupMenuGlobal>().clone();
             let mut map = global.map.borrow_mut();
-            let menu = map.get_mut(&self.popup_menu.unwrap()).unwrap();
+            let menu = map.get_mut(&self.popup_menu).unwrap();
             let mut close = false;
 
             if self.menu_scroll_max > 0.0 {
@@ -453,21 +423,17 @@ impl Widget for UpDropDown {
 
             menu.handle_event_with(cx, event, self.draw_bg.area(), &mut |cx, action| {
                 match action {
-                    ScrollablePopupMenuAction::WasSweeped(_node_id) => {
-                        //dispatch_action(cx, PopupMenuAction::WasSweeped(node_id));
-                    }
+                    ScrollablePopupMenuAction::WasSweeped(_node_id) => {}
                     ScrollablePopupMenuAction::WasSelected(node_id) => {
-                        //dispatch_action(cx, PopupMenuAction::WasSelected(node_id));
                         self.selected_item = node_id.0 .0 as usize;
                         cx.widget_action(
                             uid,
-                            &scope.path,
                             UpDropDownAction::Select(
                                 self.selected_item,
                                 self.values
                                     .get(self.selected_item)
-                                    .cloned()
-                                    .unwrap_or(LiveValue::None),
+                                    .copied()
+                                    .unwrap_or(ScriptValue::NIL),
                             ),
                         );
                         self.draw_bg.redraw(cx);
@@ -480,7 +446,6 @@ impl Widget for UpDropDown {
                 self.set_closed(cx);
             }
 
-            // check if we clicked outside of the popup menu
             if let Event::MouseDown(e) = event {
                 if !menu.menu_contains_pos(cx, e.abs) {
                     self.set_closed(cx);
@@ -506,13 +471,12 @@ impl Widget for UpDropDown {
                         self.selected_item -= 1;
                         cx.widget_action(
                             uid,
-                            &scope.path,
                             UpDropDownAction::Select(
                                 self.selected_item,
                                 self.values
                                     .get(self.selected_item)
-                                    .cloned()
-                                    .unwrap_or(LiveValue::None),
+                                    .copied()
+                                    .unwrap_or(ScriptValue::NIL),
                             ),
                         );
                         self.set_closed(cx);
@@ -520,17 +484,16 @@ impl Widget for UpDropDown {
                     }
                 }
                 KeyCode::ArrowDown => {
-                    if self.values.len() > 0 && self.selected_item < self.values.len() - 1 {
+                    if !self.labels.is_empty() && self.selected_item < self.labels.len() - 1 {
                         self.selected_item += 1;
                         cx.widget_action(
                             uid,
-                            &scope.path,
                             UpDropDownAction::Select(
                                 self.selected_item,
                                 self.values
                                     .get(self.selected_item)
-                                    .cloned()
-                                    .unwrap_or(LiveValue::None),
+                                    .copied()
+                                    .unwrap_or(ScriptValue::NIL),
                             ),
                         );
                         self.set_closed(cx);
@@ -540,15 +503,11 @@ impl Widget for UpDropDown {
                 _ => (),
             },
             Hit::FingerDown(fe) if fe.is_primary_hit() => {
-                if self
-                    .animator
-                    .animator_in_state(cx, &[id!(disabled), id!(off)])
-                {
+                if self.animator_in_state(cx, &[id!(disabled), id!(off)]) {
                     cx.set_key_focus(self.draw_bg.area());
                     self.animator_play(cx, &[id!(hover), id!(on)]);
                     self.set_active(cx);
                 }
-                // self.animator_play(cx, id!(hover.down));
             }
             Hit::FingerHoverIn(_) => {
                 cx.set_cursor(MouseCursor::Hand);
@@ -587,7 +546,7 @@ impl UpDropDownRef {
                 let s = &mut inner.labels[i];
                 s.clear();
                 f(s);
-                if s.len() == 0 {
+                if s.is_empty() {
                     break;
                 }
                 i += 1;
@@ -604,7 +563,6 @@ impl UpDropDownRef {
         }
     }
 
-    //DEPRICATED
     pub fn selected(&self, actions: &Actions) -> Option<usize> {
         if let Some(item) = actions.find_widget_action(self.widget_uid()) {
             if let UpDropDownAction::Select(id, _) = item.cast() {
@@ -643,6 +601,7 @@ impl UpDropDownRef {
             }
         }
     }
+
     pub fn selected_item(&self) -> usize {
         if let Some(inner) = self.borrow() {
             return inner.selected_item;

@@ -1,130 +1,136 @@
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::openpad::*;
-    use crate::theme::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    pub PermissionCard = {{PermissionCard}} {
-        width: Fill, height: Fit
+    mod.widgets.PermissionCard = #(PermissionCard::register_widget(vm)) {
+        width: Fill
+        height: Fit
         flow: Down
-        padding: { left: 14, right: 14, top: 12, bottom: 12 }
+        new_batch: true
+        padding: Inset{left: 14 right: 14 top: 12 bottom: 12}
         spacing: 10
         show_bg: true
 
-        draw_bg: {
-            color: (THEME_COLOR_SHADE_1)
-            uniform border_color: (THEME_COLOR_ACCENT_AMBER)
-            uniform border_radius: 10.0
-            uniform border_size: 1.5
+        draw_bg +: {
+            color: uniform(#27303a)
+            border_color: uniform(#f59e0b)
+            border_radius: uniform(10.0)
+            border_size: uniform(1.5)
 
-            fn pixel(self) -> vec4 {
-                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
-                sdf.fill_keep(self.color);
-                sdf.stroke(self.border_color, self.border_size);
-                return sdf.result;
+            pixel: fn() {
+                let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+                sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius)
+                sdf.fill_keep(self.color)
+                sdf.stroke(self.border_color, self.border_size)
+                return sdf.result
             }
         }
 
-        header_label = <Label> {
-            width: Fit, height: Fit
+        header_label := Label {
+            width: Fit
+            height: Fit
             text: "Permission Request"
-            draw_text: {
-                color: (THEME_COLOR_ACCENT_AMBER)
-                text_style: <THEME_FONT_BOLD> { font_size: 12 }
+            draw_text +: {
+                color: #f59e0b
+                text_style: theme.font_bold {font_size: 12}
             }
         }
 
-        permission_label = <Label> {
-            width: Fill, height: Fit
+        permission_label := Label {
+            width: Fill
+            height: Fit
             text: ""
-            draw_text: {
-                color: (THEME_COLOR_TEXT_PRIMARY)
-                text_style: <THEME_FONT_REGULAR> { font_size: 11 }
-                wrap: Word
+            draw_text +: {
+                color: #e6e9ee
+                text_style: theme.font_regular {font_size: 11}
             }
         }
 
-        patterns_label = <Label> {
-            width: Fill, height: Fit
+        patterns_label := Label {
+            width: Fill
+            height: Fit
             text: ""
-            draw_text: {
-                color: (THEME_COLOR_STATUS_DOT)
-                text_style: <THEME_FONT_CODE> { font_size: 10 }
-                wrap: Word
+            draw_text +: {
+                color: #6b7b8c
+                text_style: theme.font_code {font_size: 10}
             }
         }
 
-        buttons_row = <View> {
-            width: Fill, height: Fit
+        buttons_row := View {
+            width: Fill
+            height: Fit
             flow: Right
             spacing: 10
-            align: { x: 1.0, y: 0.5 }
+            align: Align{x: 1.0 y: 0.5}
 
-            deny_button = <Button> {
-                width: 80, height: 32
+            deny_button := Button {
+                width: 80
+                height: 32
                 text: "Deny"
-                draw_bg: {
-                    color: (THEME_COLOR_SHADE_3)
-                    color_hover: (THEME_COLOR_SHADE_5)
+                draw_bg +: {
+                    color: #2a2f36
+                    color_hover: #313843
                     border_radius: 8.0
                     border_size: 1.0
-                    border_color: (THEME_COLOR_BORDER_LIGHT)
+                    border_color: #444
                 }
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_PRIMARY)
-                    text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                draw_text +: {
+                    color: #e6e9ee
+                    text_style: theme.font_regular {font_size: 11}
                 }
             }
 
-            always_button = <Button> {
-                width: 100, height: 32
+            always_button := Button {
+                width: 100
+                height: 32
                 text: "Always"
-                draw_bg: {
-                    color: (THEME_COLOR_BG_BUTTON)
-                    color_hover: (THEME_COLOR_BG_BUTTON_HOVER)
+                draw_bg +: {
+                    color: #2b2f35
+                    color_hover: #353a40
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_PRIMARY)
-                    text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                draw_text +: {
+                    color: #e6e9ee
+                    text_style: theme.font_regular {font_size: 11}
                 }
             }
 
-            approve_button = <Button> {
-                width: 100, height: 32
+            approve_button := Button {
+                width: 100
+                height: 32
                 text: "Approve"
-                draw_bg: {
-                    color: (THEME_COLOR_ACCENT_BLUE)
-                    color_hover: (THEME_COLOR_ACCENT_BLUE_HOVER)
+                draw_bg +: {
+                    color: #3b82f6
+                    color_hover: #1d4fed
                     border_radius: 8.0
                     border_size: 0.0
                 }
-                draw_text: {
-                    color: (THEME_COLOR_TEXT_BRIGHT)
-                    text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                draw_text +: {
+                    color: #ffffff
+                    text_style: theme.font_regular {font_size: 11}
                 }
             }
         }
 
-        status_label = <Label> {
-            width: Fill, height: Fit
-            visible: false
+        status_label := Label {
+            width: Fill
+            height: Fit
             text: ""
-            draw_text: {
-                color: (THEME_COLOR_TEXT_DIM)
-                text_style: <THEME_FONT_BOLD> { font_size: 11 }
+            draw_text +: {
+                color: #aab3bd
+                text_style: theme.font_bold {font_size: 11}
             }
         }
     }
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum PermissionCardAction {
+    #[default]
     None,
     Approved {
         session_id: String,
@@ -140,8 +146,11 @@ pub enum PermissionCardAction {
     },
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct PermissionCard {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
 
@@ -163,7 +172,7 @@ impl Widget for PermissionCard {
             return;
         }
 
-        if self.view.button(&[id!(approve_button)]).clicked(&actions) {
+        if self.view.button(cx, &[id!(approve_button)]).clicked(&actions) {
             cx.action(PermissionCardAction::Approved {
                 session_id: self.session_id.clone(),
                 request_id: self.request_id.clone(),
@@ -171,7 +180,7 @@ impl Widget for PermissionCard {
             self.mark_resolved_inner(cx, "Approved");
         }
 
-        if self.view.button(&[id!(always_button)]).clicked(&actions) {
+        if self.view.button(cx, &[id!(always_button)]).clicked(&actions) {
             cx.action(PermissionCardAction::AlwaysApproved {
                 session_id: self.session_id.clone(),
                 request_id: self.request_id.clone(),
@@ -179,7 +188,7 @@ impl Widget for PermissionCard {
             self.mark_resolved_inner(cx, "Always Approved");
         }
 
-        if self.view.button(&[id!(deny_button)]).clicked(&actions) {
+        if self.view.button(cx, &[id!(deny_button)]).clicked(&actions) {
             cx.action(PermissionCardAction::Rejected {
                 session_id: self.session_id.clone(),
                 request_id: self.request_id.clone(),
@@ -196,9 +205,15 @@ impl Widget for PermissionCard {
 impl PermissionCard {
     fn mark_resolved_inner(&mut self, cx: &mut Cx, status: &str) {
         self.resolved = true;
-        self.view.view(&[id!(buttons_row)]).set_visible(cx, false);
-        self.view.label(&[id!(status_label)]).set_text(cx, status);
-        self.view.widget(&[id!(status_label)]).set_visible(cx, true);
+        self.view
+            .view(cx, &[id!(buttons_row)])
+            .set_visible(cx, false);
+        self.view
+            .label(cx, &[id!(status_label)])
+            .set_text(cx, status);
+        self.view
+            .widget(cx, &[id!(status_label)])
+            .set_visible(cx, true);
         self.redraw(cx);
     }
 }
@@ -231,7 +246,7 @@ impl PermissionCardApi for PermissionCardRef {
 
             inner
                 .view
-                .label(&[id!(permission_label)])
+                .label(cx, &[id!(permission_label)])
                 .set_text(cx, &format!("Permission: {}", permission.to_uppercase()));
 
             let patterns_text = if patterns.is_empty() {
@@ -241,13 +256,16 @@ impl PermissionCardApi for PermissionCardRef {
             };
             inner
                 .view
-                .label(&[id!(patterns_label)])
+                .label(cx, &[id!(patterns_label)])
                 .set_text(cx, &patterns_text);
 
-            inner.view.view(&[id!(buttons_row)]).set_visible(cx, true);
             inner
                 .view
-                .widget(&[id!(status_label)])
+                .view(cx, &[id!(buttons_row)])
+                .set_visible(cx, true);
+            inner
+                .view
+                .widget(cx, &[id!(status_label)])
                 .set_visible(cx, false);
 
             inner.redraw(cx);

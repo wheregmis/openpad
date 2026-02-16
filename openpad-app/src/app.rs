@@ -1,14 +1,12 @@
 use crate::async_runtime;
+use crate::components::session_options_popup::SessionOptionsPopupWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
-use crate::state::{self, AppAction, AppState, ProjectsPanelAction};
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
+use crate::state::{self, AppAction, AppState, ProjectsPanelAction, SidebarMode};
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::message_list::MessageListWidgetRefExt;
 use openpad_widgets::permission_card::PermissionCardAction;
 use openpad_widgets::simple_dialog::SimpleDialogWidgetRefExt;
-use openpad_widgets::terminal::{TerminalAction, TerminalWidgetRefExt};
 use openpad_widgets::terminal_panel::TerminalPanelWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
 use openpad_widgets::{
@@ -17,13 +15,6 @@ use openpad_widgets::{
 };
 use regex::Regex;
 use std::sync::{Arc, OnceLock};
-
-#[derive(Clone, Copy, Debug, PartialEq, Default)]
-enum SidebarMode {
-    #[default]
-    Projects,
-    Settings,
-}
 
 // Lazy-initialized regex for detecting image data URLs
 static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
@@ -50,563 +41,191 @@ fn image_extension_for_mime(mime_type: &str) -> &'static str {
     }
 }
 
-fn detect_image_mime_type(data: &[u8]) -> Option<&'static str> {
-    if data.starts_with(&[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) {
-        return Some("image/png");
-    }
-    if data.len() >= 3 && data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff {
-        return Some("image/jpeg");
-    }
-    if data.starts_with(b"GIF87a") || data.starts_with(b"GIF89a") {
-        return Some("image/gif");
-    }
-    if data.len() >= 12 && data.starts_with(b"RIFF") && &data[8..12] == b"WEBP" {
-        return Some("image/webp");
-    }
-    if data.starts_with(b"II*\0") || data.starts_with(b"MM\0*") {
-        return Some("image/tiff");
-    }
-    None
-}
-
 app_main!(App);
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use openpad_widgets::openpad::*;
-    use openpad_widgets::theme::*;
-    use openpad_widgets::app_bg::AppBg;
-    use openpad_widgets::hamburger_button::HamburgerButton;
-    use openpad_widgets::header_bar::HeaderBar;
-    use openpad_widgets::input_bar::InputBar;
-    use openpad_widgets::input_bar::InputBarDropDown;
-    use openpad_widgets::input_bar::InputBarToolbar;
-    use openpad_widgets::input_field::InputField;
-    use openpad_widgets::send_button::SendButton;
-    use openpad_widgets::side_panel::SidePanel;
-    use openpad_widgets::simple_dialog::SimpleDialog;
-    use openpad_widgets::status_dot::StatusDot;
-    use makepad_code_editor::code_view::CodeView;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    // Import component DSL definitions
-    use openpad_widgets::user_bubble::UserBubble;
-    use openpad_widgets::assistant_bubble::AssistantBubble;
-    use crate::components::projects_panel::ProjectsPanel;
-    use openpad_widgets::permission_card::PermissionCard;
-    use openpad_widgets::permission_dialog::PermissionDialog;
-    use openpad_widgets::message_list::MessageList;
-    use openpad_widgets::diff_view::DiffView;
-    use openpad_widgets::terminal::Terminal;
-    use openpad_widgets::terminal_panel::TerminalPanel;
-    use openpad_widgets::settings_dialog::SettingsDialog;
+    // Register widgets from components so they're accessible in this script_mod
+    mod.widgets.SidebarHeader = #(crate::components::sidebar_header::SidebarHeader::register_widget(vm))
+    mod.widgets.SessionOptionsPopup = #(crate::components::session_options_popup::SessionOptionsPopup::register_widget(vm))
 
-    ChatPanel = <View> {
+    let ChatPanel = View {
         width: Fill, height: Fill
         flow: Down
         spacing: 0
 
-        <View> { width: Fill, height: 1, show_bg: true, draw_bg: { color: (THEME_COLOR_SHADE_2) } }
-
-        session_summary = <RoundedView> {
+        session_summary := View {
             visible: false
             width: Fill, height: Fit
-            padding: { left: 16, right: 16, top: 12, bottom: 12 }
             flow: Down
-            spacing: 8
-            show_bg: true
-            draw_bg: {
-                color: (THEME_COLOR_BG_DIALOG)
-                border_color: (THEME_COLOR_BORDER_DIALOG)
-                border_radius: 8.0
-                border_size: 1.0
+            spacing: 6
 
-                fn pixel(self) -> vec4 {
-                    let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                    sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
-                    sdf.fill_keep(self.color);
-                    sdf.stroke(self.border_color, self.border_size);
-                    return sdf.result;
-                }
-            }
-
-            summary_header = <View> {
+            summary_header := View {
                 width: Fill, height: Fit
                 flow: Right
-                align: { y: 0.5 }
-
-                summary_title = <Label> {
-                    text: "Session Summary"
-                    draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
-                }
-                <View> { width: Fill }
+                summary_title := Label { text: "Session Summary" }
+                View { width: Fill }
             }
 
-            summary_stats_label = <Label> {
-                width: Fill, height: Fit
-                text: ""
-                draw_text: { color: (THEME_COLOR_TEXT_DIM), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-            }
-
-            summary_diff = <Markdown> {
-                width: Fill, height: Fit
-                font_size: 9
-                font_color: (THEME_COLOR_TEXT_NORMAL)
-                paragraph_spacing: 6
-                pre_code_spacing: 6
-                use_code_block_widget: true
-
-                code_block = <View> {
-                    width: Fill, height: Fit
-                    flow: Down
-                    padding: { left: 8, right: 8, top: 6, bottom: 6 }
-                    margin: { top: 4, bottom: 4 }
-                    draw_bg: {
-                        color: (THEME_COLOR_BG_INPUT)
-                        border_radius: 6.0
-                    }
-
-                    code_view = <CodeView> {
-                        editor: {
-                            width: Fill
-                            height: Fit
-                            draw_bg: { color: (THEME_COLOR_BG_INPUT) }
-                        }
-                    }
-                }
-
-                draw_normal: {
-                    text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.4 }
-                    color: (THEME_COLOR_TEXT_NORMAL)
-                }
-                draw_italic: {
-                    text_style: <THEME_FONT_ITALIC> { font_size: 9 }
-                    color: (THEME_COLOR_TEXT_NORMAL)
-                }
-                draw_bold: {
-                    text_style: <THEME_FONT_BOLD> { font_size: 9 }
-                    color: (THEME_COLOR_TEXT_BOLD)
-                }
-                draw_fixed: {
-                    text_style: <THEME_FONT_CODE> { font_size: 8 }
-                    color: (THEME_COLOR_TEXT_CODE)
-                }
-            }
+            summary_stats_label := Label { width: Fill, height: Fit, text: "" }
+            summary_diff := Markdown { width: Fill, height: Fit }
         }
 
-        // Chat area - Unified
-        <View> {
+        View {
             width: Fill, height: Fill
-            flow: Down
-            spacing: 0
-            show_bg: true
-            draw_bg: { color: (THEME_COLOR_BG_APP) }
+            message_list := MessageList { width: Fill, height: Fill }
+        }
 
-            <View> {
-                width: Fill, height: Fill
-                message_list = <MessageList> { width: Fill, height: Fill }
+        input_row := View {
+            width: Fill, height: Fit
+            flow: Down, spacing: 8
+
+            attachments_preview := View {
+                visible: false
+                width: Fill, height: Fit
+                flow: Right, spacing: 8
+                attachments_label := Label { text: "Attached:" }
+                attachments_list := Label { text: "" }
+                View { width: Fill }
+                clear_attachments_button := Button { width: Fit, height: 20, text: "Clear" }
             }
 
-            input_row = <View> {
+            skill_preview := View {
+                visible: false
                 width: Fill, height: Fit
-                padding: { left: 32, right: 32, top: 12, bottom: 20 }
-                flow: Down, spacing: 8
-                clip_y: false
-
-                // Attachments preview area
-                attachments_preview = <RoundedView> {
-                    visible: false
+                flow: Down, spacing: 4
+                skill_header := View {
                     width: Fill, height: Fit
                     flow: Right, spacing: 8
-                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
-                    show_bg: true
-                    draw_bg: {
-                        color: (THEME_COLOR_SHADE_2)
-                        border_radius: 8.0
-                    }
-
-                    attachments_label = <Label> {
-                        text: "Attached:"
-                        draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                    }
-                    attachments_list = <Label> {
-                        text: ""
-                        draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHTER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                    }
-                    <View> { width: Fill }
-                    clear_attachments_button = <Button> {
-                        width: Fit, height: 20
-                        text: "Clear"
-                        draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                        draw_bg: {
-                            color: (THEME_COLOR_TRANSPARENT)
-                            color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                        }
-                    }
+                    skill_name_label := Label { text: "Skill" }
+                    View { width: Fill }
+                    clear_skill_button := Button { width: Fit, height: 20, text: "Clear" }
                 }
+                skill_desc_label := Label { text: "" }
+            }
 
-                skill_preview = <RoundedView> {
-                    visible: false
-                    width: Fill, height: Fit
-                    flow: Down, spacing: 4
-                    padding: { left: 18, right: 18, top: 8, bottom: 8 }
-                    show_bg: true
-                    draw_bg: {
-                        color: (THEME_COLOR_SHADE_2)
-                        border_radius: 8.0
-                    }
-
-                    skill_header = <View> {
-                        width: Fill, height: Fit
-                        flow: Right, spacing: 8
-                        align: { y: 0.5 }
-
-                        skill_name_label = <Label> {
-                            text: "Skill"
-                            draw_text: { color: (THEME_COLOR_SHADE_8), text_style: <THEME_FONT_BOLD> { font_size: 9 } }
-                        }
-                        <View> { width: Fill }
-                        clear_skill_button = <Button> {
-                            width: Fit, height: 20
-                            text: "Clear"
-                            draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                            draw_bg: {
-                                color: (THEME_COLOR_TRANSPARENT)
-                                color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                            }
-                        }
-                    }
-
-                    skill_desc_label = <Label> {
-                        text: ""
-                        draw_text: { color: (THEME_COLOR_SHADE_9), text_style: <THEME_FONT_REGULAR> { font_size: 9, line_spacing: 1.3 }, word: Wrap }
-                    }
-                }
-
-                <InputBar> {
-                    width: Fill
-                    input_box = <InputField> {}
-                    input_bar_toolbar = <InputBarToolbar> {
-                        agent_dropdown = <InputBarDropDown> {
-                             labels: ["Agent"]
-                         }
-                         skill_dropdown = <InputBarDropDown> {
-                             width: 120
-                             labels: ["Skill"]
-                         }
-                         provider_dropdown = <InputBarDropDown> {
-                             width: 120
-                             labels: ["Provider"]
-                         }
-                         model_dropdown = <InputBarDropDown> {
-                             width: 150
-                             labels: ["Model"]
-                         }
-                        <View> { width: Fill }
-                        send_button = <SendButton> {
-                            margin: { left: 0 }
-                        }
-                    }
+            InputBar {
+                width: Fill
+                input_box := InputField {}
+                input_bar_toolbar := InputBarToolbar {
+                    agent_dropdown := InputBarDropDown { labels: ["Agent"] }
+                    skill_dropdown := InputBarDropDown { width: 120 labels: ["Skill"] }
+                    provider_dropdown := InputBarDropDown { width: 120 labels: ["Provider"] }
+                    model_dropdown := InputBarDropDown { width: 150 labels: ["Model"] }
+                    View { width: Fill }
+                    send_button := SendButton { margin: Inset{ left: 0 } }
                 }
             }
         }
     }
 
-    TerminalPanelWrap = <TerminalPanel> {}
+    let TerminalPanelWrap = TerminalPanel {}
 
-    App = {{App}} {
-        ui: <Window> {
-            window: { inner_size: vec2(1200, 800) }
-            pass: { clear_color: (THEME_COLOR_BG_DARKER) }
-
-            body = <View> {
-                width: Fill, height: Fill
-                flow: Overlay
-
-                <AppBg> {
-                width: Fill, height: Fill
-                flow: Down,
-                spacing: 0,
-                padding: 0,
-
-                <View> {
+    startup() do #(App::script_component(vm)){
+        ui: Root{
+            main_window := Window{
+                window.inner_size: vec2(1200 800)
+                window.title: "Openpad"
+                pass.clear_color: #1a1a1a
+                body +: {
                     width: Fill, height: Fill
-                    flow: Right,
-                    spacing: 0,
+                    flow: Overlay
 
-                    side_panel = <SidePanel> {
-                        width: 260.0, height: Fill
-                        open_size: 260.0
-
-                        <HeaderBar> {
-                            height: 36
-                            width: Fill
-                            padding: { left: 80, right: 10 }
-                            draw_bg: {
-                                color: (THEME_COLOR_BG_APP)
-                                border_color: (THEME_COLOR_BORDER_MEDIUM)
-                                border_radius: 0.0
-                                border_size: 1.0
-                            }
-
-                            <View> { width: Fill }
-
-                            sidebar_tabs = <View> {
-                                width: Fit, height: Fill
-                                flow: Right
-                                spacing: 4
-                                align: { y: 0.5 }
-
-                                projects_tab = <Button> {
-                                    width: Fit, height: 24
-                                    padding: { left: 8, right: 8, top: 4, bottom: 4 }
-                                    text: "Projects"
-                                    draw_bg: {
-                                        color: (THEME_COLOR_TRANSPARENT)
-                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: {
-                                        color: (THEME_COLOR_TEXT_MUTED)
-                                        text_style: <THEME_FONT_REGULAR> { font_size: 10 }
-                                    }
-                                }
-
-                                settings_tab = <Button> {
-                                    width: Fit, height: 24
-                                    padding: { left: 8, right: 8, top: 4, bottom: 4 }
-                                    text: "Settings"
-                                    draw_bg: {
-                                        color: (THEME_COLOR_TRANSPARENT)
-                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: {
-                                        color: (THEME_COLOR_TEXT_MUTED)
-                                        text_style: <THEME_FONT_REGULAR> { font_size: 10 }
-                                    }
-                                }
-                            }
-                        }
-
-                        projects_panel = <ProjectsPanel> {
-                            visible: true
-                        }
-
-                        settings_panel = <SettingsDialog> {
-                            visible: false
-                            width: Fill, height: Fill
-                        }
-                    }
-                    sidebar_resize_handle = <View> {
-                        width: 6, height: Fill
-                        show_bg: true
-                        draw_bg: { color: (THEME_COLOR_BORDER_MEDIUM) }
-                    }
-
-                    <View> {
+                    View {
                         width: Fill, height: Fill
-                        flow: Down,
-                        spacing: 0,
+                        flow: Right
 
-                        // Main Header
-                        main_header = <HeaderBar> {
-                            height: 36
-                            padding: { left: 16, right: 10 }
-                            draw_bg: {
-                                color: (THEME_COLOR_BG_APP)
-                                border_color: (THEME_COLOR_BORDER_MEDIUM)
-                                border_radius: 0.0
-                            }
+                        side_panel := SidePanel {
+                            width: 260.0, height: Fill
+                            open_size: 260.0
+                            flow: Down
 
-                            // This spacer expands when the sidebar closes to keep traffic lights clear
-                            traffic_light_spacer = <SidePanel> {
-                                width: 0.0, height: Fill
-                                open_size: 80.0
-                                close_size: 0.0
-                                draw_bg: { color: (THEME_COLOR_TRANSPARENT), border_size: 0.0 } // Transparent!
-                            }
+                            sidebar_header := mod.widgets.SidebarHeader {}
 
-                            hamburger_button = <HamburgerButton> {
-                                width: 32, height: 32
-                            }
-                            <View> { width: 4 }
-                            app_title = <Label> {
-                                text: "Openpad"
-                                draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
-                            }
-                            <View> { width: Fill }
-                            status_row = <View> {
-                                width: Fit, height: Fit
-                                flow: Right
-                                spacing: 8
-                                align: { y: 0.5 }
-                                work_indicator = <View> {
-                                    visible: false
-                                    width: Fit, height: Fit
-                                    flow: Right, spacing: 4, align: { y: 0.5 }
-                                    <StatusDot> {
-                                        draw_bg: {
-                                            fn pixel(self) -> vec4 {
-                                                let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                                                let c = self.rect_size * 0.5;
-                                                let r = min(c.x, c.y) - 1.0;
-                                                sdf.circle(c.x, c.y, r);
-                                                let color = (THEME_COLOR_ACCENT_AMBER);
-                                                // Pulse effect using time
-                                                let pulse = 0.8 + 0.2 * sin(self.time * 5.0);
-                                                return sdf.fill(color * pulse);
-                                            }
-                                        }
-                                    }
-                                    <Label> {
-                                        text: "Working..."
-                                        draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                    }
-                                }
-                                status_dot = <StatusDot> {}
-                                status_label = <Label> {
-                                    text: "Connected"
-                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARK), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                }
-                            }
+                            projects_panel := ProjectsPanel { visible: true }
+                            settings_panel := SettingsDialog { visible: false width: Fill height: Fill }
                         }
 
-                        // Slim Breadcrumbs Bar
-                        session_info = <View> {
-                            width: Fill, height: 32
-                            padding: { left: 16, right: 16 }
-                            flow: Right,
-                            spacing: 8,
-                            align: { y: 0.5 }
-                            show_bg: true
-                            draw_bg: { color: (THEME_COLOR_BG_APP) }
+                        sidebar_resize_handle := View { width: 6, height: Fill }
 
-                            project_row = <View> {
-                                width: Fit, height: Fit
-                                flow: Right, spacing: 4, align: {y: 0.5}
-                                project_badge = <View> {
+                        View {
+                            width: Fill, height: Fill
+                            flow: Down
+
+                            main_header := HeaderBar {
+                                width: Fill, height: 36
+                                traffic_light_spacer := SidePanel { width: 0.0 height: Fill open_size: 80.0 close_size: 0.0 }
+                                hamburger_button := HamburgerButton { width: 32, height: 32 }
+                                app_title := Label { text: "Openpad" }
+                                View { width: Fill }
+                                status_row := View {
                                     width: Fit, height: Fit
-                                    project_badge_label = <Label> {
-                                        text: "No project"
-                                        draw_text: { color: (THEME_COLOR_TEXT_MUTED), text_style: <THEME_FONT_REGULAR> { font_size: 10 } }
-                                    }
+                                    flow: Right, spacing: 8
+                                    work_indicator := View { visible: false Label { text: "Working..." } }
+                                    status_dot := StatusDot {}
+                                    status_label := Label { text: "Connected" }
                                 }
                             }
 
-                            <Label> { text: "/", draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 10 } } }
-
-                            session_row = <View> {
-                                width: Fit, height: Fit
-                                session_title = <Label> {
-                                    text: "New Session"
-                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHTER), text_style: <THEME_FONT_BOLD> { font_size: 10 } }
+                            session_info := View {
+                                width: Fill, height: 32
+                                flow: Right, spacing: 8
+                                show_bg: true
+                                draw_bg +: {
+                                    color: #171a20
+                                    border_size: 1.0
+                                    border_color: #262c35
                                 }
-                            }
-
-                            project_path_wrap = <View> {
-                                visible: false
-                                project_path_label = <Label> { text: "" }
-                            }
-
-                            <View> { width: Fill }
-
-                            share_wrap = <View> {
-                                width: Fit, height: Fit
-                                flow: Right,
-                                spacing: 6,
-                                align: { y: 0.5 }
-
-                                share_button = <Button> {
-                                    width: Fit, height: 20
-                                    text: "Share"
-                                    draw_bg: {
-                                        color: (THEME_COLOR_TRANSPARENT)
-                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                }
-
-                                unshare_button = <Button> {
-                                    width: Fit, height: 20
-                                    visible: false
-                                    text: "Unshare"
-                                    draw_bg: {
-                                        color: (THEME_COLOR_TRANSPARENT)
-                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                }
-
-                                copy_share_button = <Button> {
-                                    width: Fit, height: 20
-                                    visible: false
-                                    text: "Copy link"
-                                    draw_bg: {
-                                        color: (THEME_COLOR_TRANSPARENT)
-                                        color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                        border_radius: 4.0
-                                        border_size: 0.0
-                                    }
-                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                }
-
-                                share_url_label = <Label> {
+                                padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
+                                project_row := View {
                                     width: Fit, height: Fit
-                                    text: ""
-                                    draw_text: { color: (THEME_COLOR_TEXT_MUTED_DARKER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
+                                    project_badge := View { project_badge_label := Label { text: "No project" } }
                                 }
+                                Label { text: "/" }
+                                session_row := View { session_title := Label { text: "New Session" } }
+                                session_options_btn := Button {
+                                    width: 28, height: 24
+                                    text: "⋯"
+                                    draw_bg +: {
+                                        color: #0000
+                                        color_hover: #333
+                                        border_radius: 6.0
+                                        border_size: 0.0
+                                    }
+                                    draw_text +: { color: #9ca3af, text_style: theme.font_bold { font_size: 11 } }
+                                }
+                                project_path_wrap := View { visible: false project_path_label := Label { text: "" } }
+                                View { width: Fill }
+                                share_wrap := View {
+                                    width: Fit, height: Fit
+                                    flow: Right, spacing: 6
+                                    share_button := Button { width: Fit, height: 20, text: "Share" }
+                                    unshare_button := Button { width: Fit, height: 20, visible: false, text: "Unshare" }
+                                    copy_share_button := Button { width: Fit, height: 20, visible: false, text: "Copy link" }
+                                    share_url_label := Label { text: "" }
+                                }
+                                summarize_button := Button { width: Fit, height: 20, text: "Summarize" }
+                                revert_indicator := View { visible: false revert_indicator_label := Label { text: "Reverted" } }
+                                unrevert_wrap := View { visible: false unrevert_button := Button { width: Fit, height: 20, text: "Unrevert" } }
                             }
 
-                            summarize_button = <Button> {
-                                width: Fit, height: 20
-                                text: "Summarize"
-                                draw_bg: {
-                                    color: (THEME_COLOR_TRANSPARENT)
-                                    color_hover: (THEME_COLOR_HOVER_MEDIUM)
-                                    border_radius: 4.0
-                                    border_size: 0.0
-                                }
-                                draw_text: { color: (THEME_COLOR_TEXT_MUTED_LIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                            }
-
-                            revert_indicator = <View> {
-                                visible: false
-                                revert_indicator_label = <Label> {
-                                    text: "⟲ Reverted"
-                                    draw_text: { color: (THEME_COLOR_ACCENT_AMBER), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                }
-                            }
-                            unrevert_wrap = <View> {
-                                visible: false
-                                unrevert_button = <Button> {
-                                    width: Fit, height: 20
-                                    text: "Unrevert"
-                                    draw_text: { color: (THEME_COLOR_ACCENT_BLUE), text_style: <THEME_FONT_REGULAR> { font_size: 9 } }
-                                }
-                            }
+                            ChatPanel {}
+                            terminal_panel_wrap := TerminalPanelWrap {}
                         }
-                        <ChatPanel> {}
-                        terminal_panel_wrap = <TerminalPanelWrap> {}
                     }
-                }
-                }
 
-                // Simple dialog for confirmations and inputs (shown as overlay)
-                simple_dialog = <SimpleDialog> {}
+                    simple_dialog := SimpleDialog {}
+
+                    session_options_popup := mod.widgets.SessionOptionsPopup { visible: false }
+                }
             }
         }
     }
 }
-
-#[derive(Live, LiveHook)]
+#[derive(Script, ScriptHook)]
 pub struct App {
     #[live]
     ui: WidgetRef,
@@ -633,16 +252,17 @@ pub struct App {
     providers_loaded_once: bool,
 }
 
-impl LiveRegister for App {
-    fn live_register(cx: &mut Cx) {
-        openpad_widgets::live_design(cx);
-        makepad_code_editor::code_editor::live_design(cx);
-        makepad_code_editor::code_view::live_design(cx);
-        crate::components::projects_panel::live_design(cx);
-    }
-}
-
 impl App {
+    fn run(vm: &mut ScriptVm) -> Self {
+        makepad_widgets::script_mod(vm);
+        makepad_code_editor::script_mod(vm);
+        openpad_widgets::script_mod(vm);
+        crate::components::projects_panel::script_mod(vm);
+        crate::components::sidebar_header::script_mod(vm);
+        crate::components::session_options_popup::script_mod(vm);
+        App::from_script_mod(vm, self::script_mod)
+    }
+
     fn normalize_project_directory(worktree: &str) -> String {
         if worktree == "." {
             if let Ok(current_dir) = std::env::current_dir() {
@@ -669,7 +289,7 @@ impl App {
     fn update_attachments_ui(&self, cx: &mut Cx) {
         let has_attachments = !self.state.attached_files.is_empty();
         self.ui
-            .view(&[id!(attachments_preview)])
+            .view(cx, &[id!(attachments_preview)])
             .set_visible(cx, has_attachments);
 
         if has_attachments {
@@ -680,7 +300,9 @@ impl App {
                 .map(|f| f.filename.clone())
                 .collect();
             let text = filenames.join(", ");
-            self.ui.label(&[id!(attachments_list)]).set_text(cx, &text);
+            self.ui
+                .label(cx, &[id!(attachments_list)])
+                .set_text(cx, &text);
         }
         self.ui.redraw(cx);
     }
@@ -689,15 +311,15 @@ impl App {
         let selected = self.state.selected_skill();
         let has_skill = selected.is_some();
         self.ui
-            .view(&[id!(skill_preview)])
+            .view(cx, &[id!(skill_preview)])
             .set_visible(cx, has_skill);
 
         if let Some(skill) = selected {
             self.ui
-                .label(&[id!(skill_name_label)])
+                .label(cx, &[id!(skill_name_label)])
                 .set_text(cx, &skill.name);
             self.ui
-                .label(&[id!(skill_desc_label)])
+                .label(cx, &[id!(skill_desc_label)])
                 .set_text(cx, &skill.description);
         }
         self.ui.redraw(cx);
@@ -707,18 +329,14 @@ impl App {
         let clamped = width.clamp(SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH);
         self.sidebar_width = clamped;
         self.ui
-            .side_panel(&[id!(side_panel)])
-            .apply_over(cx, live! { open_size: (clamped) });
+            .side_panel(cx, &[id!(side_panel)])
+            .set_open_size(cx, clamped);
         self.ui.redraw(cx);
     }
 
     fn update_sidebar_handle_visibility(&self, cx: &mut Cx) {
-        let width = if self.sidebar_open { 6.0 } else { 0.0 };
         self.ui
-            .view(&[id!(sidebar_resize_handle)])
-            .apply_over(cx, live! { width: (width) });
-        self.ui
-            .view(&[id!(sidebar_resize_handle)])
+            .view(cx, &[id!(sidebar_resize_handle)])
             .set_visible(cx, self.sidebar_open);
     }
 
@@ -732,21 +350,21 @@ impl App {
             self.set_sidebar_width(cx, self.sidebar_width);
         }
         self.ui
-            .side_panel(&[id!(side_panel)])
+            .side_panel(cx, &[id!(side_panel)])
             .set_open(cx, self.sidebar_open);
         self.ui
-            .side_panel(&[id!(traffic_light_spacer)])
+            .side_panel(cx, &[id!(traffic_light_spacer)])
             .set_open(cx, !self.sidebar_open);
         self.update_sidebar_handle_visibility(cx);
         self.update_sidebar_panel_visibility(cx);
 
         if self.sidebar_open {
             self.ui
-                .view(&[id!(hamburger_button)])
+                .view(cx, &[id!(hamburger_button)])
                 .animator_play(cx, &[id!(open), id!(on)]);
         } else {
             self.ui
-                .view(&[id!(hamburger_button)])
+                .view(cx, &[id!(hamburger_button)])
                 .animator_play(cx, &[id!(open), id!(off)]);
         }
     }
@@ -757,57 +375,21 @@ impl App {
 
         // Use widget() for custom widgets (ProjectsPanel, SettingsDialog).
         self.ui
-            .widget(&[id!(side_panel), id!(projects_panel)])
+            .widget(cx, &[id!(side_panel), id!(projects_panel)])
             .set_visible(cx, show_projects);
         self.ui
-            .widget(&[id!(side_panel), id!(settings_panel)])
+            .widget(cx, &[id!(side_panel), id!(settings_panel)])
             .set_visible(cx, show_settings);
 
-        // Update tab button styling to show active state
-        // Use hex colors directly since theme constants aren't available in Rust code
-        let projects_color = if show_projects {
-            vec4(0.9, 0.91, 0.93, 1.0) // THEME_COLOR_TEXT_PRIMARY equivalent
-        } else {
-            vec4(0.53, 0.53, 0.53, 1.0) // THEME_COLOR_TEXT_MUTED equivalent (#888)
-        };
-
-        let settings_color = if show_settings {
-            vec4(0.9, 0.91, 0.93, 1.0) // THEME_COLOR_TEXT_PRIMARY equivalent
-        } else {
-            vec4(0.53, 0.53, 0.53, 1.0) // THEME_COLOR_TEXT_MUTED equivalent (#888)
-        };
-
-        self.ui
-            .button(&[id!(side_panel), id!(sidebar_tabs), id!(projects_tab)])
-            .apply_over(
-                cx,
-                live! {
-                    draw_text: {
-                        color: (projects_color)
-                    }
-                },
-            );
-
-        self.ui
-            .button(&[id!(side_panel), id!(sidebar_tabs), id!(settings_tab)])
-            .apply_over(
-                cx,
-                live! {
-                    draw_text: {
-                        color: (settings_color)
-                    }
-                },
-            );
-
         // Force redraw of the side panel to ensure visibility changes take effect
-        self.ui.view(&[id!(side_panel)]).redraw(cx);
+        self.ui.view(cx, &[id!(side_panel)]).redraw(cx);
         self.ui.redraw(cx);
     }
 
     fn toggle_terminal(&mut self, cx: &mut Cx) {
         self.terminal_open = !self.terminal_open;
         self.ui
-            .terminal_panel(&[id!(terminal_panel_wrap)])
+            .terminal_panel(cx, &[id!(terminal_panel_wrap)])
             .set_open(cx, self.terminal_open);
     }
 
@@ -817,11 +399,11 @@ impl App {
             return;
         }
 
-        let handle_area = self.ui.view(&[id!(sidebar_resize_handle)]).area();
+        let handle_area = self.ui.view(cx, &[id!(sidebar_resize_handle)]).area();
         let hit = event.hits_with_options(
             cx,
             handle_area,
-            HitOptions::new().with_margin(Margin {
+            HitOptions::new().with_margin(Inset {
                 left: 4.0,
                 right: 4.0,
                 top: 0.0,
@@ -904,52 +486,6 @@ impl App {
         remaining_text
     }
 
-    fn handle_image_input(&mut self, cx: &mut Cx, image: &ImageInputEvent) {
-        use crate::state::handlers::AttachedFile;
-
-        if image.data.is_empty() {
-            return;
-        }
-
-        if !self.ui.text_input(&[id!(input_box)]).key_focus(cx) {
-            return;
-        }
-
-        let Some(mime_type) = detect_image_mime_type(&image.data) else {
-            log!(
-                "Unsupported clipboard image format ({} bytes)",
-                image.data.len()
-            );
-            return;
-        };
-
-        let extension = image_extension_for_mime(mime_type);
-        let filename = format!(
-            "attachment_{}_{}.{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis(),
-            self.state.attached_files.len(),
-            extension
-        );
-        let data_url = format!("data:{};base64,{}", mime_type, STANDARD.encode(&image.data));
-
-        self.state.attached_files.push(AttachedFile {
-            filename: filename.clone(),
-            mime_type: mime_type.to_string(),
-            data_url,
-            raw_text: None,
-        });
-
-        log!(
-            "Detected pasted image from clipboard: {} ({})",
-            mime_type,
-            filename
-        );
-        self.update_attachments_ui(cx);
-    }
-
     fn connect_to_opencode(&mut self, _cx: &mut Cx) {
         if self.client.is_some() || self._runtime.is_some() {
             return;
@@ -969,13 +505,6 @@ impl App {
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
         for action in actions {
-            // Handle TerminalAction from background thread
-            if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
-                self.ui
-                    .terminal(&[id!(terminal_panel)])
-                    .handle_action(cx, terminal_action);
-            }
-
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
                     AppAction::OpenCodeEvent(oc_event) => {
@@ -1221,12 +750,14 @@ impl App {
 
     fn delete_session(&mut self, cx: &mut Cx, session_id: String) {
         // Show confirmation dialog
-        self.ui.simple_dialog(&[id!(simple_dialog)]).show_confirm(
-            cx,
-            "Delete Session",
-            "Are you sure you want to delete this session? This action cannot be undone.",
-            format!("delete_session:{}", session_id),
-        );
+        self.ui
+            .simple_dialog(cx, &[id!(simple_dialog)])
+            .show_confirm(
+                cx,
+                "Delete Session",
+                "Are you sure you want to delete this session? This action cannot be undone.",
+                format!("delete_session:{}", session_id),
+            );
     }
 
     fn rename_session(&mut self, cx: &mut Cx, session_id: String) {
@@ -1240,7 +771,7 @@ impl App {
             .unwrap_or_else(|| "Session".to_string());
 
         // Show input dialog
-        self.ui.simple_dialog(&[id!(simple_dialog)]).show_input(
+        self.ui.simple_dialog(cx, &[id!(simple_dialog)]).show_input(
             cx,
             "Rename Session",
             "Enter a new name for this session:",
@@ -1397,7 +928,7 @@ impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         if self.state.is_working {
             if let Event::NextFrame(_) = event {
-                self.ui.view(&[id!(work_indicator)]).redraw(cx);
+                self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
             }
             cx.new_next_frame();
         }
@@ -1411,30 +942,26 @@ impl AppMain for App {
                         window.set_fullscreen(cx);
                     }
                 }
-                // Initialize terminal
-                self.ui.terminal(&[id!(terminal_panel)]).init_pty(cx);
-
                 // Initialize sidebar open, terminal collapsed by default
                 self.sidebar_open = true;
                 self.sidebar_mode = SidebarMode::Projects;
                 self.terminal_open = false;
                 self.ui
-                    .terminal_panel(&[id!(terminal_panel_wrap)])
+                    .terminal_panel(cx, &[id!(terminal_panel_wrap)])
                     .set_open(cx, false);
                 self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
                 self.set_sidebar_width(cx, self.sidebar_width);
-                self.ui.side_panel(&[id!(side_panel)]).set_open(cx, true);
                 self.ui
-                    .side_panel(&[id!(traffic_light_spacer)])
+                    .side_panel(cx, &[id!(side_panel)])
+                    .set_open(cx, true);
+                self.ui
+                    .side_panel(cx, &[id!(traffic_light_spacer)])
                     .set_open(cx, false);
                 self.ui
-                    .view(&[id!(hamburger_button)])
+                    .view(cx, &[id!(hamburger_button)])
                     .animator_play(cx, &[id!(open), id!(on)]);
                 self.update_sidebar_handle_visibility(cx);
                 self.update_sidebar_panel_visibility(cx);
-            }
-            Event::ImageInput(image) => {
-                self.handle_image_input(cx, image);
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
@@ -1465,6 +992,30 @@ impl AppMain for App {
             self.ui.handle_event(cx, event, &mut Scope::empty());
         });
 
+        // Session options button in header (reliable way to open session menu)
+        let opts_clicked = self
+            .ui
+            .button(cx, &[id!(session_info), id!(session_options_btn)])
+            .clicked(&actions)
+            || self.ui.button(cx, &[id!(session_options_btn)]).clicked(&actions);
+        if opts_clicked {
+            log!("Session options button clicked");
+            if let Some(session_id) = &self.state.current_session_id {
+                let working = self
+                    .state
+                    .working_by_session
+                    .get(session_id)
+                    .copied()
+                    .unwrap_or(false);
+                self.ui
+                    .widget(cx, &[id!(session_options_popup)])
+                    .set_visible(cx, true);
+                self.ui
+                    .session_options_popup(cx, &[id!(session_options_popup)])
+                    .show(cx, session_id.clone(), working);
+            }
+        }
+
         // Process widget actions (e.g. ProjectsPanelAction from sidebar clicks)
         for action in &actions {
             if let Some(panel_action) = action.downcast_ref::<ProjectsPanelAction>() {
@@ -1474,7 +1025,7 @@ impl AppMain for App {
                         self.state.current_session_id = Some(session_id.clone());
                         self.state.is_working = false;
                         self.state.messages_data.clear();
-                        self.ui.message_list(&[id!(message_list)]).set_messages(
+                        self.ui.message_list(cx, &[id!(message_list)]).set_messages(
                             cx,
                             &self.state.messages_data,
                             None,
@@ -1506,6 +1057,28 @@ impl AppMain for App {
                     ProjectsPanelAction::BranchSession(session_id) => {
                         self.branch_session(cx, session_id.clone());
                     }
+                    ProjectsPanelAction::OpenSessionContextMenu {
+                        session_id,
+                        x: _,
+                        y: _,
+                        working,
+                    } => {
+                        let popup_ref = self.ui.widget(cx, &[id!(session_options_popup)]);
+                        popup_ref.set_visible(cx, true);
+                        popup_ref.redraw(cx);
+                        self.ui
+                            .session_options_popup(cx, &[id!(session_options_popup)])
+                            .show(cx, session_id.clone(), *working);
+                        popup_ref.redraw(cx);
+                    }
+                    ProjectsPanelAction::CloseSessionContextMenu => {
+                        self.ui
+                            .widget(cx, &[id!(session_options_popup)])
+                            .set_visible(cx, false);
+                        self.ui
+                            .session_options_popup(cx, &[id!(session_options_popup)])
+                            .hide(cx);
+                    }
                     _ => {}
                 }
             }
@@ -1522,16 +1095,13 @@ impl AppMain for App {
                 }
             }
 
-            // Handle TerminalAction
-            if let Some(terminal_action) = action.downcast_ref::<TerminalAction>() {
-                self.ui
-                    .terminal(&[id!(terminal_panel)])
-                    .handle_action(cx, terminal_action);
-            }
-
             // Handle AppAction from captured UI actions (e.g. DialogConfirmed, PermissionResponded)
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
+                    AppAction::SetSidebarMode(mode) => {
+                        self.sidebar_mode = *mode;
+                        self.update_sidebar_panel_visibility(cx);
+                    }
                     AppAction::DialogConfirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
@@ -1695,7 +1265,7 @@ impl AppMain for App {
         // Detect pasted images (data URLs) and long text on input change,
         // converting them to attachments immediately.
         const LONG_TEXT_THRESHOLD: usize = 2000;
-        if let Some(new_text) = self.ui.text_input(&[id!(input_box)]).changed(&actions) {
+        if let Some(new_text) = self.ui.text_input(cx, &[id!(input_box)]).changed(&actions) {
             let remaining = self.process_pasted_content(cx, &new_text);
             if remaining.len() > LONG_TEXT_THRESHOLD {
                 use crate::state::handlers::AttachedFile;
@@ -1715,51 +1285,65 @@ impl AppMain for App {
                     raw_text: Some(remaining.clone()),
                 });
 
-                self.ui.text_input(&[id!(input_box)]).set_text(cx, "");
+                self.ui.text_input(cx, &[id!(input_box)]).set_text(cx, "");
                 self.update_attachments_ui(cx);
             } else if remaining != new_text {
                 // Images were extracted — update the input with remaining text
                 self.ui
-                    .text_input(&[id!(input_box)])
+                    .text_input(cx, &[id!(input_box)])
                     .set_text(cx, &remaining);
             }
         }
 
         // Check for text input return
-        if let Some((text, _modifiers)) = self.ui.text_input(&[id!(input_box)]).returned(&actions) {
+        if let Some((text, _modifiers)) =
+            self.ui.text_input(cx, &[id!(input_box)]).returned(&actions)
+        {
             if !text.is_empty() {
                 let processed_text = self.process_pasted_content(cx, &text);
                 self.send_message(cx, processed_text);
-                self.ui.text_input(&[id!(input_box)]).set_text(cx, "");
+                self.ui.text_input(cx, &[id!(input_box)]).set_text(cx, "");
             }
         }
 
         // Handle unrevert button
-        if self.ui.button(&[id!(unrevert_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(unrevert_button)])
+            .clicked(&actions)
+        {
             if let Some(session_id) = &self.state.current_session_id {
                 self.unrevert_session(cx, session_id.clone());
             }
         }
 
-        if self.ui.button(&[id!(share_button)]).clicked(&actions) {
+        if self.ui.button(cx, &[id!(share_button)]).clicked(&actions) {
             if let Some(session_id) = &self.state.current_session_id {
                 self.share_session(cx, session_id.clone());
             }
         }
 
-        if self.ui.button(&[id!(unshare_button)]).clicked(&actions) {
+        if self.ui.button(cx, &[id!(unshare_button)]).clicked(&actions) {
             if let Some(session_id) = &self.state.current_session_id {
                 self.unshare_session(cx, session_id.clone());
             }
         }
 
-        if self.ui.button(&[id!(copy_share_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(copy_share_button)])
+            .clicked(&actions)
+        {
             if let Some(url) = self.state.current_share_url() {
                 cx.copy_to_clipboard(&url);
             }
         }
 
-        if self.ui.button(&[id!(summarize_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(summarize_button)])
+            .clicked(&actions)
+        {
             let session_id = self.state.current_session_id.clone();
             if let Some(session_id) = session_id {
                 let message_id =
@@ -1776,54 +1360,41 @@ impl AppMain for App {
             }
         }
 
-        if self.ui.button(&[id!(hamburger_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(hamburger_button)])
+            .clicked(&actions)
+        {
             self.toggle_sidebar(cx);
         }
 
-        if self
-            .ui
-            .button(&[id!(side_panel), id!(sidebar_tabs), id!(projects_tab)])
-            .clicked(&actions)
-        {
-            self.sidebar_mode = SidebarMode::Projects;
-            self.update_sidebar_panel_visibility(cx);
-        }
-
-        if self
-            .ui
-            .button(&[id!(side_panel), id!(sidebar_tabs), id!(settings_tab)])
-            .clicked(&actions)
-        {
-            self.sidebar_mode = SidebarMode::Settings;
-            if !self.sidebar_open {
-                self.toggle_sidebar(cx);
-            }
-            self.update_sidebar_panel_visibility(cx);
-        }
-
-        if self.ui.button(&[id!(send_button)]).clicked(&actions) {
-            let text = self.ui.text_input(&[id!(input_box)]).text();
+        if self.ui.button(cx, &[id!(send_button)]).clicked(&actions) {
+            let text = self.ui.text_input(cx, &[id!(input_box)]).text();
             if !text.is_empty() {
                 let processed_text = self.process_pasted_content(cx, &text);
                 self.send_message(cx, processed_text);
-                self.ui.text_input(&[id!(input_box)]).set_text(cx, "");
+                self.ui.text_input(cx, &[id!(input_box)]).set_text(cx, "");
             }
         }
 
         // Handle clear attachments button
         if self
             .ui
-            .button(&[id!(clear_attachments_button)])
+            .button(cx, &[id!(clear_attachments_button)])
             .clicked(&actions)
         {
             self.state.attached_files.clear();
             self.update_attachments_ui(cx);
         }
 
-        if self.ui.button(&[id!(clear_skill_button)]).clicked(&actions) {
+        if self
+            .ui
+            .button(cx, &[id!(clear_skill_button)])
+            .clicked(&actions)
+        {
             self.state.selected_skill_idx = None;
             self.ui
-                .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
+                .up_drop_down(cx, &[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
             self.update_skill_ui(cx);
         }
@@ -1832,37 +1403,37 @@ impl AppMain for App {
         // Provider selection changed - update model list
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(input_bar_toolbar), id!(provider_dropdown)])
+            .up_drop_down(cx, &[id!(input_bar_toolbar), id!(provider_dropdown)])
             .changed(&actions)
         {
             self.state.selected_provider_idx = idx;
             self.state.update_model_list_for_provider();
             self.ui
-                .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+                .up_drop_down(cx, &[id!(input_bar_toolbar), id!(model_dropdown)])
                 .set_labels(cx, self.state.model_labels.clone());
             self.ui
-                .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+                .up_drop_down(cx, &[id!(input_bar_toolbar), id!(model_dropdown)])
                 .set_selected_item(cx, 0);
         }
 
         // Model selection changed
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)])
+            .up_drop_down(cx, &[id!(input_bar_toolbar), id!(model_dropdown)])
             .changed(&actions)
         {
             self.state.selected_model_idx = idx;
         }
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(input_bar_toolbar), id!(agent_dropdown)])
+            .up_drop_down(cx, &[id!(input_bar_toolbar), id!(agent_dropdown)])
             .changed(&actions)
         {
             self.state.selected_agent_idx = if idx > 0 { Some(idx - 1) } else { None };
         }
         if let Some(idx) = self
             .ui
-            .up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
+            .up_drop_down(cx, &[id!(input_bar_toolbar), id!(skill_dropdown)])
             .changed(&actions)
         {
             self.state.selected_skill_idx = if idx > 0 { Some(idx - 1) } else { None };

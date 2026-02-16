@@ -189,6 +189,7 @@ impl AppState {
     }
 }
 
+#[allow(dead_code)]
 fn build_model_entries(providers: &[Provider]) -> Vec<ModelDropdownEntry> {
     /// Helper to get display label, preferring name over id
     fn display_label(name: Option<&str>, id: &str) -> String {
@@ -303,19 +304,28 @@ impl AppState {
 
     /// Updates projects panel with current data
     pub fn update_projects_panel(&self, ui: &WidgetRef, cx: &mut Cx) {
-        ui.projects_panel(&[id!(projects_panel)]).set_data(
+        // Keep both lookup paths while the sidebar tree is being stabilized.
+        ui.projects_panel(cx, &[id!(projects_panel)]).set_data(
             cx,
             self.projects.clone(),
             self.sessions.clone(),
             self.selected_session_id.clone(),
             self.working_by_session.clone(),
         );
+        ui.projects_panel(cx, &[id!(side_panel), id!(projects_panel)])
+            .set_data(
+                cx,
+                self.projects.clone(),
+                self.sessions.clone(),
+                self.selected_session_id.clone(),
+                self.working_by_session.clone(),
+            );
     }
 
     /// Clears all messages and updates the UI
     pub fn clear_messages(&mut self, ui: &WidgetRef, cx: &mut Cx) {
         self.messages_data.clear();
-        ui.message_list(&[id!(message_list)])
+        ui.message_list(cx, &[id!(message_list)])
             .set_messages(cx, &self.messages_data, None);
     }
 
@@ -428,14 +438,14 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.update_session_meta_ui(ui, cx);
 
             // Also update inline diffs in message list
-            ui.message_list(&[id!(message_list)])
+            ui.message_list(cx, &[id!(message_list)])
                 .set_session_diffs(cx, &diffs);
 
             cx.redraw_all();
         }
         AppAction::MessagesLoaded(messages) => {
             state.messages_data = messages.clone();
-            ui.message_list(&[id!(message_list)]).set_messages(
+            ui.message_list(cx, &[id!(message_list)]).set_messages(
                 cx,
                 &state.messages_data,
                 state.current_revert_message_id(),
@@ -497,7 +507,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 "Setting provider dropdown with {} labels",
                 state.provider_labels.len()
             );
-            let provider_dd = ui.up_drop_down(&[id!(input_bar_toolbar), id!(provider_dropdown)]);
+            let provider_dd = ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(provider_dropdown)]);
             provider_dd.set_labels(cx, state.provider_labels.clone());
             provider_dd.set_selected_item(cx, 0);
             log!(
@@ -510,7 +520,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 "Setting model dropdown with {} labels",
                 state.model_labels.len()
             );
-            let model_dd = ui.up_drop_down(&[id!(input_bar_toolbar), id!(model_dropdown)]);
+            let model_dd = ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(model_dropdown)]);
             model_dd.set_labels(cx, state.model_labels.clone());
             model_dd.set_selected_item(cx, 0);
 
@@ -518,7 +528,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             ui.redraw(cx);
             log!("Provider labels set: {:?}", state.provider_labels);
 
-            ui.settings_dialog(&[id!(side_panel), id!(settings_panel)])
+            ui.settings_dialog(cx, &[id!(side_panel), id!(settings_panel)])
                 .set_providers(cx, state.providers.clone());
 
             cx.redraw_all();
@@ -528,9 +538,9 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.agents = agents.clone();
             let mut labels: Vec<String> = vec!["Default".to_string()];
             labels.extend(state.agents.iter().map(|a| a.name.clone()));
-            ui.up_drop_down(&[id!(input_bar_toolbar), id!(agent_dropdown)])
+            ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(agent_dropdown)])
                 .set_labels(cx, labels);
-            ui.up_drop_down(&[id!(input_bar_toolbar), id!(agent_dropdown)])
+            ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(agent_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_agent_idx = None;
             cx.redraw_all();
@@ -540,16 +550,16 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             state.skills = skills.clone();
             let mut labels: Vec<String> = vec!["Skill".to_string()];
             labels.extend(state.skills.iter().map(|s| s.name.clone()));
-            ui.up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
+            ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_labels(cx, labels);
-            ui.up_drop_down(&[id!(input_bar_toolbar), id!(skill_dropdown)])
+            ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
             state.selected_skill_idx = None;
             cx.redraw_all();
         }
         AppAction::ConfigLoaded(config) => {
             state.config = Some(config.clone());
-            ui.settings_dialog(&[id!(side_panel), id!(settings_panel)])
+            ui.settings_dialog(cx, &[id!(side_panel), id!(settings_panel)])
                 .set_config(cx, &config);
             cx.redraw_all();
         }
@@ -668,7 +678,7 @@ fn handle_message_updated(
         });
     }
 
-    ui.message_list(&[id!(message_list)]).set_messages(
+    ui.message_list(cx, &[id!(message_list)]).set_messages(
         cx,
         &state.messages_data,
         state.current_revert_message_id(),
@@ -694,6 +704,9 @@ fn handle_part_updated(
 
     let mut should_update_work = false;
     let mut work_session_id: Option<String> = None;
+    let mut did_mutate_parts = false;
+    let mut requires_full_rebuild = false;
+    let mut incremental_append: Option<(String, String)> = None;
     if let Some(mwp) = state
         .messages_data
         .iter_mut()
@@ -709,32 +722,58 @@ fn handle_part_updated(
             work_session_id = Some(mwp.info.session_id().to_string());
         }
 
-        // Handle text parts with IDs (for deduplication)
-        if let openpad_protocol::Part::Text { id, .. } = &part {
-            if !id.is_empty() {
-                if let Some(existing) = mwp
-                    .parts
-                    .iter_mut()
-                    .find(|p| matches!(p, openpad_protocol::Part::Text { id: existing_id, .. } if existing_id == id))
-                {
-                    *existing = part.clone();
-                } else {
-                    mwp.parts.push(part.clone());
-                }
-            } else {
-                mwp.parts.push(part.clone());
-            }
-        } else {
-            // For non-text parts (StepStart, Tool, StepFinish), always append
-            // These are incremental updates during streaming
-            mwp.parts.push(part.clone());
-        }
+        let role = match &mwp.info {
+            openpad_protocol::Message::Assistant(_) => "assistant",
+            openpad_protocol::Message::User(_) => "user",
+        };
 
-        ui.message_list(&[id!(message_list)]).set_messages(
-            cx,
-            &state.messages_data,
-            state.current_revert_message_id(),
-        );
+        match part {
+            openpad_protocol::Part::Text { id, text, .. } => {
+                if !id.is_empty() {
+                    if let Some(existing) = mwp.parts.iter_mut().find(|p| {
+                        matches!(p, openpad_protocol::Part::Text { id: existing_id, .. } if existing_id == id)
+                    }) {
+                        *existing = part.clone();
+                        did_mutate_parts = true;
+                        // Existing-id replacement may be non-delta content; keep correctness.
+                        requires_full_rebuild = true;
+                    } else {
+                        mwp.parts.push(part.clone());
+                        did_mutate_parts = true;
+                        if !text.is_empty() {
+                            incremental_append = Some((role.to_string(), text.clone()));
+                        }
+                    }
+                } else {
+                    // Text parts without IDs are treated as streaming deltas.
+                    // Append part and incrementally update UI text.
+                    mwp.parts.push(part.clone());
+                    did_mutate_parts = true;
+                    if !text.is_empty() {
+                        incremental_append = Some((role.to_string(), text.clone()));
+                    }
+                }
+            }
+            _ => {
+                // For non-text parts (StepStart, Tool, StepFinish), always append.
+                mwp.parts.push(part.clone());
+                did_mutate_parts = true;
+                requires_full_rebuild = true;
+            }
+        };
+    }
+
+    if did_mutate_parts {
+        if requires_full_rebuild {
+            ui.message_list(cx, &[id!(message_list)]).set_messages(
+                cx,
+                &state.messages_data,
+                state.current_revert_message_id(),
+            );
+        } else if let Some((role, text)) = incremental_append {
+            ui.message_list(cx, &[id!(message_list)])
+                .append_text_for_message(cx, &role, msg_id, &text);
+        }
     }
 
     if should_update_work {
@@ -796,7 +835,7 @@ fn remove_pending_permission(state: &mut AppState, request_id: &str) {
 fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx) {
     let Some(current_session_id) = &state.current_session_id else {
         // Clear permissions if no session
-        ui.message_list(&[id!(message_list)])
+        ui.message_list(cx, &[id!(message_list)])
             .set_pending_permissions(cx, &[]);
         return;
     };
@@ -813,7 +852,7 @@ fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut C
         })
         .collect();
 
-    ui.message_list(&[id!(message_list)])
+    ui.message_list(cx, &[id!(message_list)])
         .set_pending_permissions(cx, &displays);
 }
 
@@ -862,7 +901,7 @@ fn push_session_error_message(
         parts: vec![part],
     });
 
-    ui.message_list(&[id!(message_list)]).set_messages(
+    ui.message_list(cx, &[id!(message_list)]).set_messages(
         cx,
         &state.messages_data,
         state.current_revert_message_id(),
