@@ -48,6 +48,10 @@ script_mod! {
     use mod.widgets.*
     use mod.theme.*
 
+    // Register widgets from components so they're accessible in this script_mod
+    mod.widgets.SidebarHeader = #(crate::components::sidebar_header::SidebarHeader::register_widget(vm))
+    mod.widgets.SessionOptionsPopup = #(crate::components::session_options_popup::SessionOptionsPopup::register_widget(vm))
+
     let ChatPanel = View {
         width: Fill, height: Fill
         flow: Down
@@ -139,13 +143,13 @@ script_mod! {
                             open_size: 260.0
                             flow: Down
 
-                            sidebar_header := SidebarHeader {}
+                            sidebar_header := mod.widgets.SidebarHeader {}
 
                             projects_panel := ProjectsPanel { visible: true }
                             settings_panel := SettingsDialog { visible: false width: Fill height: Fill }
                         }
 
-                        sidebar_resize_handle := View { width: 6, height: Fill cursor: MouseCursor.ColResize }
+                        sidebar_resize_handle := View { width: 6, height: Fill }
 
                         View {
                             width: Fill, height: Fill
@@ -215,7 +219,7 @@ script_mod! {
 
                     simple_dialog := SimpleDialog {}
 
-                    session_options_popup := SessionOptionsPopup { visible: false }
+                    session_options_popup := mod.widgets.SessionOptionsPopup { visible: false }
                 }
             }
         }

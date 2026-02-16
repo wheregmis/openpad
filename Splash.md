@@ -82,45 +82,6 @@ If you're unsure whether a property exists, **don't use it**. Stick to the exact
 
 ---
 
-## ✅ Collapsible Header Rule
-
-For interactive/collapsible row headers, use a `Button` for the title area instead of relying on a plain `View`/`Label` hit region.
-
-- Prefer:
-  - `header_toggle := Button{ width: Fill ... }`
-  - Toggle state from `header_toggle.clicked(...)`
-- Avoid:
-  - Toggling from parent `View` finger-up events (can be inconsistent when child widgets are present)
-
-Use ASCII chevrons for max font compatibility:
-
-- collapsed: `">"`
-- expanded: `"v"`
-
-This avoids missing-glyph issues with Unicode arrows in some font setups.
-
----
-
-## ✅ Sidebar List Styling Rule
-
-For project/session sidebars, keep hierarchy and density consistent:
-
-- Project header row:
-  - tighter top/bottom padding than content rows
-  - bold label (`font_bold`) with slightly larger size than session rows
-  - subtle hover/active background only (`THEME_COLOR_HOVER_SUBTLE`)
-- Session row:
-  - indented relative to project header (`left` inset)
-  - slightly smaller regular text than project headers
-  - compact overflow/menu button width and subtle hover
-- Vertical rhythm:
-  - small spacer between project groups (for example `height: 6`)
-  - avoid large block gaps that break scanability
-
-This keeps collapse groups readable and prevents “floating card” artifacts in dense lists.
-
----
-
 ## 📝 OUTPUT FORMAT: CODE ONLY 📝
 
 **When generating UI, output ONLY the Splash code.** Do not add:

@@ -18,6 +18,7 @@ script_mod! {
     use mod.prelude.widgets_internal.*
     use mod.widgets.*
 
+    mod.widgets.PopupMenuPosition = #(PopupMenuPosition::script_component(vm))
     mod.widgets.UpDrawLabelTextBase = #(UpDrawLabelText::script_component(vm))
     mod.widgets.UpDropDownBase = #(UpDropDown::register_widget(vm))
 

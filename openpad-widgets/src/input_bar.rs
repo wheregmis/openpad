@@ -46,7 +46,7 @@ script_mod! {
     mod.widgets.InputBarDropDown = mod.widgets.UpDropDown {
         width: Fit
         height: 28
-        popup_menu_position: BelowInput
+        popup_menu_position: mod.widgets.PopupMenuPosition.BelowInput
         padding: Inset{left: 12 right: 26 top: 5 bottom: 5}
         animator: Animator {
             disabled: {
