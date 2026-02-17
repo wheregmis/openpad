@@ -922,6 +922,8 @@ fn push_session_error_message(
         summary: None,
         cost: 0.0,
         tokens: None,
+        structured: None,
+        variant: None,
         finish: None,
     };
 

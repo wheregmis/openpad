@@ -93,6 +93,14 @@ pub fn format_assistant_error(error: &AssistantError) -> String {
         }
         AssistantError::MessageOutputLengthError => "Message exceeded output length.\nAction: ask for a shorter answer or split the request.".to_string(),
         AssistantError::MessageAbortedError { message } => format!("Message aborted: {}\nAction: resend if this was unintended.", message),
+        AssistantError::StructuredOutputError { message, retries } => format!(
+            "Structured output error: {} (retries: {})\nAction: simplify the requested schema/format and retry.",
+            message, retries
+        ),
+        AssistantError::ContextOverflowError { message, .. } => format!(
+            "Context overflow: {}\nAction: reduce prompt length or start a new thread with less prior context.",
+            message
+        ),
         AssistantError::UnknownError { message } => format!("Unexpected error: {}\nAction: try again or check provider status.", message),
     }
 }

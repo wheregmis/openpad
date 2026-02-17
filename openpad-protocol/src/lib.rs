@@ -80,6 +80,12 @@ mod tests {
         let _: FileReadResponse;
         let _: FileStatusRequest;
         let _: File;
+        let _: Todo;
+        let _: Pty;
+        let _: LSPStatus;
+        let _: FormatterStatus;
+        let _: Command;
+        let _: Worktree;
 
         // TUI types
         let _: AppendPromptRequest;
@@ -125,6 +131,7 @@ mod tests {
         let _: AssistantError;
         let _: Part;
         let _: PartInput;
+        let _: OutputFormat;
 
         // Event types
         let _: Event;
@@ -323,11 +330,14 @@ mod tests {
                 summary: None,
                 cost: 0.0,
                 tokens: Some(TokenUsage {
+                    total: Some(150),
                     input: 100,
                     output: 50,
                     reasoning: 0,
                     cache: CacheUsage { read: 0, write: 0 },
                 }),
+                structured: None,
+                variant: None,
                 finish: None,
             });
 
@@ -355,6 +365,7 @@ mod tests {
                     completed: None,
                 },
                 summary: None,
+                format: None,
                 agent: "default".to_string(),
                 model: Some(ModelSpec {
                     provider_id: "anthropic".to_string(),
@@ -404,6 +415,7 @@ mod tests {
         #[test]
         fn test_token_usage_structure() {
             let tokens = TokenUsage {
+                total: Some(185),
                 input: 100,
                 output: 50,
                 reasoning: 10,
@@ -411,6 +423,7 @@ mod tests {
             };
 
             let json = serde_json::to_value(&tokens).expect("Failed to serialize");
+            assert!(json.get("total").is_some());
             assert!(json.get("input").is_some());
             assert!(json.get("output").is_some());
             assert!(json.get("reasoning").is_some());
@@ -443,6 +456,14 @@ mod tests {
                     response_headers: None,
                     response_body: None,
                     metadata: None,
+                },
+                AssistantError::StructuredOutputError {
+                    message: "Schema mismatch".to_string(),
+                    retries: 2,
+                },
+                AssistantError::ContextOverflowError {
+                    message: "Context too long".to_string(),
+                    response_body: None,
                 },
             ];
 
@@ -483,6 +504,7 @@ mod tests {
                     completed: None,
                 },
                 summary: None,
+                format: None,
                 agent: "default".to_string(),
                 model: Some(ModelSpec {
                     provider_id: "anthropic".to_string(),
@@ -520,11 +542,14 @@ mod tests {
                 summary: None,
                 cost: 0.0,
                 tokens: Some(TokenUsage {
+                    total: Some(150),
                     input: 100,
                     output: 50,
                     reasoning: 0,
                     cache: CacheUsage { read: 0, write: 0 },
                 }),
+                structured: None,
+                variant: None,
                 finish: None,
             });
 
@@ -682,6 +707,7 @@ mod tests {
                 after: "new content".to_string(),
                 additions: 5,
                 deletions: 2,
+                status: None,
             };
 
             let required = schema
