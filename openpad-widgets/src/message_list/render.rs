@@ -90,38 +90,8 @@ impl MessageList {
                             .set_visible(cx, has_tools);
                         if let Some(tools) = running_tools {
                             for (idx, (icon, name, input)) in tools.iter().take(5).enumerate() {
-                                let (row_id, icon_id, name_id, input_id) = match idx {
-                                    0 => (
-                                        live_id!(tool_row_0),
-                                        live_id!(tool_icon_0),
-                                        live_id!(tool_name_0),
-                                        live_id!(tool_input_0),
-                                    ),
-                                    1 => (
-                                        live_id!(tool_row_1),
-                                        live_id!(tool_icon_1),
-                                        live_id!(tool_name_1),
-                                        live_id!(tool_input_1),
-                                    ),
-                                    2 => (
-                                        live_id!(tool_row_2),
-                                        live_id!(tool_icon_2),
-                                        live_id!(tool_name_2),
-                                        live_id!(tool_input_2),
-                                    ),
-                                    3 => (
-                                        live_id!(tool_row_3),
-                                        live_id!(tool_icon_3),
-                                        live_id!(tool_name_3),
-                                        live_id!(tool_input_3),
-                                    ),
-                                    4 => (
-                                        live_id!(tool_row_4),
-                                        live_id!(tool_icon_4),
-                                        live_id!(tool_name_4),
-                                        live_id!(tool_input_4),
-                                    ),
-                                    _ => continue,
+                                let Some(&(row_id, icon_id, name_id, input_id)) = Self::TOOL_ROW.get(idx) else {
+                                    continue;
                                 };
                                 let tools_view = item_widget.view(cx, &[id!(thinking_tools)]);
                                 tools_view.view(cx, &[row_id]).set_visible(cx, true);
@@ -129,15 +99,8 @@ impl MessageList {
                                 tools_view.label(cx, &[name_id]).set_text(cx, name);
                                 tools_view.label(cx, &[input_id]).set_text(cx, input);
                             }
-                            for idx in running_tools.map(|t| t.len()).unwrap_or(0)..5 {
-                                let row_id = match idx {
-                                    0 => live_id!(tool_row_0),
-                                    1 => live_id!(tool_row_1),
-                                    2 => live_id!(tool_row_2),
-                                    3 => live_id!(tool_row_3),
-                                    4 => live_id!(tool_row_4),
-                                    _ => continue,
-                                };
+                            let shown = running_tools.map(|t| t.len()).unwrap_or(0);
+                            for &(row_id, _, _, _) in Self::TOOL_ROW.iter().skip(shown) {
                                 item_widget
                                     .view(cx, &[id!(thinking_tools)])
                                     .view(cx, &[row_id])
@@ -288,90 +251,9 @@ impl MessageList {
                                     &[id!(steps_expanded), id!(steps_scroll), id!(content)],
                                 );
                                 for step_id in 0..Self::MAX_STEP_ROWS {
-                                    let (row_id, header_id, body_id, content_id, dot_id, line_id) =
-                                        match step_id {
-                                            0 => (
-                                                live_id!(step_row_0),
-                                                live_id!(step_row_0_header),
-                                                live_id!(step_row_0_body),
-                                                live_id!(step_row_0_content),
-                                                live_id!(step_row_0_dot),
-                                                live_id!(step_row_0_line),
-                                            ),
-                                            1 => (
-                                                live_id!(step_row_1),
-                                                live_id!(step_row_1_header),
-                                                live_id!(step_row_1_body),
-                                                live_id!(step_row_1_content),
-                                                live_id!(step_row_1_dot),
-                                                live_id!(step_row_1_line),
-                                            ),
-                                            2 => (
-                                                live_id!(step_row_2),
-                                                live_id!(step_row_2_header),
-                                                live_id!(step_row_2_body),
-                                                live_id!(step_row_2_content),
-                                                live_id!(step_row_2_dot),
-                                                live_id!(step_row_2_line),
-                                            ),
-                                            3 => (
-                                                live_id!(step_row_3),
-                                                live_id!(step_row_3_header),
-                                                live_id!(step_row_3_body),
-                                                live_id!(step_row_3_content),
-                                                live_id!(step_row_3_dot),
-                                                live_id!(step_row_3_line),
-                                            ),
-                                            4 => (
-                                                live_id!(step_row_4),
-                                                live_id!(step_row_4_header),
-                                                live_id!(step_row_4_body),
-                                                live_id!(step_row_4_content),
-                                                live_id!(step_row_4_dot),
-                                                live_id!(step_row_4_line),
-                                            ),
-                                            5 => (
-                                                live_id!(step_row_5),
-                                                live_id!(step_row_5_header),
-                                                live_id!(step_row_5_body),
-                                                live_id!(step_row_5_content),
-                                                live_id!(step_row_5_dot),
-                                                live_id!(step_row_5_line),
-                                            ),
-                                            6 => (
-                                                live_id!(step_row_6),
-                                                live_id!(step_row_6_header),
-                                                live_id!(step_row_6_body),
-                                                live_id!(step_row_6_content),
-                                                live_id!(step_row_6_dot),
-                                                live_id!(step_row_6_line),
-                                            ),
-                                            7 => (
-                                                live_id!(step_row_7),
-                                                live_id!(step_row_7_header),
-                                                live_id!(step_row_7_body),
-                                                live_id!(step_row_7_content),
-                                                live_id!(step_row_7_dot),
-                                                live_id!(step_row_7_line),
-                                            ),
-                                            8 => (
-                                                live_id!(step_row_8),
-                                                live_id!(step_row_8_header),
-                                                live_id!(step_row_8_body),
-                                                live_id!(step_row_8_content),
-                                                live_id!(step_row_8_dot),
-                                                live_id!(step_row_8_line),
-                                            ),
-                                            9 => (
-                                                live_id!(step_row_9),
-                                                live_id!(step_row_9_header),
-                                                live_id!(step_row_9_body),
-                                                live_id!(step_row_9_content),
-                                                live_id!(step_row_9_dot),
-                                                live_id!(step_row_9_line),
-                                            ),
-                                            _ => continue,
-                                        };
+                                    let Some(&(row_id, header_id, body_id, content_id, dot_id, line_id)) = Self::STEP_ROW.get(step_id) else {
+                                        continue;
+                                    };
                                     if step_id < msg.steps.len() {
                                         let step = &msg.steps[step_id];
                                         let header = if step.expanded {
