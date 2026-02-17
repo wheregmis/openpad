@@ -3,8 +3,8 @@ use crate::components::editor_panel::{EditorPanelAction, EditorPanelWidgetRefExt
 use crate::components::session_options_popup::SessionOptionsPopupWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
 use crate::state::{
-    self, AppAction, AppState, CenterPanelMode, PendingOpenTarget, ProjectsPanelAction,
-    SidebarMode,
+    self, AppAction, AppState, CenterTabKind, OpenFileState, PendingCenterIntent,
+    ProjectsPanelAction, SidebarMode,
 };
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
@@ -60,7 +60,7 @@ script_mod! {
     use mod.widgets.*
     use mod.theme.*
 
-    let ChatPanel = View {
+    let ChatTabView = View {
         width: Fill, height: Fill
         flow: Down
         spacing: 0
@@ -86,46 +86,114 @@ script_mod! {
             width: Fill, height: Fill
             message_list := MessageList { width: Fill, height: Fill }
         }
+    }
 
-        input_row := View {
+    let CodeTabView = View {
+        width: Fill, height: Fill
+        flow: Down
+
+        editor_header := View {
+            width: Fill, height: 30
+            flow: Right
+            spacing: 8
+            show_bg: true
+            draw_bg +: {
+                color: #171a20
+                border_size: 1.0
+                border_color: #262c35
+            }
+            padding: Inset{left: 10 right: 10 top: 5 bottom: 5}
+
+            editor_file_label := Label {
+                width: Fit, height: Fit
+                text: "No file selected"
+            }
+            View { width: Fill }
+            editor_dirty_dot := Label {
+                width: Fit, height: Fit
+                text: ""
+                draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 12 } }
+            }
+        }
+
+        editor_panel := EditorPanel {
+            width: Fill
+            height: Fill
+        }
+    }
+
+    let CenterHomeView = View {
+        width: Fill, height: Fill
+        align: Align{ x: 0.5, y: 0.5 }
+        flow: Down
+        spacing: 10
+        Label {
+            text: "Openpad"
+            draw_text +: { color: #ffffff, text_style: theme.font_bold { font_size: 16 } }
+        }
+        Label {
+            text: "Open a session or file from the sidebars"
+            draw_text +: { color: #aab3bd, text_style: theme.font_regular { font_size: 11 } }
+        }
+    }
+
+    let CenterDock = Dock {
+        width: Fill, height: Fill
+        root := DockTabs {
+            tabs: [@center_home_tab]
+            selected: 0
+            closable: true
+        }
+
+        center_home_tab := DockTab {
+            name: "Home"
+            template: @PermanentTab
+            kind: @CenterHomeTab
+        }
+
+        CenterHomeTab := CenterHomeView {}
+        CenterChatTab := ChatTabView {}
+        CenterCodeTab := CodeTabView {}
+    }
+
+    let ChatComposer = View {
+        width: Fill, height: Fit
+        flow: Down, spacing: 8
+
+        attachments_preview := View {
+            visible: false
             width: Fill, height: Fit
-            flow: Down, spacing: 8
+            flow: Right, spacing: 8
+            attachments_label := Label { text: "Attached:" }
+            attachments_list := Label { text: "" }
+            View { width: Fill }
+            clear_attachments_button := Button { width: Fit, height: 20, text: "Clear" }
+        }
 
-            attachments_preview := View {
-                visible: false
+        skill_preview := View {
+            visible: false
+            width: Fill, height: Fit
+            flow: Down, spacing: 4
+            skill_header := View {
                 width: Fill, height: Fit
                 flow: Right, spacing: 8
-                attachments_label := Label { text: "Attached:" }
-                attachments_list := Label { text: "" }
+                skill_name_label := Label { text: "Skill" }
                 View { width: Fill }
-                clear_attachments_button := Button { width: Fit, height: 20, text: "Clear" }
+                clear_skill_button := Button { width: Fit, height: 20, text: "Clear" }
             }
+            skill_desc_label := Label { text: "" }
+        }
 
-            skill_preview := View {
-                visible: false
-                width: Fill, height: Fit
-                flow: Down, spacing: 4
-                skill_header := View {
-                    width: Fill, height: Fit
-                    flow: Right, spacing: 8
-                    skill_name_label := Label { text: "Skill" }
-                    View { width: Fill }
-                    clear_skill_button := Button { width: Fit, height: 20, text: "Clear" }
-                }
-                skill_desc_label := Label { text: "" }
-            }
-
-            InputBar {
-                width: Fill
-                input_box := InputField {}
-                input_bar_toolbar := InputBarToolbar {
-                    agent_dropdown := InputBarDropDown { labels: ["Agent"] }
-                    skill_dropdown := InputBarDropDown { width: 120 labels: ["Skill"] }
-                    provider_dropdown := InputBarDropDown { width: 120 labels: ["Provider"] }
-                    model_dropdown := InputBarDropDown { width: 150 labels: ["Model"] }
-                    View { width: Fill }
-                    send_button := SendButton { margin: Inset{ left: 0 } }
-                }
+        InputBar {
+            width: Fill
+            input_box := InputField {}
+            input_bar_toolbar := InputBarToolbar {
+                agent_dropdown := InputBarDropDown { labels: ["Agent"] }
+                skill_dropdown := InputBarDropDown { width: 120 labels: ["Skill"] }
+                provider_dropdown := InputBarDropDown { width: 120 labels: ["Provider"] }
+                model_dropdown := InputBarDropDown { width: 150 labels: ["Model"] }
+                View { width: Fill }
+                send_button := SendButton { margin: Inset{ left: 0 } }
             }
         }
     }
@@ -227,47 +295,9 @@ script_mod! {
                                 unrevert_wrap := View { visible: false unrevert_button := Button { width: Fit, height: 20, text: "Unrevert" } }
                             }
 
-                            center_page_flip := PageFlip {
-                                width: Fill
-                                height: Fill
-                                active_page: @conversation_page
+                            center_dock := CenterDock {}
 
-                                conversation_page := ChatPanel {}
-
-                                editor_page := View {
-                                    width: Fill, height: Fill
-                                    flow: Down
-
-                                    editor_header := View {
-                                        width: Fill, height: 30
-                                        flow: Right
-                                        spacing: 8
-                                        show_bg: true
-                                        draw_bg +: {
-                                            color: #171a20
-                                            border_size: 1.0
-                                            border_color: #262c35
-                                        }
-                                        padding: Inset{left: 10 right: 10 top: 5 bottom: 5}
-
-                                        editor_file_label := Label {
-                                            width: Fit, height: Fit
-                                            text: "No file selected"
-                                        }
-                                        View { width: Fill }
-                                        editor_dirty_dot := Label {
-                                            width: Fit, height: Fit
-                                            text: ""
-                                            draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 12 } }
-                                        }
-                                    }
-
-                                    editor_panel := EditorPanel {
-                                        width: Fill
-                                        height: Fill
-                                    }
-                                }
-                            }
+                            chat_composer := ChatComposer {}
                             terminal_panel_wrap := TerminalPanelWrap {}
                         }
 
@@ -397,36 +427,198 @@ impl App {
         self.ui.redraw(cx);
     }
 
-    fn update_center_panel_mode_ui(&self, cx: &mut Cx) {
-        let (page_id, show_session_info) = match self.state.center_panel_mode {
-            CenterPanelMode::Conversation => (id!(conversation_page), true),
-            CenterPanelMode::Editor => (id!(editor_page), false),
-        };
-        self.ui
-            .page_flip(cx, &[id!(center_page_flip)])
-            .set_active_page(cx, page_id);
-        self.ui
-            .view(cx, &[id!(session_info)])
-            .set_visible(cx, show_session_info);
+    fn center_dock(&self, cx: &mut Cx) -> DockRef {
+        self.ui.dock(cx, &[id!(center_dock)])
     }
 
-    fn update_editor_header_ui(&self, cx: &mut Cx) {
-        if let Some(open) = self.state.open_file.as_ref() {
-            self.ui
-                .label(cx, &[id!(editor_file_label)])
-                .set_text(cx, &open.absolute_path);
-            let current_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
-            let is_dirty = current_text != open.text_cache;
-            self.ui.label(cx, &[id!(editor_dirty_dot)]).set_text(
-                cx,
-                if is_dirty { "●" } else { "" },
-            );
-        } else {
-            self.ui
-                .label(cx, &[id!(editor_file_label)])
-                .set_text(cx, "No file selected");
-            self.ui.label(cx, &[id!(editor_dirty_dot)]).set_text(cx, "");
+    fn set_chat_surface_visible(&self, cx: &mut Cx, visible: bool) {
+        self.ui.view(cx, &[id!(session_info)]).set_visible(cx, visible);
+        self.ui.view(cx, &[id!(chat_composer)]).set_visible(cx, visible);
+    }
+
+    fn active_center_kind(&self) -> Option<&CenterTabKind> {
+        self.state
+            .active_center_tab
+            .and_then(|tab_id| self.state.center_tabs_by_id.get(&tab_id))
+    }
+
+    fn current_active_file_tab_id(&self) -> Option<LiveId> {
+        let tab_id = self.state.active_center_tab?;
+        match self.state.center_tabs_by_id.get(&tab_id) {
+            Some(CenterTabKind::File { .. }) => Some(tab_id),
+            _ => None,
         }
+    }
+
+    fn update_editor_header_ui_for_tab(&self, cx: &mut Cx, tab_id: LiveId) {
+        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id) else {
+            return;
+        };
+        let item = self.center_dock(cx).item(tab_id);
+        item.label(cx, &[id!(editor_file_label)])
+            .set_text(cx, &open_file.absolute_path);
+        let current_text = item.editor_panel(cx, &[id!(editor_panel)]).get_text();
+        let is_dirty = current_text != open_file.text_cache;
+        item.label(cx, &[id!(editor_dirty_dot)])
+            .set_text(cx, if is_dirty { "●" } else { "" });
+    }
+
+    fn render_chat_tab(&mut self, cx: &mut Cx, tab_id: LiveId, session_id: &str) {
+        let item = self.center_dock(cx).item(tab_id);
+        let messages = self
+            .state
+            .messages_by_session
+            .get(session_id)
+            .cloned()
+            .unwrap_or_default();
+        let revert = self.state.current_revert_message_id_for_session(session_id);
+        item.message_list(cx, &[id!(message_list)])
+            .set_messages(cx, &messages, revert);
+        let working = self
+            .state
+            .working_by_session
+            .get(session_id)
+            .copied()
+            .unwrap_or(false);
+        item.message_list(cx, &[id!(message_list)])
+            .set_working(cx, working);
+
+        let displays: Vec<openpad_widgets::message_list::PendingPermissionDisplay> = self
+            .state
+            .pending_permissions
+            .iter()
+            .filter(|p| p.session_id == session_id)
+            .map(|p| openpad_widgets::message_list::PendingPermissionDisplay {
+                session_id: p.session_id.clone(),
+                request_id: p.id.clone(),
+                permission: p.permission.clone(),
+                patterns: p.patterns.clone(),
+            })
+            .collect();
+        item.message_list(cx, &[id!(message_list)])
+            .set_pending_permissions(cx, &displays);
+
+        if let Some(session) = self.state.find_session(session_id) {
+            if let Some(summary) = &session.summary {
+                item.view(cx, &[id!(session_summary)]).set_visible(cx, true);
+                item.label(cx, &[id!(summary_stats_label)]).set_text(
+                    cx,
+                    &format!(
+                        "{} files, +{}, -{}",
+                        summary.files, summary.additions, summary.deletions
+                    ),
+                );
+                item.message_list(cx, &[id!(message_list)])
+                    .set_session_diffs(cx, &summary.diffs);
+            } else {
+                item.view(cx, &[id!(session_summary)]).set_visible(cx, false);
+                item.message_list(cx, &[id!(message_list)])
+                    .set_session_diffs(cx, &[]);
+            }
+        } else {
+            item.view(cx, &[id!(session_summary)]).set_visible(cx, false);
+            item.message_list(cx, &[id!(message_list)])
+                .set_session_diffs(cx, &[]);
+        }
+    }
+
+    fn refresh_open_center_tabs(&mut self, cx: &mut Cx) {
+        let tabs: Vec<(LiveId, CenterTabKind)> = self
+            .state
+            .center_tabs_by_id
+            .iter()
+            .map(|(k, v)| (*k, v.clone()))
+            .collect();
+        for (tab_id, kind) in tabs {
+            match kind {
+                CenterTabKind::Chat { session_id } => self.render_chat_tab(cx, tab_id, &session_id),
+                CenterTabKind::File { .. } => self.update_editor_header_ui_for_tab(cx, tab_id),
+                CenterTabKind::Home => {}
+            }
+        }
+    }
+
+    fn sync_active_center_ui(&mut self, cx: &mut Cx) {
+        let active_kind = self.active_center_kind().cloned();
+        match active_kind {
+            Some(CenterTabKind::Chat { session_id }) => {
+                self.set_chat_surface_visible(cx, true);
+                self.state.current_session_id = Some(session_id.clone());
+                self.state.selected_session_id = Some(session_id.clone());
+                self.state.messages_data = self
+                    .state
+                    .messages_by_session
+                    .get(&session_id)
+                    .cloned()
+                    .unwrap_or_default();
+                self.state.update_files_panel(&self.ui, cx);
+                self.state.update_sessions_panel(&self.ui, cx);
+                self.state.update_session_title_ui(&self.ui, cx);
+                self.state.update_project_context_ui(&self.ui, cx);
+                self.state.update_session_meta_ui(&self.ui, cx);
+                let working = self
+                    .state
+                    .working_by_session
+                    .get(&session_id)
+                    .copied()
+                    .unwrap_or(false);
+                crate::ui::state_updates::update_work_indicator(&self.ui, cx, working);
+            }
+            Some(CenterTabKind::File { .. }) | Some(CenterTabKind::Home) | None => {
+                self.state.current_session_id = None;
+                self.set_chat_surface_visible(cx, false);
+                crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
+            }
+        }
+    }
+
+    fn has_unsaved_file_tab_changes(&self, cx: &mut Cx, tab_id: LiveId) -> bool {
+        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id) else {
+            return false;
+        };
+        let item = self.center_dock(cx).item(tab_id);
+        let current_text = item.editor_panel(cx, &[id!(editor_panel)]).get_text();
+        current_text != open_file.text_cache
+    }
+
+    fn save_file_tab(&mut self, cx: &mut Cx, tab_id: LiveId) -> bool {
+        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id).cloned() else {
+            return false;
+        };
+        let item = self.center_dock(cx).item(tab_id);
+        let text = item.editor_panel(cx, &[id!(editor_panel)]).get_text();
+        if text == open_file.text_cache {
+            return true;
+        }
+        if let Err(err) = std::fs::write(&open_file.absolute_path, text.as_bytes()) {
+            self.state.error_message = Some(format!(
+                "Failed to save {}: {}",
+                open_file.absolute_path, err
+            ));
+            crate::ui::state_updates::set_status_error(
+                &self.ui,
+                cx,
+                &format!("save failed: {}", err),
+            );
+            return false;
+        }
+        if let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get_mut(&tab_id)
+        {
+            open_file.text_cache = text;
+            open_file.last_saved_revision = open_file.last_saved_revision.saturating_add(1);
+        }
+        self.update_editor_header_ui_for_tab(cx, tab_id);
+        true
+    }
+
+    fn discard_file_tab_changes(&mut self, cx: &mut Cx, tab_id: LiveId) {
+        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id).cloned() else {
+            return;
+        };
+        let item = self.center_dock(cx).item(tab_id);
+        item.editor_panel(cx, &[id!(editor_panel)])
+            .set_text(cx, &open_file.text_cache);
+        self.update_editor_header_ui_for_tab(cx, tab_id);
     }
 
     fn show_unsaved_editor_dialog(&self, cx: &mut Cx) {
@@ -444,48 +636,117 @@ impl App {
     }
 
     fn queue_or_open_file(&mut self, cx: &mut Cx, project_id: String, absolute_path: String) {
-        // Check if there's an open file with unsaved changes
-        let has_unsaved = self
-            .state
-            .open_file
-            .as_ref()
-            .map(|open| {
-                let current_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
-                current_text != open.text_cache
-            })
-            .unwrap_or(false);
-        if has_unsaved {
-            self.state.pending_open_after_save = Some(PendingOpenTarget::File {
-                project_id,
-                absolute_path,
-            });
-            self.show_unsaved_editor_dialog(cx);
-            return;
+        if let Some(tab_id) = self.current_active_file_tab_id() {
+            if self.has_unsaved_file_tab_changes(cx, tab_id) {
+                self.state.pending_center_intent = Some(PendingCenterIntent::OpenFile {
+                    project_id,
+                    absolute_path,
+                });
+                self.show_unsaved_editor_dialog(cx);
+                return;
+            }
         }
         self.open_file_now(cx, project_id, absolute_path);
     }
 
     fn queue_or_select_session(&mut self, cx: &mut Cx, session_id: String) {
-        // Check if there's an open file with unsaved changes
-        let has_unsaved = self
-            .state
-            .open_file
-            .as_ref()
-            .map(|open| {
-                let current_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
-                current_text != open.text_cache
-            })
-            .unwrap_or(false);
-        if has_unsaved {
-            self.state.pending_open_after_save =
-                Some(PendingOpenTarget::Conversation { session_id });
-            self.show_unsaved_editor_dialog(cx);
-            return;
+        if let Some(tab_id) = self.current_active_file_tab_id() {
+            if self.has_unsaved_file_tab_changes(cx, tab_id) {
+                self.state.pending_center_intent = Some(PendingCenterIntent::OpenSession {
+                    session_id,
+                });
+                self.show_unsaved_editor_dialog(cx);
+                return;
+            }
         }
         self.select_session_now(cx, session_id);
     }
 
+    fn queue_or_switch_tab(&mut self, cx: &mut Cx, tab_id: LiveId) {
+        if let Some(active_file_tab_id) = self.current_active_file_tab_id() {
+            if active_file_tab_id != tab_id && self.has_unsaved_file_tab_changes(cx, active_file_tab_id)
+            {
+                self.state.pending_center_intent = Some(PendingCenterIntent::SwitchTab { tab_id });
+                self.show_unsaved_editor_dialog(cx);
+                return;
+            }
+        }
+        self.activate_center_tab(cx, tab_id);
+    }
+
+    fn queue_or_close_tab(&mut self, cx: &mut Cx, tab_id: LiveId) {
+        if tab_id == live_id!(center_home_tab) {
+            return;
+        }
+        if let Some(CenterTabKind::File { .. }) = self.state.center_tabs_by_id.get(&tab_id) {
+            if self.has_unsaved_file_tab_changes(cx, tab_id) {
+                self.state.pending_center_intent = Some(PendingCenterIntent::CloseTab { tab_id });
+                self.show_unsaved_editor_dialog(cx);
+                return;
+            }
+        }
+        self.close_tab_now(cx, tab_id);
+    }
+
+    fn close_tab_now(&mut self, cx: &mut Cx, tab_id: LiveId) {
+        let tab_bar_id = self
+            .center_dock(cx)
+            .find_tab_bar_of_tab(tab_id)
+            .map(|(tab_bar, _)| tab_bar);
+
+        let kind = self.state.center_tabs_by_id.remove(&tab_id);
+        if let Some(kind) = kind {
+            match kind {
+                CenterTabKind::Chat { session_id } => {
+                    self.state.tab_by_session.remove(&session_id);
+                }
+                CenterTabKind::File { open_file } => {
+                    self.state.tab_by_file.remove(&open_file.absolute_path);
+                }
+                CenterTabKind::Home => {}
+            }
+        }
+        self.center_dock(cx).close_tab(cx, tab_id);
+        if self.state.active_center_tab == Some(tab_id) {
+            let mut fallback = None;
+            if let Some(tab_bar_id) = tab_bar_id {
+                if let Some(dock_items) = self.center_dock(cx).clone_state() {
+                    if let Some(DockItem::Tabs { tabs, selected, .. }) = dock_items.get(&tab_bar_id)
+                    {
+                        fallback = tabs.get(*selected).copied();
+                    }
+                }
+            }
+            if fallback.is_none() {
+                fallback = Some(live_id!(center_home_tab));
+            }
+            if let Some(fallback_tab) = fallback {
+                self.state.active_center_tab = Some(fallback_tab);
+                self.center_dock(cx).select_tab(cx, fallback_tab);
+            }
+            self.sync_active_center_ui(cx);
+        }
+    }
+
+    fn activate_center_tab(&mut self, cx: &mut Cx, tab_id: LiveId) {
+        self.center_dock(cx).select_tab(cx, tab_id);
+        self.state.active_center_tab = Some(tab_id);
+        self.sync_active_center_ui(cx);
+        if let Some(kind) = self.state.center_tabs_by_id.get(&tab_id).cloned() {
+            match kind {
+                CenterTabKind::Chat { session_id } => self.render_chat_tab(cx, tab_id, &session_id),
+                CenterTabKind::File { .. } => self.update_editor_header_ui_for_tab(cx, tab_id),
+                CenterTabKind::Home => {}
+            }
+        }
+    }
+
     fn open_file_now(&mut self, cx: &mut Cx, project_id: String, absolute_path: String) {
+        if let Some(existing_tab_id) = self.state.tab_by_file.get(&absolute_path).copied() {
+            self.activate_center_tab(cx, existing_tab_id);
+            return;
+        }
+
         let path = Path::new(&absolute_path);
         if !path.is_file() {
             return;
@@ -499,100 +760,123 @@ impl App {
         }
 
         let Ok(content) = String::from_utf8(bytes) else {
-            // Non-UTF8 text-like files are skipped in v1.
             return;
         };
-        self.state
-            .switch_to_editor_mode(project_id, absolute_path.clone(), content.clone());
-        self.state.pending_open_after_save = None;
-        self.ui
-            .editor_panel(cx, &[id!(editor_panel)])
+
+        let display_name = std::path::Path::new(&absolute_path)
+            .file_name()
+            .and_then(|v| v.to_str())
+            .unwrap_or(&absolute_path)
+            .to_string();
+        let open_file = OpenFileState {
+            project_id,
+            absolute_path: absolute_path.clone(),
+            display_name: display_name.clone(),
+            text_cache: content.clone(),
+            last_saved_revision: 0,
+        };
+
+        let dock = self.center_dock(cx);
+        let (tab_bar, pos) = dock
+            .find_tab_bar_of_tab(live_id!(center_home_tab))
+            .unwrap_or((live_id!(root), 0));
+        let tab_id = dock.unique_id(LiveId::from_str(&format!("file:{}", absolute_path)).0);
+        let _ = dock.create_and_select_tab(
+            cx,
+            tab_bar,
+            tab_id,
+            live_id!(CenterCodeTab),
+            display_name,
+            live_id!(CloseableTab),
+            Some(pos),
+        );
+
+        self.state.center_tabs_by_id.insert(
+            tab_id,
+            CenterTabKind::File {
+                open_file: open_file.clone(),
+            },
+        );
+        self.state.tab_by_file.insert(absolute_path, tab_id);
+
+        let item = dock.item(tab_id);
+        item.editor_panel(cx, &[id!(editor_panel)])
             .set_read_only(cx, false);
-        self.ui.editor_panel(cx, &[id!(editor_panel)]).set_text(cx, &content);
-        let normalized_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
-        if let Some(open_file) = self.state.open_file.as_mut() {
-            open_file.text_cache = normalized_text;
-        }
-        self.ui
-            .editor_panel(cx, &[id!(editor_panel)])
-            .focus_editor(cx);
-        self.update_center_panel_mode_ui(cx);
-        self.update_editor_header_ui(cx);
-        self.ui.redraw(cx);
-    }
-
-    fn save_open_editor(&mut self, cx: &mut Cx) -> bool {
-        let Some(open_file) = self.state.open_file.clone() else {
-            return false;
-        };
-
-        let text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
-        if text == open_file.text_cache {
-            return true;
-        }
-
-        if let Err(err) = std::fs::write(&open_file.absolute_path, text.as_bytes()) {
-            self.state.error_message = Some(format!(
-                "Failed to save {}: {}",
-                open_file.absolute_path, err
-            ));
-            crate::ui::state_updates::set_status_error(
-                &self.ui,
-                cx,
-                &format!("save failed: {}", err),
-            );
-            return false;
-        }
-
-        if let Some(of) = self.state.open_file.as_mut() {
-            of.text_cache = text;
-            of.last_saved_revision = of.last_saved_revision.saturating_add(1);
-        }
-        self.update_editor_header_ui(cx);
-        self.ui.redraw(cx);
-        true
-    }
-
-    fn run_pending_open_target(&mut self, cx: &mut Cx) {
-        let Some(target) = self.state.pending_open_after_save.clone() else {
-            return;
-        };
-        self.state.pending_open_after_save = None;
-        match target {
-            PendingOpenTarget::File {
-                project_id,
-                absolute_path,
-            } => self.open_file_now(cx, project_id, absolute_path),
-            PendingOpenTarget::Conversation { session_id } => self.select_session_now(cx, session_id),
-        }
-    }
-
-    fn discard_editor_changes(&mut self, cx: &mut Cx) {
-        if let Some(of) = self.state.open_file.as_mut() {
-            let current_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
-            of.text_cache = current_text;
-        }
-        self.update_editor_header_ui(cx);
+        item.editor_panel(cx, &[id!(editor_panel)]).set_text(cx, &content);
+        item.editor_panel(cx, &[id!(editor_panel)]).focus_editor(cx);
+        self.update_editor_header_ui_for_tab(cx, tab_id);
+        self.activate_center_tab(cx, tab_id);
     }
 
     fn select_session_now(&mut self, cx: &mut Cx, session_id: String) {
-        self.state.switch_to_conversation_mode();
-        self.update_center_panel_mode_ui(cx);
         self.state.selected_session_id = Some(session_id.clone());
-        self.state.current_session_id = Some(session_id.clone());
-        self.state.is_working = false;
-        self.state.messages_data.clear();
-        self.ui
-            .message_list(cx, &[id!(message_list)])
-            .set_messages(cx, &self.state.messages_data, None);
-        crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
-        self.state.update_files_panel(&self.ui, cx);
-        self.state.update_sessions_panel(&self.ui, cx);
-        self.state.update_session_title_ui(&self.ui, cx);
-        self.state.update_project_context_ui(&self.ui, cx);
-        self.state.update_session_meta_ui(&self.ui, cx);
-        self.load_messages(session_id);
+
+        if let Some(tab_id) = self.state.tab_by_session.get(&session_id).copied() {
+            self.activate_center_tab(cx, tab_id);
+            self.load_pending_permissions();
+            return;
+        }
+
+        let title = self
+            .state
+            .find_session(&session_id)
+            .map(async_runtime::get_session_title)
+            .unwrap_or_else(|| "Session".to_string());
+
+        let dock = self.center_dock(cx);
+        let (tab_bar, pos) = dock
+            .find_tab_bar_of_tab(live_id!(center_home_tab))
+            .unwrap_or((live_id!(root), 0));
+        let tab_id = dock.unique_id(LiveId::from_str(&format!("chat:{}", session_id)).0);
+        let _ = dock.create_and_select_tab(
+            cx,
+            tab_bar,
+            tab_id,
+            live_id!(CenterChatTab),
+            title,
+            live_id!(CloseableTab),
+            Some(pos),
+        );
+
+        self.state.center_tabs_by_id.insert(
+            tab_id,
+            CenterTabKind::Chat {
+                session_id: session_id.clone(),
+            },
+        );
+        self.state.tab_by_session.insert(session_id.clone(), tab_id);
+        self.state.active_center_tab = Some(tab_id);
+
+        self.sync_active_center_ui(cx);
+        self.render_chat_tab(cx, tab_id, &session_id);
+
+        if !self.state.messages_by_session.contains_key(&session_id) {
+            self.load_messages(session_id.clone());
+        } else {
+            self.state.messages_data = self
+                .state
+                .messages_by_session
+                .get(&session_id)
+                .cloned()
+                .unwrap_or_default();
+        }
         self.load_pending_permissions();
+    }
+
+    fn run_pending_center_intent(&mut self, cx: &mut Cx) {
+        let Some(intent) = self.state.pending_center_intent.clone() else {
+            return;
+        };
+        self.state.pending_center_intent = None;
+        match intent {
+            PendingCenterIntent::OpenFile {
+                project_id,
+                absolute_path,
+            } => self.open_file_now(cx, project_id, absolute_path),
+            PendingCenterIntent::OpenSession { session_id } => self.select_session_now(cx, session_id),
+            PendingCenterIntent::SwitchTab { tab_id } => self.activate_center_tab(cx, tab_id),
+            PendingCenterIntent::CloseTab { tab_id } => self.close_tab_now(cx, tab_id),
+        }
     }
 
     fn set_sidebar_width(&mut self, cx: &mut Cx, width: f32) {
@@ -847,8 +1131,30 @@ impl App {
         for action in actions {
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
                 match app_action {
+                    AppAction::SessionCreated(session) => {
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
+                        self.queue_or_select_session(cx, session.id.clone());
+                    }
+                    AppAction::SessionDeleted(session_id) => {
+                        let tab_to_close = self.state.tab_by_session.get(session_id).copied();
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
+                        if let Some(tab_id) = tab_to_close {
+                            self.close_tab_now(cx, tab_id);
+                        } else {
+                            self.sync_active_center_ui(cx);
+                        }
+                    }
                     AppAction::OpenCodeEvent(oc_event) => {
+                        let deleted_tab_id = match oc_event {
+                            openpad_protocol::Event::SessionDeleted(session) => {
+                                self.state.tab_by_session.get(&session.id).copied()
+                            }
+                            _ => None,
+                        };
                         state::handle_opencode_event(&mut self.state, &self.ui, cx, oc_event);
+                        if let Some(tab_id) = deleted_tab_id {
+                            self.close_tab_now(cx, tab_id);
+                        }
                     }
                     AppAction::PermissionResponded {
                         session_id,
@@ -963,35 +1269,22 @@ impl App {
             return;
         };
 
-        let session_id = self.state.current_session_id.clone();
-        let directory = session_id
-            .as_ref()
-            .and_then(|sid| {
-                self.state
-                    .sessions
-                    .iter()
-                    .find(|session| &session.id == sid)
-                    .map(|session| {
-                        log!(
-                            "Sending message to session: id={}, directory={}, project_id={}",
-                            session.id,
-                            session.directory,
-                            session.project_id
-                        );
-                        session.directory.clone()
-                    })
-            })
-            .or_else(|| {
-                self.state.current_project.as_ref().map(|project| {
-                    let dir = Self::normalize_project_directory(&project.worktree);
-                    log!(
-                        "No session - using current_project: id={}, worktree={}, normalized_dir={}",
-                        project.id,
-                        project.worktree,
-                        dir
-                    );
-                    dir
-                })
+        let Some(session_id) = self.state.current_session_id.clone() else {
+            return;
+        };
+        let directory = self
+            .state
+            .sessions
+            .iter()
+            .find(|session| session.id == session_id)
+            .map(|session| {
+                log!(
+                    "Sending message to session: id={}, directory={}, project_id={}",
+                    session.id,
+                    session.directory,
+                    session.project_id
+                );
+                session.directory.clone()
             });
         let model_spec = self.state.selected_model_spec();
         let agent = self.state.selected_agent_name();
@@ -1023,7 +1316,7 @@ impl App {
         async_runtime::spawn_message_sender(
             runtime,
             client,
-            session_id,
+            Some(session_id),
             text,
             model_spec,
             agent,
@@ -1227,8 +1520,15 @@ impl App {
 
     fn handle_dialog_confirmed(&mut self, cx: &mut Cx, dialog_type: String, value: String) {
         if dialog_type == "unsaved_editor" {
-            if self.save_open_editor(cx) {
-                self.run_pending_open_target(cx);
+            let saved = if let Some(tab_id) = self.current_active_file_tab_id() {
+                self.save_file_tab(cx, tab_id)
+            } else {
+                true
+            };
+            if saved {
+                self.run_pending_center_intent(cx);
+            } else {
+                self.state.pending_center_intent = None;
             }
             return;
         }
@@ -1272,13 +1572,15 @@ impl App {
 
     fn handle_dialog_secondary(&mut self, cx: &mut Cx, dialog_type: String) {
         if dialog_type == "unsaved_editor" {
-            self.discard_editor_changes(cx);
-            self.run_pending_open_target(cx);
+            if let Some(tab_id) = self.current_active_file_tab_id() {
+                self.discard_file_tab_changes(cx, tab_id);
+            }
+            self.run_pending_center_intent(cx);
         }
     }
 
     fn handle_dialog_cancelled(&mut self, _cx: &mut Cx) {
-        self.state.pending_open_after_save = None;
+        self.state.pending_center_intent = None;
     }
 }
 
@@ -1326,8 +1628,11 @@ impl AppMain for App {
                     .animator_play(cx, &[id!(open), id!(on)]);
                 self.update_sidebar_handle_visibility(cx);
                 self.update_sidebar_panel_visibility(cx);
-                self.update_center_panel_mode_ui(cx);
-                self.update_editor_header_ui(cx);
+                self.state
+                    .center_tabs_by_id
+                    .insert(live_id!(center_home_tab), CenterTabKind::Home);
+                self.state.active_center_tab = Some(live_id!(center_home_tab));
+                self.set_chat_surface_visible(cx, false);
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
@@ -1348,8 +1653,8 @@ impl AppMain for App {
                             self.toggle_right_sidebar(cx);
                         }
                         KeyCode::KeyS => {
-                            if self.state.center_panel_mode == CenterPanelMode::Editor {
-                                self.save_open_editor(cx);
+                            if let Some(tab_id) = self.current_active_file_tab_id() {
+                                self.save_file_tab(cx, tab_id);
                             }
                         }
                         _ => {}
@@ -1468,11 +1773,47 @@ impl AppMain for App {
                 }
             }
 
+            if let Some(widget_action) = action.as_widget_action() {
+                match widget_action.cast() {
+                    DockAction::TabWasPressed(tab_id) => {
+                        self.queue_or_switch_tab(cx, tab_id);
+                    }
+                    DockAction::TabCloseWasPressed(tab_id) => {
+                        self.queue_or_close_tab(cx, tab_id);
+                    }
+                    DockAction::ShouldTabStartDrag(tab_id) => {
+                        self.center_dock(cx).tab_start_drag(
+                            cx,
+                            tab_id,
+                            DragItem::FilePath {
+                                path: String::new(),
+                                internal_id: Some(tab_id),
+                            },
+                        );
+                    }
+                    DockAction::Drag(drag_event) => {
+                        if drag_event.items.len() == 1 {
+                            self.center_dock(cx)
+                                .accept_drag(cx, drag_event.clone(), DragResponse::Move);
+                        }
+                    }
+                    DockAction::Drop(drop_event) => {
+                        if let DragItem::FilePath { internal_id, .. } = &drop_event.items[0] {
+                            if let Some(internal_id) = internal_id {
+                                self.center_dock(cx).drop_move(cx, drop_event.abs, *internal_id);
+                            }
+                        }
+                    }
+                    DockAction::SplitPanelChanged { .. } | DockAction::None => {}
+                }
+            }
+
             if let Some(editor_action) = action.downcast_ref::<EditorPanelAction>() {
                 match editor_action {
                     EditorPanelAction::TextDidChange => {
-                        // The EditorPanel tracks dirty state internally, just update the UI
-                        self.update_editor_header_ui(cx);
+                        if let Some(tab_id) = self.current_active_file_tab_id() {
+                            self.update_editor_header_ui_for_tab(cx, tab_id);
+                        }
                     }
                     EditorPanelAction::None => {}
                 }
@@ -1482,8 +1823,21 @@ impl AppMain for App {
             if let Some(msg_action) = action.downcast_ref::<WidgetMessageListAction>() {
                 match msg_action {
                     WidgetMessageListAction::RevertToMessage(message_id) => {
-                        if let Some(session_id) = &self.state.current_session_id {
-                            self.revert_to_message(cx, session_id.clone(), message_id.clone());
+                        let mut target_session = self.state.current_session_id.clone();
+                        if target_session.is_none() {
+                            target_session = self
+                                .state
+                                .messages_by_session
+                                .iter()
+                                .find_map(|(sid, messages)| {
+                                    messages
+                                        .iter()
+                                        .any(|m| m.info.id() == *message_id)
+                                        .then(|| sid.clone())
+                                });
+                        }
+                        if let Some(session_id) = target_session {
+                            self.revert_to_message(cx, session_id, message_id.clone());
                         }
                     }
                     _ => {}
@@ -1746,13 +2100,15 @@ impl AppMain for App {
             if let Some(session_id) = session_id {
                 let message_id =
                     self.state
-                        .messages_data
-                        .iter()
-                        .rev()
-                        .find_map(|mwp| match &mwp.info {
-                            openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
-                            _ => None,
-                        });
+                        .messages_by_session
+                        .get(&session_id)
+                        .map(|v| {
+                            v.iter().rev().find_map(|mwp| match &mwp.info {
+                                openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
+                                _ => None,
+                            })
+                        })
+                        .flatten();
                 self.summarize_session(cx, session_id.clone());
                 self.load_session_diff(cx, session_id, message_id);
             }
@@ -1838,9 +2194,7 @@ impl AppMain for App {
             self.update_skill_ui(cx);
         }
 
-        if self.state.center_panel_mode == CenterPanelMode::Editor {
-            self.update_editor_header_ui(cx);
-        }
+        self.refresh_open_center_tabs(cx);
     }
 }
 

@@ -25,7 +25,10 @@ pub enum AppAction {
         session_id: String,
         message_id: Option<String>,
     },
-    MessagesLoaded(Vec<MessageWithParts>),
+    MessagesLoaded {
+        session_id: String,
+        messages: Vec<MessageWithParts>,
+    },
     MessageReceived(Message),
     PartReceived {
         part: Part,

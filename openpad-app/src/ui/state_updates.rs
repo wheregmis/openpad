@@ -2,7 +2,6 @@ use crate::constants::*;
 use crate::utils::path_utils::normalize_worktree;
 use makepad_widgets::*;
 use openpad_protocol::{Project, SessionSummary};
-use openpad_widgets::message_list::MessageListWidgetRefExt;
 use std::path::Path;
 
 /// Updates the status indicator UI (dot color and label text)
@@ -29,8 +28,6 @@ pub fn set_status_error(ui: &WidgetRef, cx: &mut Cx, error: &str) {
 
 pub fn update_work_indicator(ui: &WidgetRef, cx: &mut Cx, working: bool) {
     ui.view(cx, &[id!(work_indicator)]).set_visible(cx, working);
-    ui.message_list(cx, &[id!(message_list)])
-        .set_working(cx, working);
 }
 
 /// Updates the session title label with appropriate styling
@@ -65,10 +62,7 @@ pub fn update_share_ui(ui: &WidgetRef, cx: &mut Cx, share_url: Option<&str>) {
 }
 
 pub fn update_summary_ui(ui: &WidgetRef, cx: &mut Cx, summary: Option<&SessionSummary>) {
-    let _ = summary;
-    ui.view(cx, &[id!(session_summary)]).set_visible(cx, false);
-    ui.label(cx, &[id!(summary_stats_label)]).set_text(cx, "");
-    ui.widget(cx, &[id!(summary_diff)]).set_text(cx, "");
+    let _ = (ui, cx, summary);
 }
 
 #[allow(dead_code)]

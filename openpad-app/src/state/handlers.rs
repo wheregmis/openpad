@@ -10,8 +10,6 @@ use openpad_protocol::{
     MessageWithParts, ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider,
     Session, Skill,
 };
-use openpad_widgets::message_list::MessageListWidgetRefExt;
-use openpad_widgets::message_list::PendingPermissionDisplay;
 use openpad_widgets::settings_dialog::SettingsDialogWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
 use std::collections::HashMap;
@@ -53,13 +51,6 @@ impl ModelDropdownEntry {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub enum CenterPanelMode {
-    #[default]
-    Conversation,
-    Editor,
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct OpenFileState {
     pub project_id: String,
@@ -70,13 +61,38 @@ pub struct OpenFileState {
 }
 
 #[derive(Clone, Debug)]
-pub enum PendingOpenTarget {
+pub enum CenterTabKind {
+    Home,
+    Chat {
+        session_id: String,
+    },
     File {
+        open_file: OpenFileState,
+    },
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+pub enum CenterTabTarget {
+    #[default]
+    Home,
+    ChatSession(String),
+    FilePath(String),
+}
+
+#[derive(Clone, Debug)]
+pub enum PendingCenterIntent {
+    OpenFile {
         project_id: String,
         absolute_path: String,
     },
-    Conversation {
+    OpenSession {
         session_id: String,
+    },
+    SwitchTab {
+        tab_id: LiveId,
+    },
+    CloseTab {
+        tab_id: LiveId,
     },
 }
 
@@ -95,6 +111,7 @@ pub struct AttachedFile {
 #[derive(Default)]
 pub struct AppState {
     pub messages_data: Vec<MessageWithParts>,
+    pub messages_by_session: HashMap<String, Vec<MessageWithParts>>,
     pub projects: Vec<Project>,
     pub sessions: Vec<Session>,
     pub current_project: Option<Project>,
@@ -122,9 +139,11 @@ pub struct AppState {
     pub selected_skill_idx: Option<usize>,
     pub attached_files: Vec<AttachedFile>,
     pub config: Option<openpad_protocol::Config>,
-    pub center_panel_mode: CenterPanelMode,
-    pub open_file: Option<OpenFileState>,
-    pub pending_open_after_save: Option<PendingOpenTarget>,
+    pub center_tabs_by_id: HashMap<LiveId, CenterTabKind>,
+    pub tab_by_session: HashMap<String, LiveId>,
+    pub tab_by_file: HashMap<String, LiveId>,
+    pub active_center_tab: Option<LiveId>,
+    pub pending_center_intent: Option<PendingCenterIntent>,
 }
 
 impl AppState {
@@ -220,35 +239,15 @@ impl AppState {
             .map(|skill| format!("Use skill: {}", skill.name))
     }
 
-    pub fn switch_to_conversation_mode(&mut self) {
-        self.center_panel_mode = CenterPanelMode::Conversation;
+    pub fn messages_for_session(&self, session_id: &str) -> &[MessageWithParts] {
+        self.messages_by_session
+            .get(session_id)
+            .map(|v| v.as_slice())
+            .unwrap_or(&[])
     }
 
-    pub fn switch_to_editor_mode(
-        &mut self,
-        project_id: String,
-        absolute_path: String,
-        content: String,
-    ) {
-        let display_name = std::path::Path::new(&absolute_path)
-            .file_name()
-            .and_then(|v| v.to_str())
-            .unwrap_or(&absolute_path)
-            .to_string();
-        self.center_panel_mode = CenterPanelMode::Editor;
-        self.open_file = Some(OpenFileState {
-            project_id,
-            absolute_path,
-            display_name,
-            text_cache: content,
-            last_saved_revision: 0,
-        });
-    }
-
-    pub fn clear_editor_state(&mut self) {
-        self.open_file = None;
-        self.pending_open_after_save = None;
-        self.center_panel_mode = CenterPanelMode::Conversation;
+    pub fn set_messages_for_session(&mut self, session_id: String, messages: Vec<MessageWithParts>) {
+        self.messages_by_session.insert(session_id, messages);
     }
 }
 
@@ -324,7 +323,11 @@ impl AppState {
     pub fn current_revert_message_id(&self) -> Option<String> {
         self.current_session_id
             .as_ref()
-            .and_then(|sid| self.find_session(sid))
+            .and_then(|sid| self.current_revert_message_id_for_session(sid))
+    }
+
+    pub fn current_revert_message_id_for_session(&self, session_id: &str) -> Option<String> {
+        self.find_session(session_id)
             .and_then(|session| session.revert.as_ref())
             .map(|revert| revert.message_id.clone())
     }
@@ -385,9 +388,8 @@ impl AppState {
 
     /// Clears all messages and updates the UI
     pub fn clear_messages(&mut self, ui: &WidgetRef, cx: &mut Cx) {
+        let _ = (ui, cx);
         self.messages_data.clear();
-        ui.message_list(cx, &[id!(message_list)])
-            .set_messages(cx, &self.messages_data, None);
     }
 
     /// Handles session deletion, clearing relevant state and updating UI
@@ -402,6 +404,8 @@ impl AppState {
         } else if self.selected_session_id.as_deref() == Some(session_id) {
             self.selected_session_id = None;
         }
+        self.messages_by_session.remove(session_id);
+        self.tab_by_session.remove(session_id);
         // Remove from sessions list
         self.sessions.retain(|s| s.id != session_id);
     }
@@ -456,6 +460,10 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
             state.clear_messages(ui, cx);
+            state
+                .messages_by_session
+                .entry(session.id.clone())
+                .or_default();
 
             // Add the session to the sessions list immediately (don't wait for SSE)
             // Check if it's not already there to avoid duplicates
@@ -499,34 +507,30 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             }
             state.update_session_meta_ui(ui, cx);
 
-            // Also update inline diffs in message list
-            ui.message_list(cx, &[id!(message_list)])
-                .set_session_diffs(cx, &diffs);
+            if state.current_session_id.as_deref() == Some(session_id.as_str()) {
+                // Keep a copy in messages_data for active-session consumers.
+                state.messages_data = state.messages_for_session(session_id).to_vec();
+            }
 
             cx.redraw_all();
         }
-        AppAction::MessagesLoaded(messages) => {
-            state.messages_data = messages.clone();
-            ui.message_list(cx, &[id!(message_list)]).set_messages(
-                cx,
-                &state.messages_data,
-                state.current_revert_message_id(),
-            );
-            // Request session diff so file changes show on the last assistant message
-            if let Some(session_id) = state.current_session_id.clone() {
-                let message_id = state
-                    .messages_data
-                    .iter()
-                    .rev()
-                    .find_map(|mwp| match &mwp.info {
-                        openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
-                        _ => None,
-                    });
-                cx.action(AppAction::RequestSessionDiff {
-                    session_id,
-                    message_id,
-                });
+        AppAction::MessagesLoaded {
+            session_id,
+            messages,
+        } => {
+            state.set_messages_for_session(session_id.clone(), messages.clone());
+            if state.current_session_id.as_deref() == Some(session_id.as_str()) {
+                state.messages_data = messages.clone();
             }
+            // Request session diff so file changes show on the last assistant message
+            let message_id = messages.iter().rev().find_map(|mwp| match &mwp.info {
+                openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
+                _ => None,
+            });
+            cx.action(AppAction::RequestSessionDiff {
+                session_id: session_id.clone(),
+                message_id,
+            });
         }
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
@@ -702,6 +706,7 @@ fn handle_message_updated(
     cx: &mut Cx,
     message: &openpad_protocol::Message,
 ) {
+    let _ = ui;
     let session_id = message.session_id().to_string();
 
     if let openpad_protocol::Message::Assistant(msg) = message {
@@ -710,41 +715,37 @@ fn handle_message_updated(
     }
 
     // If we don't have a current session yet (race during creation),
-    // accept the message and set the session
+    // accept the message and set the session.
     if state.current_session_id.is_none() {
         state.current_session_id = Some(session_id.clone());
     }
 
-    // Only process messages for the current session
-    let current_sid = state.current_session_id.as_deref().unwrap_or("");
-    if session_id != current_sid {
-        return;
-    }
-
-    if let openpad_protocol::Message::Assistant(msg) = message {
-        let working = msg.time.completed.is_none() && msg.error.is_none();
-        update_work_indicator(state, ui, cx, working);
-    }
-
-    // Find existing or add new MessageWithParts entry
-    if let Some(existing) = state
-        .messages_data
-        .iter_mut()
-        .find(|m| m.info.id() == message.id())
     {
-        existing.info = message.clone();
-    } else {
-        state.messages_data.push(MessageWithParts {
-            info: message.clone(),
-            parts: Vec::new(),
-        });
+        let session_messages = state.messages_by_session.entry(session_id.clone()).or_default();
+        if let Some(existing) = session_messages
+            .iter_mut()
+            .find(|m| m.info.id() == message.id())
+        {
+            existing.info = message.clone();
+        } else {
+            session_messages.push(MessageWithParts {
+                info: message.clone(),
+                parts: Vec::new(),
+            });
+        }
     }
 
-    ui.message_list(cx, &[id!(message_list)]).set_messages(
-        cx,
-        &state.messages_data,
-        state.current_revert_message_id(),
-    );
+    let current_sid = state.current_session_id.as_deref().unwrap_or("");
+    if session_id == current_sid {
+        if let openpad_protocol::Message::Assistant(msg) = message {
+            let working = msg.time.completed.is_none() && msg.error.is_none();
+            update_work_indicator(state, ui, cx, working);
+        }
+
+        if let Some(session_messages) = state.messages_by_session.get(&session_id) {
+            state.messages_data = session_messages.clone();
+        }
+    }
 }
 
 /// Handles part update events
@@ -754,6 +755,7 @@ fn handle_part_updated(
     cx: &mut Cx,
     part: &openpad_protocol::Part,
 ) {
+    let _ = ui;
     // Get message_id from the part - handle both text and non-text parts (tools, steps)
     let msg_id = part.message_id();
     if msg_id.is_none() {
@@ -761,80 +763,70 @@ fn handle_part_updated(
     }
     let msg_id = msg_id.unwrap();
 
-    // Only process parts for the current session
-    let current_sid = state.current_session_id.as_deref().unwrap_or("");
-
     let mut should_update_work = false;
     let mut work_session_id: Option<String> = None;
     let mut did_mutate_parts = false;
     let mut requires_full_rebuild = false;
     let mut incremental_append: Option<(String, String)> = None;
-    if let Some(mwp) = state
-        .messages_data
-        .iter_mut()
-        .find(|m| m.info.id() == msg_id)
-    {
-        // Check if this part belongs to the current session
-        if mwp.info.session_id() != current_sid {
-            return;
-        }
+    let mut matched_session_id: Option<String> = None;
 
-        if matches!(mwp.info, openpad_protocol::Message::Assistant(_)) {
-            should_update_work = true;
-            work_session_id = Some(mwp.info.session_id().to_string());
-        }
+    for (sid, messages) in state.messages_by_session.iter_mut() {
+        if let Some(mwp) = messages.iter_mut().find(|m| m.info.id() == msg_id) {
+            matched_session_id = Some(sid.clone());
+            if matches!(mwp.info, openpad_protocol::Message::Assistant(_)) {
+                should_update_work = true;
+                work_session_id = Some(mwp.info.session_id().to_string());
+            }
 
-        let role = match &mwp.info {
-            openpad_protocol::Message::Assistant(_) => "assistant",
-            openpad_protocol::Message::User(_) => "user",
-        };
+            let role = match &mwp.info {
+                openpad_protocol::Message::Assistant(_) => "assistant",
+                openpad_protocol::Message::User(_) => "user",
+            };
 
-        match part {
-            openpad_protocol::Part::Text { id, text, .. } => {
-                if !id.is_empty() {
-                    if let Some(existing) = mwp.parts.iter_mut().find(|p| {
-                        matches!(p, openpad_protocol::Part::Text { id: existing_id, .. } if existing_id == id)
-                    }) {
-                        *existing = part.clone();
-                        did_mutate_parts = true;
-                        // Existing-id replacement may be non-delta content; keep correctness.
-                        requires_full_rebuild = true;
+            match part {
+                openpad_protocol::Part::Text { id, text, .. } => {
+                    if !id.is_empty() {
+                        if let Some(existing) = mwp.parts.iter_mut().find(|p| {
+                            matches!(p, openpad_protocol::Part::Text { id: existing_id, .. } if existing_id == id)
+                        }) {
+                            *existing = part.clone();
+                            did_mutate_parts = true;
+                            // Existing-id replacement may be non-delta content; keep correctness.
+                            requires_full_rebuild = true;
+                        } else {
+                            mwp.parts.push(part.clone());
+                            did_mutate_parts = true;
+                            if !text.is_empty() {
+                                incremental_append = Some((role.to_string(), text.clone()));
+                            }
+                        }
                     } else {
+                        // Text parts without IDs are treated as streaming deltas.
+                        // Append part and incrementally update UI text.
                         mwp.parts.push(part.clone());
                         did_mutate_parts = true;
                         if !text.is_empty() {
                             incremental_append = Some((role.to_string(), text.clone()));
                         }
                     }
-                } else {
-                    // Text parts without IDs are treated as streaming deltas.
-                    // Append part and incrementally update UI text.
+                }
+                _ => {
+                    // For non-text parts (StepStart, Tool, StepFinish), always append.
                     mwp.parts.push(part.clone());
                     did_mutate_parts = true;
-                    if !text.is_empty() {
-                        incremental_append = Some((role.to_string(), text.clone()));
-                    }
+                    requires_full_rebuild = true;
                 }
-            }
-            _ => {
-                // For non-text parts (StepStart, Tool, StepFinish), always append.
-                mwp.parts.push(part.clone());
-                did_mutate_parts = true;
-                requires_full_rebuild = true;
-            }
-        };
+            };
+            break;
+        }
     }
 
-    if did_mutate_parts {
-        if requires_full_rebuild {
-            ui.message_list(cx, &[id!(message_list)]).set_messages(
-                cx,
-                &state.messages_data,
-                state.current_revert_message_id(),
-            );
-        } else if let Some((role, text)) = incremental_append {
-            ui.message_list(cx, &[id!(message_list)])
-                .append_text_for_message(cx, &role, msg_id, &text);
+    if let Some(current_sid) = state.current_session_id.clone() {
+        if did_mutate_parts && matched_session_id.as_deref() == Some(current_sid.as_str()) {
+            if let Some(session_messages) = state.messages_by_session.get(&current_sid) {
+                state.messages_data = session_messages.clone();
+            }
+            let _ = (requires_full_rebuild, incremental_append, msg_id);
         }
     }
 
@@ -895,27 +887,8 @@ fn remove_pending_permission(state: &mut AppState, request_id: &str) {
 }
 
 fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx) {
-    let Some(current_session_id) = &state.current_session_id else {
-        // Clear permissions if no session
-        ui.message_list(cx, &[id!(message_list)])
-            .set_pending_permissions(cx, &[]);
-        return;
-    };
-
-    let displays: Vec<PendingPermissionDisplay> = state
-        .pending_permissions
-        .iter()
-        .filter(|p| &p.session_id == current_session_id)
-        .map(|p| PendingPermissionDisplay {
-            session_id: p.session_id.clone(),
-            request_id: p.id.clone(),
-            permission: p.permission.clone(),
-            patterns: p.patterns.clone(),
-        })
-        .collect();
-
-    ui.message_list(cx, &[id!(message_list)])
-        .set_pending_permissions(cx, &displays);
+    let _ = (state, ui);
+    cx.redraw_all();
 }
 
 fn push_session_error_message(
@@ -925,6 +898,7 @@ fn push_session_error_message(
     session_id: &str,
     error: &AssistantError,
 ) {
+    let _ = (ui, cx);
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
@@ -958,14 +932,16 @@ fn push_session_error_message(
         text: "Session error".to_string(),
     };
 
-    state.messages_data.push(MessageWithParts {
+    let entry = state
+        .messages_by_session
+        .entry(session_id.to_string())
+        .or_default();
+    entry.push(MessageWithParts {
         info: Message::Assistant(assistant),
         parts: vec![part],
     });
 
-    ui.message_list(cx, &[id!(message_list)]).set_messages(
-        cx,
-        &state.messages_data,
-        state.current_revert_message_id(),
-    );
+    if state.current_session_id.as_deref() == Some(session_id) {
+        state.messages_data = entry.clone();
+    }
 }
