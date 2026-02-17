@@ -14,6 +14,17 @@ impl App {
         }
     }
 
+    /// Returns the OpenCode client if connected, otherwise records a "Not connected" error and
+    /// returns `None`. Use with `let Some(client) = self.client_or_error() else { return; };`.
+    pub(super) fn client_or_error(&mut self) -> Option<Arc<OpenCodeClient>> {
+        if let Some(c) = self.client.clone() {
+            Some(c)
+        } else {
+            self.state.error_message = Some("Not connected".to_string());
+            None
+        }
+    }
+
     /// Helper to get a session's directory by session ID
     pub(super) fn get_session_directory(&self, session_id: &str) -> Option<String> {
         self.state
