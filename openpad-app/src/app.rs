@@ -1160,8 +1160,10 @@ impl App {
     }
 
     fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
+        let mut saw_app_action = false;
         for action in actions {
             if let Some(app_action) = action.downcast_ref::<AppAction>() {
+                saw_app_action = true;
                 match app_action {
                     AppAction::SessionCreated(session) => {
                         state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
@@ -1237,6 +1239,10 @@ impl App {
                     }
                 }
             }
+        }
+        if saw_app_action {
+            self.refresh_open_center_tabs(cx);
+            self.sync_active_center_ui(cx);
         }
     }
 
@@ -1729,6 +1735,7 @@ impl AppMain for App {
         }
 
         // Process widget actions (e.g. ProjectsPanelAction from sidebar clicks)
+        let mut needs_center_refresh = false;
         for action in &actions {
             if let Some(panel_action) = action.downcast_ref::<ProjectsPanelAction>() {
                 match panel_action {
@@ -1891,6 +1898,7 @@ impl AppMain for App {
                         request_id,
                         reply,
                     } => {
+                        needs_center_refresh = true;
                         state::handle_permission_responded(
                             &mut self.state,
                             &self.ui,
@@ -1915,6 +1923,7 @@ impl AppMain for App {
                         session_id,
                         request_id,
                     } => {
+                        needs_center_refresh = true;
                         if let Some(client) = &self.client {
                             let client = client.clone();
                             let session_id = session_id.clone();
@@ -1940,6 +1949,7 @@ impl AppMain for App {
                         session_id,
                         request_id,
                     } => {
+                        needs_center_refresh = true;
                         if let Some(client) = &self.client {
                             let client = client.clone();
                             let session_id = session_id.clone();
@@ -1965,6 +1975,7 @@ impl AppMain for App {
                         session_id,
                         request_id,
                     } => {
+                        needs_center_refresh = true;
                         if let Some(client) = &self.client {
                             let client = client.clone();
                             let session_id = session_id.clone();
@@ -1998,6 +2009,7 @@ impl AppMain for App {
                         request_id,
                         reply,
                     } => {
+                        needs_center_refresh = true;
                         state::handle_permission_responded(
                             &mut self.state,
                             &self.ui,
@@ -2034,12 +2046,15 @@ impl AppMain for App {
                 match dialog_action {
                     SimpleDialogAction::Confirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
+                        needs_center_refresh = true;
                     }
                     SimpleDialogAction::Secondary { dialog_type } => {
                         self.handle_dialog_secondary(cx, dialog_type.clone());
+                        needs_center_refresh = true;
                     }
                     SimpleDialogAction::Cancelled => {
                         self.handle_dialog_cancelled(cx);
+                        needs_center_refresh = true;
                     }
                     SimpleDialogAction::None => {}
                 }
@@ -2226,7 +2241,10 @@ impl AppMain for App {
             self.update_skill_ui(cx);
         }
 
-        self.refresh_open_center_tabs(cx);
+        if needs_center_refresh {
+            self.refresh_open_center_tabs(cx);
+            self.sync_active_center_ui(cx);
+        }
     }
 }
 
