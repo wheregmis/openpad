@@ -205,99 +205,109 @@ script_mod! {
 
                         main_content := View {
                             width: Fill, height: Fill
-                            flow: Down
+                            flow: Overlay
 
-                            main_header := HeaderBar {
-                                width: Fill, height: 36
-                                traffic_light_spacer := SidePanel { width: 0.0 height: Fill open_size: 80.0 close_size: 0.0 }
-                                hamburger_button := HamburgerButton { width: 32, height: 32 }
-                                app_title := Label { text: "Openpad" }
-                                View { width: Fill }
-                                status_row := View {
-                                    width: Fit, height: Fit
-                                    flow: Right, spacing: 8
-                                    align: Align{ y: 0.5 }
-                                    work_indicator := View {
+                            content_column := View {
+                                width: Fill, height: Fill
+                                flow: Down
+
+                                main_header := HeaderBar {
+                                    width: Fill, height: 36
+                                    traffic_light_spacer := SidePanel { width: 0.0 height: Fill open_size: 80.0 close_size: 0.0 }
+                                    hamburger_button := HamburgerButton { width: 32, height: 32 }
+                                    app_title := Label { text: "Openpad" }
+                                    View { width: Fill }
+                                    status_row := View {
                                         width: Fit, height: Fit
-                                        flow: Right
+                                        flow: Right, spacing: 8
                                         align: Align{ y: 0.5 }
-                                        visible: false
-                                        Label { text: "Working..." }
+                                        work_indicator := View {
+                                            width: Fit, height: Fit
+                                            flow: Right
+                                            align: Align{ y: 0.5 }
+                                            visible: false
+                                            Label { text: "Working..." }
+                                        }
+                                        status_dot := StatusDot {}
+                                        status_label := Label { text: "Connected" }
                                     }
-                                    status_dot := StatusDot {}
-                                    status_label := Label { text: "Connected" }
                                 }
-                            }
 
-                            session_info := View {
-                                width: Fill, height: 32
-                                flow: Right, spacing: 8
-                                show_bg: true
-                                draw_bg +: {
-                                    color: #171a20
-                                    border_size: 1.0
-                                    border_color: #262c35
-                                }
-                                padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
-                                project_row := View {
-                                    width: Fit, height: Fit
-                                    project_badge := View { project_badge_label := Label { text: "No project" } }
-                                }
-                                Label { text: "/" }
-                                session_row := View { session_title := Label { text: "New Session" } }
-                                session_options_btn := Button {
-                                    width: 28, height: 24
-                                    text: "⋯"
+                                session_info := View {
+                                    width: Fill, height: 32
+                                    flow: Right, spacing: 8
+                                    show_bg: true
                                     draw_bg +: {
-                                        color: #0000
-                                        color_hover: #333
-                                        border_radius: 6.0
-                                        border_size: 0.0
+                                        color: #171a20
+                                        border_size: 1.0
+                                        border_color: #262c35
                                     }
-                                    draw_text +: { color: #9ca3af, text_style: theme.font_bold { font_size: 11 } }
+                                    padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
+                                    project_row := View {
+                                        width: Fit, height: Fit
+                                        project_badge := View { project_badge_label := Label { text: "No project" } }
+                                    }
+                                    Label { text: "/" }
+                                    session_row := View { session_title := Label { text: "New Session" } }
+                                    session_options_btn := Button {
+                                        width: 28, height: 24
+                                        text: "⋯"
+                                        draw_bg +: {
+                                            color: #0000
+                                            color_hover: #333
+                                            border_radius: 6.0
+                                            border_size: 0.0
+                                        }
+                                        draw_text +: { color: #9ca3af, text_style: theme.font_bold { font_size: 11 } }
+                                    }
+                                    project_path_wrap := View { visible: false project_path_label := Label { text: "" } }
+                                    View { width: Fill }
+                                    share_wrap := View {
+                                        width: Fit, height: Fit
+                                        flow: Right, spacing: 6
+                                        share_button := Button { width: Fit, height: 20, text: "Share" }
+                                        unshare_button := Button { width: Fit, height: 20, visible: false, text: "Unshare" }
+                                        copy_share_button := Button { width: Fit, height: 20, visible: false, text: "Copy link" }
+                                        share_url_label := Label { text: "" }
+                                    }
+                                    summarize_button := Button { width: Fit, height: 20, text: "Summarize" }
+                                    revert_indicator := View { visible: false revert_indicator_label := Label { text: "Reverted" } }
+                                    unrevert_wrap := View { visible: false unrevert_button := Button { width: Fit, height: 20, text: "Unrevert" } }
                                 }
-                                project_path_wrap := View { visible: false project_path_label := Label { text: "" } }
-                                View { width: Fill }
-                                share_wrap := View {
-                                    width: Fit, height: Fit
-                                    flow: Right, spacing: 6
-                                    share_button := Button { width: Fit, height: 20, text: "Share" }
-                                    unshare_button := Button { width: Fit, height: 20, visible: false, text: "Unshare" }
-                                    copy_share_button := Button { width: Fit, height: 20, visible: false, text: "Copy link" }
-                                    share_url_label := Label { text: "" }
+
+                                editor_info := View {
+                                    width: Fill, height: 32
+                                    flow: Right, spacing: 8
+                                    show_bg: true
+                                    visible: false
+                                    draw_bg +: {
+                                        color: #171a20
+                                        border_size: 1.0
+                                        border_color: #262c35
+                                    }
+                                    padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
+                                    editor_file_label := Label {
+                                        width: Fit, height: Fit
+                                        text: "No file selected"
+                                    }
+                                    View { width: Fill }
+                                    editor_dirty_dot := Label {
+                                        width: Fit, height: Fit
+                                        text: ""
+                                        draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 12 } }
+                                    }
                                 }
-                                summarize_button := Button { width: Fit, height: 20, text: "Summarize" }
-                                revert_indicator := View { visible: false revert_indicator_label := Label { text: "Reverted" } }
-                                unrevert_wrap := View { visible: false unrevert_button := Button { width: Fit, height: 20, text: "Unrevert" } }
+
+                                center_dock := CenterDock {}
+                                chat_composer := ChatComposer {}
                             }
 
-                            editor_info := View {
-                                width: Fill, height: 32
-                                flow: Right, spacing: 8
-                                show_bg: true
-                                visible: false
-                                draw_bg +: {
-                                    color: #171a20
-                                    border_size: 1.0
-                                    border_color: #262c35
-                                }
-                                padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
-                                editor_file_label := Label {
-                                    width: Fit, height: Fit
-                                    text: "No file selected"
-                                }
-                                View { width: Fill }
-                                editor_dirty_dot := Label {
-                                    width: Fit, height: Fit
-                                    text: ""
-                                    draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 12 } }
-                                }
+                            terminal_overlay := View {
+                                width: Fill, height: Fit
+                                align: Align{x: 0.0 y: 1.0}
+                                flow: Down
+                                terminal_panel_wrap := TerminalPanelWrap {}
                             }
-
-                            center_dock := CenterDock {}
-
-                            chat_composer := ChatComposer {}
-                            terminal_panel_wrap := TerminalPanelWrap {}
                         }
 
                         right_sidebar_resize_handle := View { width: 6, height: Fill }
