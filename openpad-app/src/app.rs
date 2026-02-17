@@ -92,30 +92,6 @@ script_mod! {
         width: Fill, height: Fill
         flow: Down
 
-        editor_header := View {
-            width: Fill, height: 30
-            flow: Right
-            spacing: 8
-            show_bg: true
-            draw_bg +: {
-                color: #171a20
-                border_size: 1.0
-                border_color: #262c35
-            }
-            padding: Inset{left: 10 right: 10 top: 5 bottom: 5}
-
-            editor_file_label := Label {
-                width: Fit, height: Fit
-                text: "No file selected"
-            }
-            View { width: Fill }
-            editor_dirty_dot := Label {
-                width: Fit, height: Fit
-                text: ""
-                draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 12 } }
-            }
-        }
-
         editor_panel := EditorPanel {
             width: Fill
             height: Fill
@@ -295,6 +271,29 @@ script_mod! {
                                 unrevert_wrap := View { visible: false unrevert_button := Button { width: Fit, height: 20, text: "Unrevert" } }
                             }
 
+                            editor_info := View {
+                                width: Fill, height: 32
+                                flow: Right, spacing: 8
+                                show_bg: true
+                                visible: false
+                                draw_bg +: {
+                                    color: #171a20
+                                    border_size: 1.0
+                                    border_color: #262c35
+                                }
+                                padding: Inset{left: 10 right: 10 top: 6 bottom: 6}
+                                editor_file_label := Label {
+                                    width: Fit, height: Fit
+                                    text: "No file selected"
+                                }
+                                View { width: Fill }
+                                editor_dirty_dot := Label {
+                                    width: Fit, height: Fit
+                                    text: ""
+                                    draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 12 } }
+                                }
+                            }
+
                             center_dock := CenterDock {}
 
                             chat_composer := ChatComposer {}
@@ -431,9 +430,24 @@ impl App {
         self.ui.dock(cx, &[id!(center_dock)])
     }
 
-    fn set_chat_surface_visible(&self, cx: &mut Cx, visible: bool) {
-        self.ui.view(cx, &[id!(session_info)]).set_visible(cx, visible);
-        self.ui.view(cx, &[id!(chat_composer)]).set_visible(cx, visible);
+    fn set_top_surfaces_for_active_kind(&self, cx: &mut Cx, kind: Option<&CenterTabKind>) {
+        match kind {
+            Some(CenterTabKind::Chat { .. }) => {
+                self.ui.view(cx, &[id!(session_info)]).set_visible(cx, true);
+                self.ui.view(cx, &[id!(editor_info)]).set_visible(cx, false);
+                self.ui.view(cx, &[id!(chat_composer)]).set_visible(cx, true);
+            }
+            Some(CenterTabKind::File { .. }) => {
+                self.ui.view(cx, &[id!(session_info)]).set_visible(cx, false);
+                self.ui.view(cx, &[id!(editor_info)]).set_visible(cx, true);
+                self.ui.view(cx, &[id!(chat_composer)]).set_visible(cx, false);
+            }
+            Some(CenterTabKind::Home) | None => {
+                self.ui.view(cx, &[id!(session_info)]).set_visible(cx, false);
+                self.ui.view(cx, &[id!(editor_info)]).set_visible(cx, false);
+                self.ui.view(cx, &[id!(chat_composer)]).set_visible(cx, false);
+            }
+        }
     }
 
     fn active_center_kind(&self) -> Option<&CenterTabKind> {
@@ -455,11 +469,13 @@ impl App {
             return;
         };
         let item = self.center_dock(cx).item(tab_id);
-        item.label(cx, &[id!(editor_file_label)])
+        self.ui
+            .label(cx, &[id!(editor_file_label)])
             .set_text(cx, &open_file.absolute_path);
         let current_text = item.editor_panel(cx, &[id!(editor_panel)]).get_text();
         let is_dirty = current_text != open_file.text_cache;
-        item.label(cx, &[id!(editor_dirty_dot)])
+        self.ui
+            .label(cx, &[id!(editor_dirty_dot)])
             .set_text(cx, if is_dirty { "●" } else { "" });
     }
 
@@ -540,9 +556,9 @@ impl App {
 
     fn sync_active_center_ui(&mut self, cx: &mut Cx) {
         let active_kind = self.active_center_kind().cloned();
+        self.set_top_surfaces_for_active_kind(cx, active_kind.as_ref());
         match active_kind {
             Some(CenterTabKind::Chat { session_id }) => {
-                self.set_chat_surface_visible(cx, true);
                 self.state.current_session_id = Some(session_id.clone());
                 self.state.selected_session_id = Some(session_id.clone());
                 self.state.messages_data = self
@@ -564,9 +580,15 @@ impl App {
                     .unwrap_or(false);
                 crate::ui::state_updates::update_work_indicator(&self.ui, cx, working);
             }
-            Some(CenterTabKind::File { .. }) | Some(CenterTabKind::Home) | None => {
+            Some(CenterTabKind::File { .. }) => {
                 self.state.current_session_id = None;
-                self.set_chat_surface_visible(cx, false);
+                crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
+                if let Some(tab_id) = self.state.active_center_tab {
+                    self.update_editor_header_ui_for_tab(cx, tab_id);
+                }
+            }
+            Some(CenterTabKind::Home) | None => {
+                self.state.current_session_id = None;
                 crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
             }
         }
@@ -1632,7 +1654,7 @@ impl AppMain for App {
                     .center_tabs_by_id
                     .insert(live_id!(center_home_tab), CenterTabKind::Home);
                 self.state.active_center_tab = Some(live_id!(center_home_tab));
-                self.set_chat_surface_visible(cx, false);
+                self.set_top_surfaces_for_active_kind(cx, Some(&CenterTabKind::Home));
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
