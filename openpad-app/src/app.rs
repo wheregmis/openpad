@@ -251,14 +251,34 @@ script_mod! {
                                     session_row := View { session_title := Label { text: "New Session" } }
                                     session_options_btn := Button {
                                         width: 28, height: 24
-                                        text: "⋯"
+                                        text: "Session options"
+                                        draw_text +: { color: #0000 }
                                         draw_bg +: {
                                             color: #0000
+                                            color_dots: #9ca3af
                                             color_hover: #333
                                             border_radius: 6.0
                                             border_size: 0.0
+
+                                            pixel: fn() {
+                                                let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+                                                sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, self.border_radius)
+                                                sdf.fill(mix(self.color, self.color_hover, self.hover))
+
+                                                let cx = self.rect_size.x * 0.5
+                                                let cy = self.rect_size.y * 0.5
+                                                let r = 1.2
+                                                let gap = 4.0
+                                                sdf.circle(cx - gap, cy, r)
+                                                sdf.fill(self.color_dots)
+                                                sdf.circle(cx, cy, r)
+                                                sdf.fill(self.color_dots)
+                                                sdf.circle(cx + gap, cy, r)
+                                                sdf.fill(self.color_dots)
+
+                                                return sdf.result
+                                            }
                                         }
-                                        draw_text +: { color: #9ca3af, text_style: theme.font_bold { font_size: 11 } }
                                     }
                                     project_path_wrap := View { visible: false project_path_label := Label { text: "" } }
                                     View { width: Fill }

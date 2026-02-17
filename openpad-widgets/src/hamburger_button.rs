@@ -8,7 +8,7 @@ script_mod! {
         width: 32
         height: 32
         padding: Inset{left: 6 right: 6 top: 6 bottom: 6}
-        text: ""
+        text: "Toggle Sidebar"
         draw_text +: {color: #0000}
         draw_bg +: {
             open: instance(0.0)
