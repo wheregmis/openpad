@@ -93,6 +93,9 @@ pub struct TerminalBackend {
     pub current_color: Vec4,
     pub prompt_string: String,
     pub pty_writer: Option<Arc<Mutex<Box<dyn Write + Send>>>>,
+    // Optimization: Pre-allocated buffers to reduce heap churn during high-throughput terminal streams.
+    pub normalization_buffer: String,
+    pub current_text_buffer: String,
 }
 
 impl Default for TerminalBackend {
@@ -108,6 +111,8 @@ impl Default for TerminalBackend {
             },
             prompt_string: Self::build_prompt_string(&std::path::PathBuf::from(".")),
             pty_writer: None,
+            normalization_buffer: String::with_capacity(256),
+            current_text_buffer: String::with_capacity(256),
         }
     }
 }
@@ -239,8 +244,8 @@ impl TerminalBackend {
         }
     }
 
-    pub fn normalize_for_prompt_check(line: &str) -> String {
-        let mut result = String::with_capacity(line.len());
+    pub fn normalize_for_prompt_check(&mut self, line: &str) {
+        self.normalization_buffer.clear();
         let mut chars = line.chars().peekable();
         while let Some(ch) = chars.next() {
             if ch == '\x1b' {
@@ -254,18 +259,18 @@ impl TerminalBackend {
                     }
                 }
             } else if !ch.is_control() || ch == '\n' {
-                result.push(ch);
+                self.normalization_buffer.push(ch);
             }
         }
-        result.trim().to_string()
     }
 
-    pub fn is_prompt_only_line(line: &str, our_prompt: &str) -> bool {
-        let t = Self::normalize_for_prompt_check(line);
+    pub fn is_prompt_only_line(&mut self, line: &str) -> bool {
+        self.normalize_for_prompt_check(line);
+        let t = self.normalization_buffer.trim();
         if t.is_empty() {
             return true;
         }
-        let our_trimmed = our_prompt.trim();
+        let our_trimmed = self.prompt_string.trim();
         if t == our_trimmed {
             return true;
         }
@@ -287,30 +292,30 @@ impl TerminalBackend {
         false
     }
 
-    fn push_current_text(&mut self, current_text: &mut String) {
-        if !current_text.is_empty() {
+    fn push_current_text(&mut self) {
+        if !self.current_text_buffer.is_empty() {
             if let Some(last) = self.partial_spans.last_mut() {
                 if last.color == self.current_color {
-                    last.text.push_str(current_text);
-                    current_text.clear();
+                    last.text.push_str(&self.current_text_buffer);
+                    self.current_text_buffer.clear();
                     return;
                 }
             }
             self.partial_spans.push(TerminalSpan {
-                text: current_text.clone(),
+                text: self.current_text_buffer.clone(),
                 color: self.current_color,
             });
-            current_text.clear();
+            self.current_text_buffer.clear();
         }
     }
 
     pub fn append_output(&mut self, text: &str) {
         let mut chars = text.chars().peekable();
-        let mut current_text = String::new();
+        // Optimization: reuse pre-allocated buffer for current text accumulation
         while let Some(ch) = chars.next() {
             match ch {
                 '\x1b' => {
-                    self.push_current_text(&mut current_text);
+                    self.push_current_text();
                     if chars.next() == Some('[') {
                         while let Some(&next) = chars.peek() {
                             if next == '?' || next == '>' || next == '=' || next == '!' {
@@ -338,10 +343,10 @@ impl TerminalBackend {
                     }
                 }
                 '\n' => {
-                    self.push_current_text(&mut current_text);
+                    self.push_current_text();
                     let line_spans = std::mem::take(&mut self.partial_spans);
                     let full_text: String = line_spans.iter().map(|s| s.text.as_str()).collect();
-                    if !Self::is_prompt_only_line(&full_text, &self.prompt_string) {
+                    if !self.is_prompt_only_line(&full_text) {
                         self.output_lines.push(TerminalLine {
                             spans: line_spans,
                             cached_text: full_text,
@@ -352,12 +357,12 @@ impl TerminalBackend {
                     Some(&'\n') | Some(&'\r') | None => {}
                     _ => {
                         self.partial_spans.clear();
-                        current_text.clear();
+                        self.current_text_buffer.clear();
                     }
                 },
                 '\x08' => {
-                    if !current_text.is_empty() {
-                        current_text.pop();
+                    if !self.current_text_buffer.is_empty() {
+                        self.current_text_buffer.pop();
                     } else if let Some(last_span) = self.partial_spans.last_mut() {
                         last_span.text.pop();
                         if last_span.text.is_empty() {
@@ -366,15 +371,15 @@ impl TerminalBackend {
                     }
                 }
                 '\t' => {
-                    current_text.push_str("    ");
+                    self.current_text_buffer.push_str("    ");
                 }
                 ch if ch.is_control() => {}
                 _ => {
-                    current_text.push(ch);
+                    self.current_text_buffer.push(ch);
                 }
             }
         }
-        self.push_current_text(&mut current_text);
+        self.push_current_text();
         const MAX_LINES: usize = 2000;
         if self.output_lines.len() > MAX_LINES {
             let remove_count = self.output_lines.len() - MAX_LINES;
