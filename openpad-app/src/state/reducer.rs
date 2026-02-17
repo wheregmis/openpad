@@ -394,7 +394,7 @@ pub fn resolve_pending_center_intent(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::handlers::{CenterTabKind, OpenFileState};
+    use crate::state::{CenterTabKind, OpenFileState};
     use openpad_protocol::{
         AssistantMessage, Message, MessageTime, MessageWithParts, PermissionRequest, SessionTime,
         UserMessage,

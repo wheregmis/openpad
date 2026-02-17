@@ -17,12 +17,9 @@ use openpad_widgets::{
     MessageListAction as WidgetMessageListAction, PermissionDialogAction, SettingsDialogAction,
     SidePanelWidgetRefExt, SimpleDialogAction,
 };
-use regex::Regex;
 use std::path::Path;
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
-// Lazy-initialized regex for detecting image data URLs
-static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
 const SIDEBAR_DEFAULT_WIDTH: f32 = 260.0;
 const SIDEBAR_MIN_WIDTH: f32 = 200.0;
 const SIDEBAR_MAX_WIDTH: f32 = 420.0;
@@ -30,33 +27,16 @@ const RIGHT_SIDEBAR_DEFAULT_WIDTH: f32 = 260.0;
 const RIGHT_SIDEBAR_MIN_WIDTH: f32 = 200.0;
 const RIGHT_SIDEBAR_MAX_WIDTH: f32 = 420.0;
 
-fn get_image_data_url_regex() -> &'static Regex {
-    IMAGE_DATA_URL_REGEX.get_or_init(|| {
-        Regex::new(r"data:(image/(?:png|jpeg|jpg|gif|webp|tiff|svg\+xml));base64,([A-Za-z0-9+/=]+)")
-            .expect("Failed to compile image data URL regex")
-    })
-}
-
-fn image_extension_for_mime(mime_type: &str) -> &'static str {
-    match mime_type {
-        "image/png" => "png",
-        "image/jpeg" | "image/jpg" => "jpg",
-        "image/gif" => "gif",
-        "image/webp" => "webp",
-        "image/tiff" => "tiff",
-        "image/svg+xml" => "svg",
-        _ => "png",
-    }
-}
-
 fn is_probably_binary(bytes: &[u8]) -> bool {
     bytes.iter().take(8192).any(|b| *b == 0)
 }
 
 app_main!(App);
 mod action_dispatch;
+mod composer;
 mod dock_controller;
 mod lifecycle;
+mod sidebar;
 mod ui_sync;
 
 script_mod! {
@@ -398,310 +378,8 @@ impl App {
         App::from_script_mod(vm, self::script_mod)
     }
 
-    fn set_sidebar_width(&mut self, cx: &mut Cx, width: f32) {
-        let clamped = width.clamp(SIDEBAR_MIN_WIDTH, SIDEBAR_MAX_WIDTH);
-        self.sidebar_width = clamped;
-        self.ui
-            .side_panel(cx, &[id!(side_panel)])
-            .set_open_size(cx, clamped);
-        self.ui.redraw(cx);
-    }
-
-    fn update_sidebar_handle_visibility(&self, cx: &mut Cx) {
-        self.ui
-            .view(cx, &[id!(sidebar_resize_handle)])
-            .set_visible(cx, self.sidebar_open);
-        self.ui
-            .view(cx, &[id!(right_sidebar_resize_handle)])
-            .set_visible(cx, self.right_sidebar_open);
-    }
-
-    fn set_right_sidebar_width(&mut self, cx: &mut Cx, width: f32) {
-        let clamped = width.clamp(RIGHT_SIDEBAR_MIN_WIDTH, RIGHT_SIDEBAR_MAX_WIDTH);
-        self.right_sidebar_width = clamped;
-        self.ui
-            .side_panel(cx, &[id!(right_side_panel)])
-            .set_open_size(cx, clamped);
-        self.ui.redraw(cx);
-    }
-
-    fn toggle_sidebar(&mut self, cx: &mut Cx) {
-        self.sidebar_open = !self.sidebar_open;
-
-        if self.sidebar_open && self.sidebar_width <= 0.0 {
-            self.sidebar_width = SIDEBAR_DEFAULT_WIDTH;
-        }
-        if self.sidebar_open {
-            self.set_sidebar_width(cx, self.sidebar_width);
-        }
-        self.ui
-            .side_panel(cx, &[id!(side_panel)])
-            .set_open(cx, self.sidebar_open);
-        self.ui
-            .side_panel(cx, &[id!(traffic_light_spacer)])
-            .set_open(cx, !self.sidebar_open);
-        self.update_sidebar_handle_visibility(cx);
-        self.update_sidebar_panel_visibility(cx);
-
-        if self.sidebar_open {
-            self.ui
-                .view(cx, &[id!(hamburger_button)])
-                .animator_play(cx, &[id!(open), id!(on)]);
-        } else {
-            self.ui
-                .view(cx, &[id!(hamburger_button)])
-                .animator_play(cx, &[id!(open), id!(off)]);
-        }
-    }
-
-    fn update_sidebar_panel_visibility(&mut self, cx: &mut Cx) {
-        let show_files = self.sidebar_mode == SidebarMode::Files;
-        let show_settings = self.sidebar_mode == SidebarMode::Settings;
-
-        // Use widget() for custom widgets (FilesPanel, SettingsDialog).
-        self.ui
-            .widget(cx, &[id!(side_panel), id!(files_panel)])
-            .set_visible(cx, show_files);
-        self.ui
-            .widget(cx, &[id!(side_panel), id!(settings_panel)])
-            .set_visible(cx, show_settings);
-
-        // Force redraw of the side panel to ensure visibility changes take effect
-        self.ui.view(cx, &[id!(side_panel)]).redraw(cx);
-        self.ui.redraw(cx);
-    }
-
-    fn toggle_terminal(&mut self, cx: &mut Cx) {
-        self.terminal_open = !self.terminal_open;
-        self.ui
-            .terminal_panel(cx, &[id!(terminal_panel_wrap)])
-            .set_open(cx, self.terminal_open);
-    }
-
-    fn toggle_right_sidebar(&mut self, cx: &mut Cx) {
-        self.right_sidebar_open = !self.right_sidebar_open;
-
-        if self.right_sidebar_open && self.right_sidebar_width <= 0.0 {
-            self.right_sidebar_width = RIGHT_SIDEBAR_DEFAULT_WIDTH;
-        }
-        if self.right_sidebar_open {
-            self.set_right_sidebar_width(cx, self.right_sidebar_width);
-        }
-        self.ui
-            .side_panel(cx, &[id!(right_side_panel)])
-            .set_open(cx, self.right_sidebar_open);
-        self.update_sidebar_handle_visibility(cx);
-    }
-
-    fn handle_sidebar_resize(&mut self, cx: &mut Cx, event: &Event) {
-        if !self.sidebar_open {
-            self.sidebar_drag_start = None;
-            return;
-        }
-
-        let handle_area = self.ui.view(cx, &[id!(sidebar_resize_handle)]).area();
-        let hit = event.hits_with_options(
-            cx,
-            handle_area,
-            HitOptions::new().with_margin(Inset {
-                left: 4.0,
-                right: 4.0,
-                top: 0.0,
-                bottom: 0.0,
-            }),
-        );
-
-        match hit {
-            Hit::FingerHoverIn(_) => {
-                cx.set_cursor(MouseCursor::ColResize);
-            }
-            Hit::FingerDown(f) => {
-                cx.set_cursor(MouseCursor::ColResize);
-                self.sidebar_drag_start = Some((f.abs.x, self.sidebar_width));
-            }
-            Hit::FingerMove(f) => {
-                if let Some((start_x, start_width)) = self.sidebar_drag_start {
-                    let delta = (f.abs.x - start_x) as f32;
-                    self.set_sidebar_width(cx, start_width + delta);
-                }
-            }
-            Hit::FingerUp(_) => {
-                self.sidebar_drag_start = None;
-            }
-            _ => {}
-        }
-    }
-
-    fn handle_right_sidebar_resize(&mut self, cx: &mut Cx, event: &Event) {
-        if !self.right_sidebar_open {
-            self.right_sidebar_drag_start = None;
-            return;
-        }
-
-        let handle_area = self.ui.view(cx, &[id!(right_sidebar_resize_handle)]).area();
-        let hit = event.hits_with_options(
-            cx,
-            handle_area,
-            HitOptions::new().with_margin(Inset {
-                left: 4.0,
-                right: 4.0,
-                top: 0.0,
-                bottom: 0.0,
-            }),
-        );
-
-        match hit {
-            Hit::FingerHoverIn(_) => {
-                cx.set_cursor(MouseCursor::ColResize);
-            }
-            Hit::FingerDown(f) => {
-                cx.set_cursor(MouseCursor::ColResize);
-                self.right_sidebar_drag_start = Some((f.abs.x, self.right_sidebar_width));
-            }
-            Hit::FingerMove(f) => {
-                if let Some((start_x, start_width)) = self.right_sidebar_drag_start {
-                    let delta = (f.abs.x - start_x) as f32;
-                    // Right panel: drag left = bigger, drag right = smaller
-                    self.set_right_sidebar_width(cx, start_width - delta);
-                }
-            }
-            Hit::FingerUp(_) => {
-                self.right_sidebar_drag_start = None;
-            }
-            _ => {}
-        }
-    }
-
-    /// Extract data URLs from text and add them as attachments
-    /// Returns the text with data URLs removed
-    fn process_pasted_content(&mut self, cx: &mut Cx, text: &str) -> String {
-        use crate::state::handlers::AttachedFile;
-
-        let data_url_pattern = get_image_data_url_regex();
-
-        let mut remaining_text = String::new();
-        let mut last_end = 0;
-        let mut attachment_count = 0;
-
-        for captures in data_url_pattern.captures_iter(text) {
-            let full_match = &captures[0];
-            let mime_type = &captures[1];
-
-            // Add text before the data URL
-            remaining_text.push_str(&text[last_end..captures.get(0).unwrap().start()]);
-            last_end = captures.get(0).unwrap().end();
-
-            // Determine file extension from mime type
-            let extension = image_extension_for_mime(mime_type);
-
-            // Generate a unique filename using timestamp and counter
-            let filename = format!(
-                "attachment_{}_{}.{}",
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis(),
-                attachment_count,
-                extension
-            );
-            attachment_count += 1;
-
-            // Add the file as an attachment
-            self.state.attached_files.push(AttachedFile {
-                filename: filename.clone(),
-                mime_type: mime_type.to_string(),
-                data_url: full_match.to_string(),
-                raw_text: None,
-            });
-
-            log!("Detected pasted image: {} ({})", mime_type, filename);
-        }
-
-        // Add remaining text after last data URL
-        remaining_text.push_str(&text[last_end..]);
-
-        // Update UI to show attachments
-        self.update_attachments_ui(cx);
-
-        remaining_text
-    }
-
-    fn send_message(&mut self, cx: &mut Cx, text: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
-        let Some(runtime) = self._runtime.as_ref() else {
-            return;
-        };
-
-        let Some(session_id) = self.state.current_session_id.clone() else {
-            return;
-        };
-        let directory = self
-            .state
-            .sessions
-            .iter()
-            .find(|session| session.id == session_id)
-            .map(|session| {
-                log!(
-                    "Sending message to session: id={}, directory={}, project_id={}",
-                    session.id,
-                    session.directory,
-                    session.project_id
-                );
-                session.directory.clone()
-            });
-        let model_spec = self.state.selected_model_spec();
-        let agent = self.state.selected_agent_name();
-        let permission = self.state.selected_agent_permission();
-        let system = self.state.selected_skill_prompt();
-
-        self.state.is_working = true;
-        crate::ui::state_updates::update_work_indicator(&self.ui, cx, true);
-
-        // Convert attached files to PartInput
-        let attachments: Vec<openpad_protocol::PartInput> = self
-            .state
-            .attached_files
-            .iter()
-            .map(|file| {
-                if let Some(raw_text) = &file.raw_text {
-                    // Text attachments are sent as text parts
-                    openpad_protocol::PartInput::text(raw_text)
-                } else {
-                    openpad_protocol::PartInput::file_with_filename(
-                        file.mime_type.clone(),
-                        file.filename.clone(),
-                        file.data_url.clone(),
-                    )
-                }
-            })
-            .collect();
-
-        async_runtime::spawn_message_sender(
-            runtime,
-            client,
-            Some(session_id),
-            text,
-            model_spec,
-            agent,
-            system,
-            directory,
-            attachments,
-            permission,
-        );
-
-        // Clear attached files after sending
-        self.state.attached_files.clear();
-        self.update_attachments_ui(cx);
-    }
-
     fn create_session(&mut self, _cx: &mut Cx, project_id: Option<String>) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -736,10 +414,7 @@ impl App {
         request_id: String,
         reply: openpad_protocol::PermissionReply,
     ) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -780,10 +455,7 @@ impl App {
     }
 
     fn abort_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -792,10 +464,7 @@ impl App {
     }
 
     fn share_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -804,10 +473,7 @@ impl App {
     }
 
     fn unshare_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -816,10 +482,7 @@ impl App {
     }
 
     fn summarize_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -828,10 +491,7 @@ impl App {
     }
 
     fn load_session_diff(&mut self, _cx: &mut Cx, session_id: String, message_id: Option<String>) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -840,10 +500,7 @@ impl App {
     }
 
     fn branch_session(&mut self, _cx: &mut Cx, parent_session_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -855,10 +512,7 @@ impl App {
     }
 
     fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -870,10 +524,7 @@ impl App {
     }
 
     fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client.clone() else {
-            self.state.error_message = Some("Not connected".to_string());
-            return;
-        };
+        let Some(client) = self.client_or_error() else { return; };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -1344,7 +995,7 @@ impl AppMain for App {
         if let Some(new_text) = self.ui.text_input(cx, &[id!(input_box)]).changed(&actions) {
             let remaining = self.process_pasted_content(cx, &new_text);
             if remaining.len() > LONG_TEXT_THRESHOLD {
-                use crate::state::handlers::AttachedFile;
+                use crate::state::AttachedFile;
 
                 let filename = format!(
                     "pasted_text_{}.txt",
