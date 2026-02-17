@@ -420,6 +420,21 @@ impl App {
             .set_open(cx, self.terminal_open);
     }
 
+    fn toggle_right_sidebar(&mut self, cx: &mut Cx) {
+        self.right_sidebar_open = !self.right_sidebar_open;
+
+        if self.right_sidebar_open && self.right_sidebar_width <= 0.0 {
+            self.right_sidebar_width = RIGHT_SIDEBAR_DEFAULT_WIDTH;
+        }
+        if self.right_sidebar_open {
+            self.set_right_sidebar_width(cx, self.right_sidebar_width);
+        }
+        self.ui
+            .side_panel(cx, &[id!(right_side_panel)])
+            .set_open(cx, self.right_sidebar_open);
+        self.update_sidebar_handle_visibility(cx);
+    }
+
     fn handle_sidebar_resize(&mut self, cx: &mut Cx, event: &Event) {
         if !self.sidebar_open {
             self.sidebar_drag_start = None;
@@ -1053,6 +1068,9 @@ impl AppMain for App {
                         }
                         KeyCode::KeyT => {
                             self.toggle_terminal(cx);
+                        }
+                        KeyCode::KeyI => {
+                            self.toggle_right_sidebar(cx);
                         }
                         _ => {}
                     }
