@@ -45,6 +45,7 @@ pub use types::*;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn test_all_types_are_public() {
@@ -167,6 +168,44 @@ mod tests {
 
         let deserialized: SecretString = serde_json::from_str("\"secret\"").unwrap();
         assert_eq!(deserialized.as_str(), "secret");
+    }
+
+    #[test]
+    fn test_config_masking() {
+        let mut extra = HashMap::new();
+        extra.insert(
+            "api_key".to_string(),
+            serde_json::Value::String("secret123".to_string()),
+        );
+        extra.insert(
+            "api-token".to_string(),
+            serde_json::Value::String("token456".to_string()),
+        );
+        extra.insert(
+            "db_password".to_string(),
+            serde_json::Value::String("pass789".to_string()),
+        );
+        extra.insert(
+            "max_tokens".to_string(),
+            serde_json::Value::Number(100.into()),
+        );
+
+        let config = Config {
+            model: Some("gpt-4".to_string()),
+            extra,
+        };
+
+        let debug_output = format!("{:?}", config);
+        assert!(debug_output.contains("gpt-4"));
+        assert!(debug_output.contains("max_tokens"));
+        assert!(debug_output.contains("100"));
+        assert!(debug_output.contains("api_key"));
+        assert!(debug_output.contains("api-token"));
+        assert!(debug_output.contains("db_password"));
+        assert!(debug_output.contains("<REDACTED>"));
+        assert!(!debug_output.contains("secret123"));
+        assert!(!debug_output.contains("token456"));
+        assert!(!debug_output.contains("pass789"));
     }
 
     /// Test module for validating our Rust types against the OpenAPI specification.

@@ -150,12 +150,52 @@ pub struct PathInfo {
 // Config API types
 // ============================================================================
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
     pub model: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("model", &self.model)
+            .field("extra", &ExtraMasked(&self.extra))
+            .finish()
+    }
+}
+
+/// Helper to mask sensitive keys in a HashMap when formatting for Debug.
+struct ExtraMasked<'a>(&'a HashMap<String, serde_json::Value>);
+
+impl<'a> fmt::Debug for ExtraMasked<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut map = f.debug_map();
+        for (k, v) in self.0 {
+            let k_lower = k.to_lowercase();
+            let is_sensitive = k_lower == "key"
+                || k_lower == "token"
+                || k_lower == "secret"
+                || k_lower == "password"
+                || k_lower.ends_with("_key")
+                || k_lower.ends_with("-key")
+                || k_lower.ends_with("_token")
+                || k_lower.ends_with("-token")
+                || k_lower.ends_with("_secret")
+                || k_lower.ends_with("-secret")
+                || k_lower.ends_with("_password")
+                || k_lower.ends_with("-password");
+
+            if is_sensitive {
+                map.entry(k, &"<REDACTED>");
+            } else {
+                map.entry(k, v);
+            }
+        }
+        map.finish()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
