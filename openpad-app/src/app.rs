@@ -221,25 +221,6 @@ script_mod! {
                             width: 260.0, height: Fill
                             open_size: 260.0
                             flow: Down
-
-                            sessions_header := View {
-                                width: Fill, height: Fit
-                                flow: Down
-                                padding: Inset{ left: 10, right: 8, top: 6, bottom: 6 }
-                                spacing: 4
-                                sessions_title := Label {
-                                    text: "Sessions"
-                                    draw_text +: {
-                                        color: theme.THEME_COLOR_TEXT_PRIMARY
-                                        text_style: theme.font_bold { font_size: 12 }
-                                    }
-                                }
-                                View {
-                                    width: Fill, height: 1
-                                    show_bg: true
-                                    draw_bg +: { color: theme.THEME_COLOR_BORDER_MEDIUM }
-                                }
-                            }
                             sessions_panel := SessionsPanel { width: Fill, height: Fill }
                         }
                     }
@@ -1160,6 +1141,11 @@ impl AppMain for App {
                         y: _,
                         working,
                     } => {
+                        log!(
+                            "ProjectsPanelAction::OpenSessionContextMenu session_id={} working={}",
+                            session_id,
+                            working
+                        );
                         let popup_ref = self.ui.widget(cx, &[id!(session_options_popup)]);
                         popup_ref.set_visible(cx, true);
                         popup_ref.redraw(cx);
@@ -1168,7 +1154,21 @@ impl AppMain for App {
                             .show(cx, session_id.clone(), *working);
                         popup_ref.redraw(cx);
                     }
+                    ProjectsPanelAction::OpenProjectContextMenu { project_id } => {
+                        log!(
+                            "ProjectsPanelAction::OpenProjectContextMenu project_id={:?}",
+                            project_id
+                        );
+                        let popup_ref = self.ui.widget(cx, &[id!(session_options_popup)]);
+                        popup_ref.set_visible(cx, true);
+                        popup_ref.redraw(cx);
+                        self.ui
+                            .session_options_popup(cx, &[id!(session_options_popup)])
+                            .show_project(cx, project_id.clone());
+                        popup_ref.redraw(cx);
+                    }
                     ProjectsPanelAction::CloseSessionContextMenu => {
+                        log!("ProjectsPanelAction::CloseSessionContextMenu");
                         self.ui
                             .widget(cx, &[id!(session_options_popup)])
                             .set_visible(cx, false);

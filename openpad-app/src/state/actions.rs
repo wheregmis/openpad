@@ -93,5 +93,8 @@ pub enum ProjectsPanelAction {
         y: f32,
         working: bool,
     },
+    OpenProjectContextMenu {
+        project_id: Option<String>,
+    },
     CloseSessionContextMenu,
 }

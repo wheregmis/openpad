@@ -12,7 +12,7 @@ pub mod sidebar_header;
 // Re-export the widget types that have Rust implementations
 pub use files_panel::{FilesPanel, FilesPanelRef};
 pub use projects_panel::{PanelItemKind, ProjectsPanel, ProjectsPanelRef};
-pub use sessions_panel::{SessionsPanel, SessionsPanelItemKind, SessionsPanelRef};
+pub use sessions_panel::{SessionsPanel, SessionsPanelRef};
 pub use session_context_menu::SessionContextMenu;
 pub use session_options_popup::{SessionOptionsPopup, SessionOptionsPopupRef};
 pub use sidebar_header::SidebarHeader;

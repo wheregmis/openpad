@@ -1,11 +1,12 @@
-//! Sessions panel for IDE-style right sidebar.
-//! Shows sessions grouped by project, with select/create/delete/rename/abort.
+//! Sessions panel for IDE-style right sidebar using Makepad's FileTree widget.
+//! Shows sessions grouped by project in a collapsible tree.
 
 use crate::async_runtime;
 use crate::state::actions::ProjectsPanelAction;
 use makepad_widgets::*;
+use openpad_widgets::{SessionTree, SessionTreeAction};
 use openpad_protocol::{Project, Session, SessionSummary};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 script_mod! {
     use mod.prelude.widgets_internal.*
@@ -13,343 +14,62 @@ script_mod! {
     use mod.theme.*
 
     mod.widgets.SessionsPanel = #(SessionsPanel::register_widget(vm)) {
-        width: Fill, height: Fill
+        width: Fill
+        height: Fill
         flow: Down
-        padding: Inset{ left: 10, right: 8, top: 8, bottom: 8 }
-        spacing: 0
-        new_batch: true
 
-        list := PortalList {
-            width: Fill, height: Fill
-            scroll_bar: ScrollBar {
-                bar_size: 2.5
-                bar_side_margin: 2.0
-                smoothing: 0.15
-            }
+        file_tree: SessionTree {
+            width: Fill
+            height: Fill
+            margin: Inset{ left: 10, right: 8, top: 8, bottom: 8 }
+            node_height: 28.0
+            draw_scroll_shadow: { shadow_size: 0.0 }
 
-            ProjectHeader := View {
-                width: Fill, height: 28
-                flow: Right, align: Align{y: 0.5}
-                padding: Inset{ top: 2, bottom: 2, left: 0, right: 2 }
-                spacing: 2
-                new_batch: true
-                left_group := View {
-                    width: Fill, height: Fill
-                    flow: Right, align: Align{y: 0.5}
-                    spacing: 2
-
-                    chevron := Label {
-                        width: 10, height: Fit
-                        text: "v"
-                        draw_text +: { color: theme.THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 9.0 } }
-                    }
-
-                    folder_icon := View {
-                        width: 17, height: Fill
-                        padding: Inset{ left: 1, right: 3, top: 4, bottom: 0 }
-                        align: Align{ y: 0.5 }
-
-                        glyph := Icon {
-                            width: 14, height: 14
-                            icon_walk: Walk{ width: 14, height: 14 }
-                            draw_icon +: {
-                                svg: crate_resource("self://resources/icons/folder_sidebar.svg")
-                                color: theme.THEME_COLOR_TEXT_MUTED_LIGHTER
-                            }
-                        }
-                    }
-
-                    project_toggle := Button {
-                        width: Fill, height: Fill
-                        margin: Inset{ left: 0, right: 2 }
-                        padding: Inset{ left: 2, right: 2, top: 0, bottom: 0 }
-                        align: Align{ x: 0.0, y: 0.5 }
-                        text: "Project"
-                        draw_bg +: {
-                            color: theme.THEME_COLOR_TRANSPARENT
-                            color_hover: theme.THEME_COLOR_HOVER_SUBTLE
-                            color_active: theme.THEME_COLOR_HOVER_SUBTLE
-                            border_radius: 8.0
-                            border_size: 0.0
-                        }
-                        draw_text +: {
-                            color: theme.THEME_COLOR_TEXT_PRIMARY
-                            text_style: theme.font_bold { font_size: 11.5 }
-                        }
-                    }
+            file_node: <SessionTreeNode> {
+                draw_bg +: {
+                    color_1: theme.THEME_COLOR_TRANSPARENT
+                    color_2: theme.THEME_COLOR_TRANSPARENT
+                    color_active: theme.THEME_COLOR_HOVER_SUBTLE
                 }
-
-                project_working_dot := RoundedView {
-                    visible: false
-                    width: 5, height: 5
-                    margin: Inset{ right: 5 }
-                    show_bg: true
-                    draw_bg +: {
-                        color: theme.THEME_COLOR_ACCENT_AMBER
-                        border_radius: 2.5
-                    }
-                }
-
-                new_session_header_button := Button {
-                    width: 20, height: 20
-                    margin: Inset{ left: 2 }
-                    text: "+"
-                    draw_bg +: {
-                        color: theme.THEME_COLOR_TRANSPARENT
-                        color_hover: theme.THEME_COLOR_HOVER_SUBTLE
-                        color_active: theme.THEME_COLOR_HOVER_SUBTLE
-                        border_radius: 5.0
-                        border_size: 0.0
-                    }
-                    draw_text +: { color: theme.THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 11 } }
+                draw_text +: {
+                    color: theme.THEME_COLOR_TEXT_LIGHT
+                    color_active: theme.THEME_COLOR_TEXT_PRIMARY
+                    text_style: theme.font_regular { font_size: 10.5 }
                 }
             }
 
-            SessionRow := View {
-                width: Fill, height: Fit
-                flow: Overlay
-                new_batch: true
-
-                selected_pill := RoundedView {
-                    visible: false
-                    width: Fill, height: Fit
-                    margin: Inset{ left: 22, right: 3, top: 1, bottom: 1 }
-                    show_bg: true
-                    draw_bg +: {
-                        color: theme.THEME_COLOR_HOVER_SUBTLE
-                        border_radius: 8.0
-                    }
+            folder_node: <SessionTreeNode> {
+                draw_bg +: {
+                    color_1: theme.THEME_COLOR_TRANSPARENT
+                    color_2: theme.THEME_COLOR_TRANSPARENT
+                    color_active: theme.THEME_COLOR_HOVER_SUBTLE
                 }
-
-                View {
-                    width: Fill, height: Fit
-                    padding: Inset{ top: 1, bottom: 1, left: 22, right: 28 }
-                    flow: Right,
-                    spacing: 3,
-                    align: Align{ y: 0.5 }
-
-                    session_button := Button {
-                        width: Fill, height: 27
-                        margin: Inset{ right: 2 }
-                        text: "Session"
-                        draw_bg +: {
-                            color: theme.THEME_COLOR_TRANSPARENT
-                            color_hover: theme.THEME_COLOR_HOVER_SUBTLE
-                            color_active: theme.THEME_COLOR_TRANSPARENT
-                            border_radius: 8.0
-                            border_size: 0.0
-                        }
-                        draw_text +: {
-                            color: theme.THEME_COLOR_TEXT_LIGHT,
-                            text_style: theme.font_regular { font_size: 10.0 }}
-                    }
-
-                    summary_stats := View {
-                        width: Fit, height: Fit
-                        margin: Inset{ right: 2 }
-                        flow: Right
-                        spacing: 5
-                        align: Align{ y: 0.5 }
-
-                        summary_files_label := Label {
-                            width: Fit, height: Fit
-                            draw_text +: {
-                                color: theme.THEME_COLOR_TEXT_MUTED
-                                text_style: theme.font_regular { font_size: 8.0 }
-                            }
-                            text: ""
-                        }
-
-                        summary_add_label := Label {
-                            width: Fit, height: Fit
-                            draw_text +: {
-                                color: theme.THEME_COLOR_DIFF_ADD_TEXT
-                                text_style: theme.font_regular { font_size: 8.0 }
-                            }
-                            text: ""
-                        }
-
-                        summary_del_label := Label {
-                            width: Fit, height: Fit
-                            draw_text +: {
-                                color: theme.THEME_COLOR_DIFF_DEL_TEXT
-                                text_style: theme.font_regular { font_size: 8.0 }
-                            }
-                            text: ""
-                        }
-                    }
-
-                    working_dot := RoundedView {
-                        visible: false
-                        width: 5, height: 5
-                        margin: Inset{ right: 2 }
-                        show_bg: true
-                        draw_bg +: {
-                            color: theme.THEME_COLOR_ACCENT_AMBER
-                            border_radius: 2.5
-                        }
-                    }
+                draw_text +: {
+                    color: theme.THEME_COLOR_TEXT_PRIMARY
+                    color_active: theme.THEME_COLOR_TEXT_PRIMARY
+                    text_style: theme.font_bold { font_size: 11.5 }
                 }
-
-                View {
-                    width: Fit, height: Fill
-                    flow: Right
-                    align: Align{ x: 1.0, y: 0.5 }
-                    padding: Inset{ right: 3, top: 1, bottom: 1 }
-                    menu_button := Button {
-                        width: 24, height: 24
-                        text: "⋯"
-                        align: Align{ x: 0.5, y: 0.5 }
-                        draw_bg +: {
-                            color: theme.THEME_COLOR_TRANSPARENT
-                            color_hover: theme.THEME_COLOR_HOVER_SUBTLE
-                            color_active: theme.THEME_COLOR_HOVER_SUBTLE
-                            border_radius: 5.0
-                            border_size: 0.0
-                        }
-                        draw_text +: {
-                            color: theme.THEME_COLOR_SHADE_8
-                            color_hover: theme.THEME_COLOR_SHADE_10
-                            text_style: theme.font_bold { font_size: 9.5 }
-                        }
-                    }
-                }
-
-                View {
-                    width: Fill, height: Fit
-                    padding: Inset{ top: 1, bottom: 1, right: 3 }
-                    align: Align{ x: 1.0, y: 0.5 }
-
-                    menu_panel := RoundedView {
-                        visible: false
-                        width: Fit, height: Fit
-                        flow: Right,
-                        spacing: 2,
-                        padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
-                        show_bg: true
-                        draw_bg +: {
-                            color: theme.THEME_COLOR_SHADE_5
-                            border_radius: 7.0
-                            border_size: 1.0
-                            border_color: theme.THEME_COLOR_BORDER_MEDIUM
-                        }
-
-                        menu_collapse := Button {
-                            width: 22, height: 22
-                            text: "〉"
-                            align: Align{ x: 0.5, y: 0.5 }
-                            draw_bg +: {
-                                color: theme.THEME_COLOR_TRANSPARENT
-                                color_hover: theme.THEME_COLOR_HOVER_MEDIUM
-                                border_radius: 4.0
-                                border_size: 0.0
-                            }
-                            draw_text +: { color: theme.THEME_COLOR_SHADE_8, text_style: theme.font_bold { font_size: 10 } }
-                        }
-
-                        menu_rename := Button {
-                            width: Fit, height: 22
-                            text: "Rename"
-                            draw_bg +: {
-                                color: theme.THEME_COLOR_TRANSPARENT
-                                color_hover: theme.THEME_COLOR_HOVER_MEDIUM
-                                border_radius: 4.0
-                                border_size: 0.0
-                            }
-                            draw_text +: { color: theme.THEME_COLOR_SHADE_10, text_style: theme.font_regular { font_size: 9 } }
-                        }
-
-                        menu_branch := Button {
-                            width: Fit, height: 22
-                            text: "Branch"
-                            draw_bg +: {
-                                color: theme.THEME_COLOR_TRANSPARENT
-                                color_hover: theme.THEME_COLOR_HOVER_MEDIUM
-                                border_radius: 4.0
-                                border_size: 0.0
-                            }
-                            draw_text +: { color: theme.THEME_COLOR_SHADE_10, text_style: theme.font_regular { font_size: 9 } }
-                        }
-
-                        menu_abort := Button {
-                            width: Fit, height: 22
-                            text: "Abort"
-                            visible: false
-                            draw_bg +: {
-                                color: theme.THEME_COLOR_TRANSPARENT
-                                color_hover: theme.THEME_COLOR_ACCENT_RED
-                                border_radius: 4.0
-                                border_size: 0.0
-                            }
-                            draw_text +: { color: theme.THEME_COLOR_SHADE_10, text_style: theme.font_regular { font_size: 9 } }
-                        }
-
-                        menu_delete := Button {
-                            width: Fit, height: 22
-                            text: "Delete"
-                            draw_bg +: {
-                                color: theme.THEME_COLOR_TRANSPARENT
-                                color_hover: theme.THEME_COLOR_ACCENT_RED
-                                border_radius: 4.0
-                                border_size: 0.0
-                            }
-                            draw_text +: { color: theme.THEME_COLOR_SHADE_10, text_style: theme.font_regular { font_size: 9 } }
-                        }
-                    }
+                draw_icon +: {
+                    color: theme.THEME_COLOR_TEXT_MUTED_LIGHTER
+                    color_active: theme.THEME_COLOR_TEXT_MUTED_LIGHTER
                 }
             }
 
-            Spacer := View { width: Fill, height: 6 }
-
-            EmptyState := View {
-                width: Fill, height: Fit
-                padding: Inset{ left: 12, right: 12, top: 24, bottom: 24 }
-                flow: Down
-                spacing: 8
-
-                empty_label := Label {
-                    width: Fill, height: Fit
-                    text: "No sessions yet"
-                    draw_text +: {
-                        color: theme.THEME_COLOR_TEXT_MUTED
-                        text_style: theme.font_regular { font_size: 11 }
-                    }
-                }
-
-                empty_hint := Label {
-                    width: Fill, height: Fit
-                    text: "Create a session to get started"
-                    draw_text +: {
-                        color: theme.THEME_COLOR_TEXT_MUTED
-                        text_style: theme.font_regular { font_size: 9 }
-                    }
-                }
+            filler +: {
+                color_1: theme.THEME_COLOR_TRANSPARENT
+                color_2: theme.THEME_COLOR_TRANSPARENT
+                color_active: theme.THEME_COLOR_TRANSPARENT
             }
         }
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum SessionsPanelItemKind {
-    ProjectHeader {
-        project_id: Option<String>,
-        name: String,
-    },
-    SessionRow {
-        session_id: String,
-        title: String,
-    },
-    Spacer,
-    EmptyState,
-}
-
 #[derive(Script, ScriptHook, Widget)]
 pub struct SessionsPanel {
-    #[source]
-    source: ScriptObjectRef,
+    #[wrap]
+    #[live]
+    file_tree: SessionTree,
 
-    #[deref]
-    view: View,
     #[rust]
     projects: Vec<Project>,
     #[rust]
@@ -359,19 +79,15 @@ pub struct SessionsPanel {
     #[rust]
     working_by_session: HashMap<String, bool>,
     #[rust]
-    items: Vec<SessionsPanelItemKind>,
+    session_node_to_id: HashMap<LiveId, String>,
     #[rust]
-    dirty: bool,
-    #[rust]
-    collapsed_projects: HashMap<Option<String>, bool>,
-    #[rust]
-    open_menu_session_id: Option<String>,
+    project_node_to_id: HashMap<LiveId, Option<String>>,
 }
 
 impl SessionsPanel {
     fn derive_project_name(project: &Project) -> String {
         if let Some(name) = &project.name {
-            if !name.is_empty() {
+            if !name.trim().is_empty() {
                 return name.clone();
             }
         }
@@ -391,81 +107,16 @@ impl SessionsPanel {
             .to_string()
     }
 
-    fn rebuild_items(&mut self) {
-        let mut grouped: HashMap<Option<String>, Vec<Session>> = HashMap::new();
-        for session in &self.sessions {
-            grouped
-                .entry(Some(session.project_id.clone()))
-                .or_default()
-                .push(session.clone());
-        }
+    fn project_node_id(project_id: &str) -> LiveId {
+        LiveId::from_str(&format!("sessions_project:{}", project_id))
+    }
 
-        let mut items = Vec::new();
-        for project in &self.projects {
-            if project.worktree == "/" || project.worktree.is_empty() {
-                continue;
-            }
+    fn other_project_node_id() -> LiveId {
+        LiveId::from_str("sessions_project:other")
+    }
 
-            let project_id = Some(project.id.clone());
-            let name = Self::derive_project_name(project);
-            let collapsed = self
-                .collapsed_projects
-                .get(&project_id)
-                .copied()
-                .unwrap_or(false);
-
-            items.push(SessionsPanelItemKind::ProjectHeader {
-                project_id: project_id.clone(),
-                name,
-            });
-
-            if !collapsed {
-                if let Some(sessions) = grouped.get(&project_id) {
-                    for session in sessions {
-                        let title = async_runtime::get_session_title(session);
-                        items.push(SessionsPanelItemKind::SessionRow {
-                            session_id: session.id.clone(),
-                            title,
-                        });
-                    }
-                }
-            }
-            items.push(SessionsPanelItemKind::Spacer);
-        }
-
-        let project_ids: std::collections::HashSet<String> =
-            self.projects.iter().map(|p| p.id.clone()).collect();
-        let ungrouped: Vec<&Session> = self
-            .sessions
-            .iter()
-            .filter(|s| !project_ids.contains(&s.project_id))
-            .collect();
-
-        if !ungrouped.is_empty() {
-            let collapsed = self.collapsed_projects.get(&None).copied().unwrap_or(false);
-
-            items.push(SessionsPanelItemKind::ProjectHeader {
-                project_id: None,
-                name: "Other".to_string(),
-            });
-
-            if !collapsed {
-                for session in ungrouped {
-                    let title = async_runtime::get_session_title(session);
-                    items.push(SessionsPanelItemKind::SessionRow {
-                        session_id: session.id.clone(),
-                        title,
-                    });
-                }
-            }
-        }
-
-        if items.is_empty() {
-            items.push(SessionsPanelItemKind::EmptyState);
-        }
-
-        self.items = items;
-        self.dirty = false;
+    fn session_node_id(session_id: &str) -> LiveId {
+        LiveId::from_str(&format!("sessions_session:{}", session_id))
     }
 
     fn session_diff_stats(summary: &SessionSummary) -> Option<(String, String, String)> {
@@ -488,245 +139,161 @@ impl SessionsPanel {
             format!("-{}", deletions),
         ))
     }
+
+    fn session_display_label(&self, session: &Session) -> String {
+        let mut title = async_runtime::get_session_title(session);
+        if title.trim().is_empty() {
+            title = "Untitled session".to_string();
+        }
+
+        let mut label = if title.chars().count() > 40 {
+            format!("{}…", title.chars().take(40).collect::<String>())
+        } else {
+            title
+        };
+
+        if let Some(summary) = session.summary.as_ref() {
+            if let Some((files, adds, dels)) = Self::session_diff_stats(summary) {
+                label.push_str(&format!("   {}  {}  {}", files, adds, dels));
+            }
+        }
+
+        if self
+            .working_by_session
+            .get(&session.id)
+            .copied()
+            .unwrap_or(false)
+        {
+            label.push_str("   ●");
+        }
+
+        if self
+            .selected_session_id
+            .as_ref()
+            .map(|id| id == &session.id)
+            .unwrap_or(false)
+        {
+            label.push_str("   (selected)");
+        }
+
+        label
+    }
+
+    fn draw_tree(&mut self, cx: &mut Cx2d) {
+        self.session_node_to_id.clear();
+        self.project_node_to_id.clear();
+
+        let projects = self.projects.clone();
+        let sessions = self.sessions.clone();
+
+        let mut grouped: HashMap<String, Vec<Session>> = HashMap::new();
+        for session in sessions {
+            grouped
+                .entry(session.project_id.clone())
+                .or_default()
+                .push(session);
+        }
+
+        let mut known_project_ids = HashSet::new();
+        for project in &projects {
+            if project.worktree == "/" || project.worktree.is_empty() {
+                continue;
+            }
+
+            known_project_ids.insert(project.id.clone());
+
+            let project_name = Self::derive_project_name(project);
+            let project_node_id = Self::project_node_id(&project.id);
+            self.project_node_to_id
+                .insert(project_node_id, Some(project.id.clone()));
+
+            if self
+                .file_tree
+                .begin_folder(cx, project_node_id, &project_name)
+                .is_ok()
+            {
+                if let Some(project_sessions) = grouped.get(&project.id) {
+                    for session in project_sessions {
+                        let node_id = Self::session_node_id(&session.id);
+                        let label = self.session_display_label(session);
+                        self.session_node_to_id.insert(node_id, session.id.clone());
+                        self.file_tree.file(cx, node_id, &label);
+                    }
+                }
+                self.file_tree.end_folder();
+            }
+        }
+
+        let ungrouped: Vec<Session> = grouped
+            .into_iter()
+            .filter(|(project_id, _)| !known_project_ids.contains(project_id))
+            .flat_map(|(_, sessions)| sessions)
+            .collect();
+
+        if !ungrouped.is_empty()
+            && self
+                .file_tree
+                .begin_folder(cx, Self::other_project_node_id(), "Other")
+                .is_ok()
+        {
+            self.project_node_to_id
+                .insert(Self::other_project_node_id(), None);
+            for session in &ungrouped {
+                let node_id = Self::session_node_id(&session.id);
+                let label = self.session_display_label(session);
+                self.session_node_to_id.insert(node_id, session.id.clone());
+                self.file_tree.file(cx, node_id, &label);
+            }
+            self.file_tree.end_folder();
+        }
+    }
 }
 
 impl Widget for SessionsPanel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        let _pointer_pos: Option<(f32, f32)> = None;
-
         let actions = cx.capture_actions(|cx| {
-            self.view.handle_event(cx, event, scope);
+            self.file_tree.handle_event(cx, event, scope);
         });
 
-        let list = self.view.portal_list(cx, &[id!(list)]);
-        let mut menu_opened = false;
-        for (item_id, widget) in list.items_with_actions(&actions) {
-            if item_id >= self.items.len() {
-                continue;
-            }
-            let panel_item = self.items[item_id].clone();
-            match panel_item {
-                SessionsPanelItemKind::ProjectHeader { project_id, .. } => {
-                    if widget
-                        .button(cx, &[id!(new_session_header_button)])
-                        .clicked(&actions)
-                    {
-                        cx.action(ProjectsPanelAction::CreateSession(project_id.clone()));
-                    } else if widget.button(cx, &[id!(project_toggle)]).clicked(&actions) {
-                        let collapsed = self
-                            .collapsed_projects
-                            .get(&project_id)
-                            .copied()
-                            .unwrap_or(false);
-                        self.collapsed_projects
-                            .insert(project_id.clone(), !collapsed);
-                        self.dirty = true;
-                        self.redraw(cx);
-                    }
+        if let Some(item) = actions.find_widget_action(self.file_tree.widget_uid()) {
+            if let SessionTreeAction::FileLeftClicked(node_id) = item.cast() {
+                log!("SessionTree action: FileLeftClicked {:?}", node_id);
+                if let Some(session_id) = self.session_node_to_id.get(&node_id).cloned() {
+                    self.selected_session_id = Some(session_id.clone());
+                    cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                 }
-                SessionsPanelItemKind::SessionRow { session_id, .. } => {
-                    if widget.button(cx, &[id!(session_button)]).clicked(&actions) {
-                        cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
-                    }
-
-                    if widget.button(cx, &[id!(menu_button)]).clicked(&actions) {
-                        menu_opened = true;
-                        let (x, y) = _pointer_pos.unwrap_or((0.0, 0.0));
-                        let working = self
-                            .working_by_session
-                            .get(&session_id)
-                            .copied()
-                            .unwrap_or(false);
-                        cx.action(ProjectsPanelAction::OpenSessionContextMenu {
-                            session_id: session_id.clone(),
-                            x,
-                            y,
-                            working,
-                        });
-                    }
-
-                    if widget.button(cx, &[id!(menu_delete)]).clicked(&actions) {
-                        cx.action(ProjectsPanelAction::DeleteSession(session_id.clone()));
-                        self.open_menu_session_id = None;
-                        self.redraw(cx);
-                    }
-                    if widget.button(cx, &[id!(menu_rename)]).clicked(&actions) {
-                        cx.action(ProjectsPanelAction::RenameSession(session_id.clone()));
-                        self.open_menu_session_id = None;
-                        self.redraw(cx);
-                    }
-                    if widget.button(cx, &[id!(menu_branch)]).clicked(&actions) {
-                        cx.action(ProjectsPanelAction::BranchSession(session_id.clone()));
-                        self.open_menu_session_id = None;
-                        self.redraw(cx);
-                    }
-                    if widget.button(cx, &[id!(menu_abort)]).clicked(&actions) {
-                        cx.action(ProjectsPanelAction::AbortSession(session_id.clone()));
-                        self.open_menu_session_id = None;
-                        self.redraw(cx);
-                    }
+            } else if let SessionTreeAction::FileRightClicked(node_id) = item.cast() {
+                log!("SessionTree action: FileRightClicked {:?}", node_id);
+                if let Some(session_id) = self.session_node_to_id.get(&node_id).cloned() {
+                    let working = self
+                        .working_by_session
+                        .get(&session_id)
+                        .copied()
+                        .unwrap_or(false);
+                    cx.action(ProjectsPanelAction::OpenSessionContextMenu {
+                        session_id,
+                        x: 0.0,
+                        y: 0.0,
+                        working,
+                    });
                 }
-                _ => {}
-            }
-        }
-
-        if !menu_opened {
-            for (item_id, panel_item) in self.items.iter().enumerate() {
-                if let SessionsPanelItemKind::SessionRow { session_id, .. } = panel_item {
-                    let widget = list.item(cx, item_id, live_id!(SessionRow));
-                    if widget.button(cx, &[id!(menu_button)]).clicked(&actions) {
-                        let (x, y) = _pointer_pos.unwrap_or((0.0, 0.0));
-                        let working = self
-                            .working_by_session
-                            .get(session_id)
-                            .copied()
-                            .unwrap_or(false);
-                        cx.action(ProjectsPanelAction::OpenSessionContextMenu {
-                            session_id: session_id.clone(),
-                            x,
-                            y,
-                            working,
-                        });
-                        break;
-                    }
-                }
+            } else if let SessionTreeAction::FolderRightClicked(node_id) = item.cast() {
+                log!("SessionTree action: FolderRightClicked {:?}", node_id);
+                let project_id = self
+                    .project_node_to_id
+                    .get(&node_id)
+                    .cloned()
+                    .unwrap_or(None);
+                cx.action(ProjectsPanelAction::OpenProjectContextMenu { project_id });
+            } else if let SessionTreeAction::FolderLeftClicked(node_id) = item.cast() {
+                log!("SessionTree action: FolderLeftClicked {:?}", node_id);
             }
         }
     }
 
-    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
-        if self.dirty {
-            self.rebuild_items();
-        }
-
-        // Keep sidebar content top-aligned even when there are only a few rows.
-        self.view.portal_list(cx, &[id!(list)]).set_tail_range(false);
-
-        while let Some(item) = self.view.draw_walk(cx, scope, walk).step() {
-            if let Some(mut list) = item.as_portal_list().borrow_mut() {
-                if self.items.is_empty() {
-                    list.set_item_range(cx, 0, 0);
-                    continue;
-                } else {
-                    list.set_item_range(cx, 0, self.items.len());
-                }
-                while let Some(item_id) = list.next_visible_item(cx) {
-                    if item_id >= self.items.len() {
-                        continue;
-                    }
-                    let panel_item = self.items[item_id].clone();
-                    let template = match &panel_item {
-                        SessionsPanelItemKind::ProjectHeader { .. } => live_id!(ProjectHeader),
-                        SessionsPanelItemKind::SessionRow { .. } => live_id!(SessionRow),
-                        SessionsPanelItemKind::Spacer => live_id!(Spacer),
-                        SessionsPanelItemKind::EmptyState => live_id!(EmptyState),
-                    };
-                    let item_widget = list.item(cx, item_id, template);
-
-                    match &panel_item {
-                        SessionsPanelItemKind::ProjectHeader {
-                            name, project_id, ..
-                        } => {
-                            let collapsed = self
-                                .collapsed_projects
-                                .get(project_id)
-                                .copied()
-                                .unwrap_or(false);
-                            let chevron = if collapsed { ">" } else { "v" };
-                            let display_name = if name.trim().is_empty() {
-                                "(project)"
-                            } else {
-                                name.as_str()
-                            };
-                            item_widget
-                                .button(cx, &[id!(project_toggle)])
-                                .set_text(cx, display_name);
-                            item_widget.label(cx, &[id!(chevron)]).set_text(cx, chevron);
-                            let project_working = self.sessions.iter().any(|s| {
-                                let matches_project = match project_id {
-                                    Some(pid) => &s.project_id == pid,
-                                    None => true,
-                                };
-                                matches_project
-                                    && self.working_by_session.get(&s.id).copied().unwrap_or(false)
-                            });
-                            item_widget
-                                .view(cx, &[id!(project_working_dot)])
-                                .set_visible(cx, project_working);
-                        }
-                        SessionsPanelItemKind::SessionRow { session_id, title } => {
-                            let display_title = if title.trim().is_empty() {
-                                "Untitled session".to_string()
-                            } else {
-                                let truncated: String = title.chars().take(45).collect();
-                                if title.chars().count() > 45 {
-                                    format!("{}…", truncated)
-                                } else {
-                                    truncated
-                                }
-                            };
-                            let selected = self
-                                .selected_session_id
-                                .as_ref()
-                                .map(|id| id == session_id)
-                                .unwrap_or(false);
-                            item_widget
-                                .button(cx, &[id!(session_button)])
-                                .set_text(cx, &display_title);
-                            item_widget
-                                .view(cx, &[id!(selected_pill)])
-                                .set_visible(cx, selected);
-                            let working = self
-                                .working_by_session
-                                .get(session_id)
-                                .copied()
-                                .unwrap_or(false);
-                            item_widget
-                                .view(cx, &[id!(working_dot)])
-                                .set_visible(cx, working);
-                            let menu_open =
-                                self.open_menu_session_id.as_deref() == Some(session_id);
-                            item_widget
-                                .view(cx, &[id!(menu_panel)])
-                                .set_visible(cx, menu_open);
-                            item_widget
-                                .button(cx, &[id!(menu_button)])
-                                .set_visible(cx, !menu_open);
-                            item_widget
-                                .button(cx, &[id!(menu_abort)])
-                                .set_visible(cx, working);
-
-                            let summary_text = self
-                                .sessions
-                                .iter()
-                                .find(|s| &s.id == session_id)
-                                .and_then(|s| s.summary.as_ref())
-                                .and_then(Self::session_diff_stats);
-                            let summary_files = item_widget.label(cx, &[id!(summary_files_label)]);
-                            let summary_add = item_widget.label(cx, &[id!(summary_add_label)]);
-                            let summary_del = item_widget.label(cx, &[id!(summary_del_label)]);
-                            if let Some((files, adds, dels)) = summary_text {
-                                summary_files.set_text(cx, &files);
-                                summary_add.set_text(cx, &adds);
-                                summary_del.set_text(cx, &dels);
-                                item_widget
-                                    .view(cx, &[id!(summary_stats)])
-                                    .set_visible(cx, true);
-                            } else {
-                                summary_files.set_text(cx, "");
-                                summary_add.set_text(cx, "");
-                                summary_del.set_text(cx, "");
-                                item_widget
-                                    .view(cx, &[id!(summary_stats)])
-                                    .set_visible(cx, false);
-                            }
-                        }
-                        _ => {}
-                    }
-
-                    item_widget.draw_all(cx, scope);
-                }
-            }
+    fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
+        while self.file_tree.draw_walk(cx, &mut Scope::empty(), walk).is_step() {
+            self.draw_tree(cx);
         }
         DrawStep::done()
     }
@@ -746,8 +313,21 @@ impl SessionsPanelRef {
             inner.sessions = sessions;
             inner.selected_session_id = selected_session_id;
             inner.working_by_session = working_by_session;
-            inner.dirty = true;
-            inner.redraw(cx);
+
+            let project_ids: Vec<String> = inner.projects.iter().map(|p| p.id.clone()).collect();
+            for project_id in project_ids {
+                inner.file_tree.set_folder_is_open(
+                    cx,
+                    SessionsPanel::project_node_id(&project_id),
+                    true,
+                    Animate::No,
+                );
+            }
+            inner
+                .file_tree
+                .set_folder_is_open(cx, SessionsPanel::other_project_node_id(), true, Animate::No);
+
+            inner.file_tree.redraw(cx);
         }
     }
 }
