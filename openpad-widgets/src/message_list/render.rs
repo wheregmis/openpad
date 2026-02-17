@@ -1,7 +1,12 @@
 use super::*;
 
 impl MessageList {
-    pub(crate) fn draw_walk_impl(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+    pub(crate) fn draw_walk_impl(
+        &mut self,
+        cx: &mut Cx2d,
+        scope: &mut Scope,
+        walk: Walk,
+    ) -> DrawStep {
         let is_empty =
             self.messages.is_empty() && self.pending_permissions.is_empty() && !self.is_working;
         self.view

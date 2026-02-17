@@ -13,3 +13,7 @@
 ## 2026-06-10 – Relocating Expensive Computation from Draw Loops and Optimizing DP Tables
 **Learning:** Performing O(N*M) algorithms like LCS-based unified diffing inside a Makepad `draw_walk` loop is extremely expensive, especially since it runs every frame during animations or scrolling. Additionally, nested vectors (`Vec<Vec<T>>`) in DP tables cause significant heap churn.
 **Action:** Move all non-UI computation (like diff generation) to background processing or once-per-update handlers (e.g., `MessageProcessor::refresh_message_caches`). Cache the final display strings in the underlying data structures. Optimize DP tables by using a single 1D vector with manual indexing to reduce allocations from O(N) to O(1) and improve cache locality.
+
+## 2026-06-15 – Reducing Heap Churn in Streaming Multi-line Text Widgets
+**Learning:** Widgets that render multi-line text (like `ColoredDiffText`) often parse incoming strings into individual `DiffLine` objects. If these objects store owned `String` instances, every update (which happens frequently during streaming) causes O(N_lines) heap allocations.
+**Action:** Replace per-line owned strings with `start` and `end` offsets into a single, persistent `#[rust]` buffer (e.g., `normalized_text`). Update the buffer using `clear()` and `push_str()`/`push()` to reuse capacity. During `draw_walk`, slice the buffer using the offsets. This reduces allocations from O(N_lines) to nearly zero per update, significantly improving performance during high-frequency streaming.

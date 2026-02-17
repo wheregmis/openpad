@@ -8,10 +8,9 @@ use crate::{
     File, FileDiff, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest,
     HealthResponse, LogRequest, MessageWithParts, PathInfo, PermissionReply,
     PermissionReplyRequest, PermissionRequest, PermissionResponse, Project, PromptRequest,
-    ProvidersResponse, RevertRequest, SessionCreateRequest, SessionInitRequest,
+    ProvidersResponse, Pty, RevertRequest, SessionCreateRequest, SessionInitRequest,
     SessionSummarizeRequest, SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol,
-    Todo, Pty,
-    SymbolsSearchRequest, TextSearchRequest, TextSearchResult,
+    SymbolsSearchRequest, TextSearchRequest, TextSearchResult, Todo,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
 use reqwest::Client as HttpClient;

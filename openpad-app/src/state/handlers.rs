@@ -384,7 +384,6 @@ impl AppState {
                 self.working_by_session.clone(),
             );
     }
-
 }
 
 /// Handles AppAction events
@@ -569,7 +568,12 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             handle_app_action(state, ui, cx, &AppAction::SessionUpdated(session.clone()));
         }
         OcEvent::SessionDeleted(session) => {
-            handle_app_action(state, ui, cx, &AppAction::SessionDeleted(session.id.clone()));
+            handle_app_action(
+                state,
+                ui,
+                cx,
+                &AppAction::SessionDeleted(session.id.clone()),
+            );
         }
         OcEvent::MessageUpdated(message) => {
             handle_app_action(state, ui, cx, &AppAction::MessageReceived(message.clone()));

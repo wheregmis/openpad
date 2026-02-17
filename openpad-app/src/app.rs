@@ -883,7 +883,6 @@ impl App {
 
         async_runtime::spawn_session_unreverter(runtime, client, session_id, directory);
     }
-
 }
 
 impl AppMain for App {

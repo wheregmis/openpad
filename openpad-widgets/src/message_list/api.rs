@@ -1,7 +1,7 @@
 use super::*;
 
 impl MessageListRef {
-        pub fn set_messages(
+    pub fn set_messages(
         &self,
         cx: &mut Cx,
         messages_with_parts: &[openpad_protocol::MessageWithParts],

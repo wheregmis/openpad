@@ -185,12 +185,7 @@ impl App {
         }
     }
 
-    pub(super) fn open_file_now(
-        &mut self,
-        cx: &mut Cx,
-        project_id: String,
-        absolute_path: String,
-    ) {
+    pub(super) fn open_file_now(&mut self, cx: &mut Cx, project_id: String, absolute_path: String) {
         if let Some(existing_tab_id) = self.state.tab_by_file.get(&absolute_path).copied() {
             self.activate_center_tab(cx, existing_tab_id);
             return;

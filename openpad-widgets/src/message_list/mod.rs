@@ -3,7 +3,6 @@ use crate::message_logic::{DisplayMessage, MessageProcessor};
 use crate::permission_card::{PermissionCardApi, PermissionCardWidgetRefExt};
 use makepad_widgets::*;
 
-
 mod api;
 mod events;
 mod model;
