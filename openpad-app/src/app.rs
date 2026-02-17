@@ -391,13 +391,16 @@ impl App {
     }
 
     fn update_center_panel_mode_ui(&self, cx: &mut Cx) {
-        let page_id = match self.state.center_panel_mode {
-            CenterPanelMode::Conversation => id!(conversation_page),
-            CenterPanelMode::Editor => id!(editor_page),
+        let (page_id, show_session_info) = match self.state.center_panel_mode {
+            CenterPanelMode::Conversation => (id!(conversation_page), true),
+            CenterPanelMode::Editor => (id!(editor_page), false),
         };
         self.ui
             .page_flip(cx, &[id!(center_page_flip)])
             .set_active_page(cx, page_id);
+        self.ui
+            .view(cx, &[id!(session_info)])
+            .set_visible(cx, show_session_info);
     }
 
     fn update_editor_header_ui(&self, cx: &mut Cx) {
