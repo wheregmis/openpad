@@ -248,15 +248,10 @@ script_mod! {
                                             text: "No file selected"
                                         }
                                         View { width: Fill }
-                                        editor_dirty_label := Label {
+                                        editor_dirty_dot := Label {
                                             width: Fit, height: Fit
-                                            visible: false
-                                            text: "● Unsaved"
-                                            draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 10 } }
-                                        }
-                                        editor_save_button := Button {
-                                            width: Fit, height: 20
-                                            text: "Save"
+                                            text: ""
+                                            draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 12 } }
                                         }
                                     }
 
@@ -410,18 +405,17 @@ impl App {
             self.ui
                 .label(cx, &[id!(editor_file_label)])
                 .set_text(cx, &open.absolute_path);
-            // Use the editor panel's internal dirty tracking
-            let is_dirty = self.ui.editor_panel(cx, &[id!(editor_panel)]).is_dirty();
-            self.ui
-                .label(cx, &[id!(editor_dirty_label)])
-                .set_visible(cx, is_dirty);
+            let current_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
+            let is_dirty = current_text != open.text_cache;
+            self.ui.label(cx, &[id!(editor_dirty_dot)]).set_text(
+                cx,
+                if is_dirty { "●" } else { "" },
+            );
         } else {
             self.ui
                 .label(cx, &[id!(editor_file_label)])
                 .set_text(cx, "No file selected");
-            self.ui
-                .label(cx, &[id!(editor_dirty_label)])
-                .set_visible(cx, false);
+            self.ui.label(cx, &[id!(editor_dirty_dot)]).set_text(cx, "");
         }
     }
 
@@ -441,8 +435,15 @@ impl App {
 
     fn queue_or_open_file(&mut self, cx: &mut Cx, project_id: String, absolute_path: String) {
         // Check if there's an open file with unsaved changes
-        let has_unsaved = self.state.open_file.is_some()
-            && self.ui.editor_panel(cx, &[id!(editor_panel)]).is_dirty();
+        let has_unsaved = self
+            .state
+            .open_file
+            .as_ref()
+            .map(|open| {
+                let current_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
+                current_text != open.text_cache
+            })
+            .unwrap_or(false);
         if has_unsaved {
             self.state.pending_open_after_save = Some(PendingOpenTarget::File {
                 project_id,
@@ -456,8 +457,15 @@ impl App {
 
     fn queue_or_select_session(&mut self, cx: &mut Cx, session_id: String) {
         // Check if there's an open file with unsaved changes
-        let has_unsaved = self.state.open_file.is_some()
-            && self.ui.editor_panel(cx, &[id!(editor_panel)]).is_dirty();
+        let has_unsaved = self
+            .state
+            .open_file
+            .as_ref()
+            .map(|open| {
+                let current_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
+                current_text != open.text_cache
+            })
+            .unwrap_or(false);
         if has_unsaved {
             self.state.pending_open_after_save =
                 Some(PendingOpenTarget::Conversation { session_id });
@@ -490,8 +498,11 @@ impl App {
         self.ui
             .editor_panel(cx, &[id!(editor_panel)])
             .set_read_only(cx, false);
-        // set_text also resets the editor's dirty state internally
         self.ui.editor_panel(cx, &[id!(editor_panel)]).set_text(cx, &content);
+        let normalized_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
+        if let Some(open_file) = self.state.open_file.as_mut() {
+            open_file.text_cache = normalized_text;
+        }
         self.ui
             .editor_panel(cx, &[id!(editor_panel)])
             .focus_editor(cx);
@@ -505,13 +516,11 @@ impl App {
             return false;
         };
 
-        // Check dirty state from the editor panel
-        let is_dirty = self.ui.editor_panel(cx, &[id!(editor_panel)]).is_dirty();
-        if !is_dirty {
+        let text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
+        if text == open_file.text_cache {
             return true;
         }
 
-        let text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
         if let Err(err) = std::fs::write(&open_file.absolute_path, text.as_bytes()) {
             self.state.error_message = Some(format!(
                 "Failed to save {}: {}",
@@ -525,9 +534,8 @@ impl App {
             return false;
         }
 
-        // Mark the editor as clean after successful save
-        self.ui.editor_panel(cx, &[id!(editor_panel)]).mark_clean();
         if let Some(of) = self.state.open_file.as_mut() {
+            of.text_cache = text;
             of.last_saved_revision = of.last_saved_revision.saturating_add(1);
         }
         self.update_editor_header_ui(cx);
@@ -550,8 +558,10 @@ impl App {
     }
 
     fn discard_editor_changes(&mut self, cx: &mut Cx) {
-        // Mark the editor as clean to allow proceeding without save
-        self.ui.editor_panel(cx, &[id!(editor_panel)]).mark_clean();
+        if let Some(of) = self.state.open_file.as_mut() {
+            let current_text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
+            of.text_cache = current_text;
+        }
         self.update_editor_header_ui(cx);
     }
 
@@ -1740,16 +1750,6 @@ impl AppMain for App {
 
         if self
             .ui
-            .button(cx, &[id!(editor_save_button)])
-            .clicked(&actions)
-        {
-            if self.save_open_editor(cx) {
-                self.run_pending_open_target(cx);
-            }
-        }
-
-        if self
-            .ui
             .button(cx, &[id!(hamburger_button)])
             .clicked(&actions)
         {
@@ -1826,6 +1826,10 @@ impl AppMain for App {
         {
             self.state.selected_skill_idx = if idx > 0 { Some(idx - 1) } else { None };
             self.update_skill_ui(cx);
+        }
+
+        if self.state.center_panel_mode == CenterPanelMode::Editor {
+            self.update_editor_header_ui(cx);
         }
     }
 }

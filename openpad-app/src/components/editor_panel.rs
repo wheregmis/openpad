@@ -50,9 +50,6 @@ pub struct EditorPanel {
     #[rust]
     read_only: bool,
 
-    /// Tracks whether the editor content has changed since baseline_text was set.
-    #[rust]
-    is_dirty: bool,
 }
 
 impl EditorPanel {
@@ -66,13 +63,7 @@ impl EditorPanel {
     fn set_text_inner(&mut self, cx: &mut Cx, text: &str) {
         let doc = CodeDocument::new(text.into(), DecorationSet::new());
         self.session = Some(CodeSession::new(doc));
-        // Store the actual text from the document as baseline (handles any normalization)
-        self.baseline_text = self
-            .session
-            .as_ref()
-            .map(|s| s.document().as_text().to_string())
-            .unwrap_or_default();
-        self.is_dirty = false;
+        self.baseline_text = text.to_string();
         self.editor.redraw(cx);
     }
 
@@ -91,13 +82,18 @@ impl EditorPanel {
         cx.set_key_focus(self.editor.area());
     }
 
-    fn is_dirty_inner(&self) -> bool {
-        self.is_dirty
+    fn is_dirty_inner_mut(&mut self) -> bool {
+        // Compare current text to baseline
+        if let Some(session) = &self.session {
+            let current_text = session.document().as_text().to_string();
+            current_text != self.baseline_text
+        } else {
+            false
+        }
     }
 
     fn mark_clean_inner(&mut self) {
         self.baseline_text = self.get_text_inner();
-        self.is_dirty = false;
     }
 }
 
@@ -153,13 +149,7 @@ impl Widget for EditorPanel {
             match action {
                 CodeEditorAction::TextDidChange => {
                     if !self.read_only {
-                        // Check if text actually changed from baseline
-                        let current_text = session.document().as_text().to_string();
-                        let text_changed = current_text != self.baseline_text;
-                        if text_changed != self.is_dirty {
-                            self.is_dirty = text_changed;
-                            cx.widget_action(uid, EditorPanelAction::TextDidChange);
-                        }
+                        cx.widget_action(uid, EditorPanelAction::TextDidChange);
                     }
                 }
                 CodeEditorAction::UnhandledKeyDown(_) | CodeEditorAction::None => {}
@@ -197,8 +187,8 @@ impl EditorPanelRef {
 
     /// Returns true if the editor content has changed since the last set_text or mark_clean call.
     pub fn is_dirty(&self) -> bool {
-        if let Some(inner) = self.borrow() {
-            return inner.is_dirty_inner();
+        if let Some(mut inner) = self.borrow_mut() {
+            return inner.is_dirty_inner_mut();
         }
         false
     }
