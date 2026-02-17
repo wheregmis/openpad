@@ -9,7 +9,8 @@ script_mod! {
         height: 32
         margin: Inset{left: 6}
         padding: Inset{left: 8 right: 8 top: 8 bottom: 8}
-        text: ""
+        text: "Send Message"
+        draw_text +: {color: #0000}
         icon_walk: Walk{width: 14 height: 14}
         draw_icon +: {
             svg: crate_resource("self://resources/icons/send.svg")
