@@ -7,17 +7,7 @@ use std::path::Path;
 
 /// Updates the status indicator UI (dot color and label text)
 pub fn update_status_indicator(ui: &WidgetRef, cx: &mut Cx, status_text: &str, color: Vec4) {
-    let indicator = if status_text.starts_with(STATUS_ERROR_PREFIX) {
-        "●"
-    } else if status_text == STATUS_CONNECTED {
-        "●"
-    } else if status_text == STATUS_DISCONNECTED {
-        "○"
-    } else {
-        "●"
-    };
-    ui.label(cx, &[id!(status_label)])
-        .set_text(cx, &format!("{indicator} {status_text}"));
+    ui.label(cx, &[id!(status_label)]).set_text(cx, status_text);
     let _ = color;
 }
 

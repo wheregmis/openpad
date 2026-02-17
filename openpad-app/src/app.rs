@@ -172,7 +172,14 @@ script_mod! {
                                 status_row := View {
                                     width: Fit, height: Fit
                                     flow: Right, spacing: 8
-                                    work_indicator := View { visible: false Label { text: "Working..." } }
+                                    align: Align{ y: 0.5 }
+                                    work_indicator := View {
+                                        width: Fit, height: Fit
+                                        flow: Right
+                                        align: Align{ y: 0.5 }
+                                        visible: false
+                                        Label { text: "Working..." }
+                                    }
                                     status_dot := StatusDot {}
                                     status_label := Label { text: "Connected" }
                                 }

@@ -5,8 +5,8 @@ script_mod! {
     use mod.widgets.*
 
     mod.widgets.StatusDot = View{
-        width: 10.0
-        height: 10.0
+        width: 8.0
+        height: 8.0
         show_bg: true
         draw_bg +: {
             color: instance(#6b7b8c)
