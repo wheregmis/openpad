@@ -65,8 +65,6 @@ pub struct OpenFileState {
     pub project_id: String,
     pub absolute_path: String,
     pub display_name: String,
-    pub text_cache: String,
-    pub dirty: bool,
     pub last_saved_revision: u64,
 }
 
@@ -225,7 +223,7 @@ impl AppState {
         self.center_panel_mode = CenterPanelMode::Conversation;
     }
 
-    pub fn switch_to_editor_mode(&mut self, project_id: String, absolute_path: String, content: String) {
+    pub fn switch_to_editor_mode(&mut self, project_id: String, absolute_path: String, _content: String) {
         let display_name = std::path::Path::new(&absolute_path)
             .file_name()
             .and_then(|v| v.to_str())
@@ -236,16 +234,8 @@ impl AppState {
             project_id,
             absolute_path,
             display_name,
-            text_cache: content,
-            dirty: false,
             last_saved_revision: 0,
         });
-    }
-
-    pub fn mark_editor_dirty(&mut self) {
-        if let Some(open_file) = self.open_file.as_mut() {
-            open_file.dirty = true;
-        }
     }
 
     pub fn clear_editor_state(&mut self) {
