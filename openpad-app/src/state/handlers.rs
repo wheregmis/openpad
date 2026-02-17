@@ -413,6 +413,12 @@ impl AppState {
 
 /// Handles AppAction events
 pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, action: &AppAction) {
+    let effects = if matches!(action, AppAction::MessagesLoaded { .. }) {
+        crate::state::reducer::reduce_app_state(state, action)
+    } else {
+        Vec::new()
+    };
+
     match action {
         AppAction::Connected => {
             state.connected = true;
@@ -515,23 +521,9 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             cx.redraw_all();
         }
         AppAction::MessagesLoaded {
-            session_id,
-            messages,
-        } => {
-            state.set_messages_for_session(session_id.clone(), messages.clone());
-            if state.current_session_id.as_deref() == Some(session_id.as_str()) {
-                state.messages_data = messages.clone();
-            }
-            // Request session diff so file changes show on the last assistant message
-            let message_id = messages.iter().rev().find_map(|mwp| match &mwp.info {
-                openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
-                _ => None,
-            });
-            cx.action(AppAction::RequestSessionDiff {
-                session_id: session_id.clone(),
-                message_id,
-            });
-        }
+            session_id: _,
+            messages: _,
+        } => {}
         AppAction::SendMessageFailed(err) => {
             state.error_message = Some(err.clone());
             state.is_working = false;
@@ -639,6 +631,20 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
             }
         }
         _ => {}
+    }
+
+    for effect in effects {
+        match effect {
+            crate::state::effects::StateEffect::RequestSessionDiff {
+                session_id,
+                message_id,
+            } => {
+                cx.action(AppAction::RequestSessionDiff {
+                    session_id,
+                    message_id,
+                });
+            }
+        }
     }
 }
 
