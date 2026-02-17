@@ -10,6 +10,7 @@ use crate::{
     PermissionReplyRequest, PermissionRequest, PermissionResponse, Project, PromptRequest,
     ProvidersResponse, RevertRequest, SessionCreateRequest, SessionInitRequest,
     SessionSummarizeRequest, SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol,
+    Todo, Pty,
     SymbolsSearchRequest, TextSearchRequest, TextSearchResult,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
@@ -737,6 +738,24 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             let session: Session = serde_json::from_value(props.get("info")?.clone()).ok()?;
             Some(Event::SessionDeleted(session))
         }
+        "session.status" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let status = props.get("status")?.clone();
+            Some(Event::SessionStatus { session_id, status })
+        }
+        "session.idle" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            Some(Event::SessionIdle { session_id })
+        }
+        "session.compacted" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            Some(Event::SessionCompacted { session_id })
+        }
+        "session.diff" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let diff: Vec<FileDiff> = serde_json::from_value(props.get("diff")?.clone()).ok()?;
+            Some(Event::SessionDiff { session_id, diff })
+        }
         "message.updated" => {
             let message: Message = serde_json::from_value(props.get("info")?.clone()).ok()?;
             Some(Event::MessageUpdated(message))
@@ -756,6 +775,20 @@ fn parse_sse_event(data: &str) -> Option<Event> {
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
             Some(Event::PartUpdated { part, delta })
+        }
+        "message.part.delta" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let message_id = props.get("messageID")?.as_str()?.to_string();
+            let part_id = props.get("partID")?.as_str()?.to_string();
+            let field = props.get("field")?.as_str()?.to_string();
+            let delta = props.get("delta")?.as_str()?.to_string();
+            Some(Event::PartDelta {
+                session_id,
+                message_id,
+                part_id,
+                field,
+                delta,
+            })
         }
         "message.part.removed" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
@@ -786,6 +819,118 @@ fn parse_sse_event(data: &str) -> Option<Event> {
                 request_id,
                 reply,
             })
+        }
+        "question.asked" => {
+            let request = props.clone();
+            Some(Event::QuestionAsked(request))
+        }
+        "question.replied" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let request_id = props.get("requestID")?.as_str()?.to_string();
+            let answers: Vec<Vec<String>> =
+                serde_json::from_value(props.get("answers")?.clone()).ok()?;
+            Some(Event::QuestionReplied {
+                session_id,
+                request_id,
+                answers,
+            })
+        }
+        "question.rejected" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let request_id = props.get("requestID")?.as_str()?.to_string();
+            Some(Event::QuestionRejected {
+                session_id,
+                request_id,
+            })
+        }
+        "todo.updated" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let todos: Vec<Todo> = serde_json::from_value(props.get("todos")?.clone()).ok()?;
+            Some(Event::TodoUpdated { session_id, todos })
+        }
+        "pty.created" => {
+            let info: Pty = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            Some(Event::PtyCreated(info))
+        }
+        "pty.updated" => {
+            let info: Pty = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            Some(Event::PtyUpdated(info))
+        }
+        "pty.exited" => {
+            let id = props.get("id")?.as_str()?.to_string();
+            let exit_code = props.get("exitCode")?.as_i64()?;
+            Some(Event::PtyExited { id, exit_code })
+        }
+        "pty.deleted" => {
+            let id = props.get("id")?.as_str()?.to_string();
+            Some(Event::PtyDeleted { id })
+        }
+        "project.updated" => {
+            let info: Project = serde_json::from_value(props.clone()).ok()?;
+            Some(Event::ProjectUpdated(info))
+        }
+        "vcs.branch.updated" => {
+            let branch = props.get("branch")?.as_str()?.to_string();
+            Some(Event::VcsBranchUpdated { branch })
+        }
+        "file.edited" => {
+            let file = props.get("file")?.as_str()?.to_string();
+            Some(Event::FileEdited { file })
+        }
+        "file.watcher.updated" => {
+            let file = props.get("file")?.as_str()?.to_string();
+            let event = props.get("event")?.as_str()?.to_string();
+            Some(Event::FileWatcherUpdated { file, event })
+        }
+        "lsp.updated" => Some(Event::LspUpdated),
+        "lsp.client.diagnostics" => {
+            let server_id = props.get("serverID")?.as_str()?.to_string();
+            let path = props.get("path")?.as_str()?.to_string();
+            Some(Event::LspDiagnostics { server_id, path })
+        }
+        "worktree.ready" => {
+            let name = props.get("name")?.as_str()?.to_string();
+            let branch = props.get("branch")?.as_str()?.to_string();
+            Some(Event::WorktreeReady { name, branch })
+        }
+        "worktree.failed" => {
+            let message = props.get("message")?.as_str()?.to_string();
+            Some(Event::WorktreeFailed { message })
+        }
+        "mcp.tools.changed" => {
+            let server = props.get("server")?.as_str()?.to_string();
+            Some(Event::McpToolsChanged { server })
+        }
+        "mcp.browser.open.failed" => {
+            let mcp_name = props.get("mcpName")?.as_str()?.to_string();
+            let url = props.get("url")?.as_str()?.to_string();
+            Some(Event::McpBrowserOpenFailed { mcp_name, url })
+        }
+        "command.executed" => {
+            let name = props.get("name")?.as_str()?.to_string();
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            let arguments = props.get("arguments")?.as_str()?.to_string();
+            let message_id = props.get("messageID")?.as_str()?.to_string();
+            Some(Event::CommandExecuted {
+                name,
+                session_id,
+                arguments,
+                message_id,
+            })
+        }
+        "installation.updated" => {
+            let version = props.get("version")?.as_str()?.to_string();
+            Some(Event::InstallationUpdated { version })
+        }
+        "installation.update-available" => {
+            let version = props.get("version")?.as_str()?.to_string();
+            Some(Event::InstallationUpdateAvailable { version })
+        }
+        "server.connected" => Some(Event::ServerConnected),
+        "global.disposed" => Some(Event::GlobalDisposed),
+        "server.instance.disposed" => {
+            let directory = props.get("directory")?.as_str()?.to_string();
+            Some(Event::ServerInstanceDisposed { directory })
         }
         _ => Some(Event::Unknown(event_type.to_string())),
     }
