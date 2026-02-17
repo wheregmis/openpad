@@ -544,7 +544,9 @@ impl Widget for MessageList {
                 continue;
             }
 
-            if widget.button(cx, &[id!(copy_action_button)]).clicked(&actions)
+            if widget
+                .button(cx, &[id!(copy_action_button)])
+                .clicked(&actions)
                 || widget.button(cx, &[id!(copy_button)]).clicked(&actions)
             {
                 cx.copy_to_clipboard(&self.messages[item_id].text);
@@ -783,11 +785,15 @@ impl Widget for MessageList {
                         let item_widget = list.item(cx, item_id, template);
 
                         if msg.role == "user" {
-                            item_widget.widget(cx, &[id!(msg_text)]).set_text(cx, fallback_text);
+                            item_widget
+                                .widget(cx, &[id!(msg_text)])
+                                .set_text(cx, fallback_text);
                         } else {
                             let use_markdown = false;
                             if use_markdown {
-                                item_widget.view(cx, &[id!(label_view)]).set_visible(cx, false);
+                                item_widget
+                                    .view(cx, &[id!(label_view)])
+                                    .set_visible(cx, false);
                                 item_widget
                                     .view(cx, &[id!(markdown_view)])
                                     .set_visible(cx, true);
@@ -810,7 +816,9 @@ impl Widget for MessageList {
                                 item_widget
                                     .view(cx, &[id!(markdown_view)])
                                     .set_visible(cx, false);
-                                item_widget.view(cx, &[id!(label_view)]).set_visible(cx, true);
+                                item_widget
+                                    .view(cx, &[id!(label_view)])
+                                    .set_visible(cx, true);
                                 item_widget
                                     .widget(cx, &[id!(msg_label)])
                                     .set_text(cx, fallback_text);
@@ -896,11 +904,10 @@ impl Widget for MessageList {
                                 .view(cx, &[id!(steps_expanded)])
                                 .set_visible(cx, has_steps && msg.show_steps);
                             if has_steps && msg.show_steps {
-                                let steps_base = item_widget.view(cx, &[
-                                    id!(steps_expanded),
-                                    id!(steps_scroll),
-                                    id!(content),
-                                ]);
+                                let steps_base = item_widget.view(
+                                    cx,
+                                    &[id!(steps_expanded), id!(steps_scroll), id!(content)],
+                                );
                                 for step_id in 0..Self::MAX_STEP_ROWS {
                                     let (row_id, header_id, body_id, content_id, dot_id, line_id) =
                                         match step_id {
@@ -1007,7 +1014,8 @@ impl Widget for MessageList {
                                             .set_text(cx, &step.cached_body);
                                         let _ = dot_id;
                                         let show_line = step_id + 1 < msg.steps.len();
-                                        let line_view = steps_base.view(cx, &[row_id]).view(cx, &[line_id]);
+                                        let line_view =
+                                            steps_base.view(cx, &[row_id]).view(cx, &[line_id]);
                                         line_view.set_visible(cx, show_line);
                                     } else {
                                         steps_base.view(cx, &[row_id]).set_visible(cx, false);
@@ -1020,7 +1028,9 @@ impl Widget for MessageList {
                             item_widget
                                 .button(cx, &[id!(revert_button)])
                                 .set_visible(cx, false);
-                            item_widget.view(cx, &[id!(msg_actions)]).set_visible(cx, true);
+                            item_widget
+                                .view(cx, &[id!(msg_actions)])
+                                .set_visible(cx, true);
                             let diff_view = item_widget.diff_view(cx, &[id!(diff_view)]);
                             if msg.diffs.is_empty() {
                                 diff_view.clear_diffs(cx);
@@ -1096,7 +1106,7 @@ impl MessageListRef {
                         inner.tail_to_end(cx);
                     }
                     inner.update_cached_indices();
-            inner.redraw(cx);
+                    inner.redraw(cx);
                     return;
                 }
             }

@@ -13,16 +13,24 @@ pub enum ToolCategory {
 impl ToolCategory {
     pub fn from_tool_name(tool: &str) -> Self {
         let lower = tool.to_lowercase();
-        if lower.contains("read") || lower.contains("grep") || lower.contains("glob")
-            || lower.contains("search") || lower.contains("cat") || lower.contains("find")
+        if lower.contains("read")
+            || lower.contains("grep")
+            || lower.contains("glob")
+            || lower.contains("search")
+            || lower.contains("cat")
+            || lower.contains("find")
         {
             ToolCategory::Files
-        } else if lower.contains("bash") || lower.contains("execute")
-            || lower.contains("shell") || lower.contains("run")
+        } else if lower.contains("bash")
+            || lower.contains("execute")
+            || lower.contains("shell")
+            || lower.contains("run")
         {
             ToolCategory::Commands
-        } else if lower.contains("edit") || lower.contains("write")
-            || lower.contains("patch") || lower.contains("apply")
+        } else if lower.contains("edit")
+            || lower.contains("write")
+            || lower.contains("patch")
+            || lower.contains("apply")
         {
             ToolCategory::Edits
         } else {
@@ -185,17 +193,17 @@ impl MessageProcessor {
                     });
                 } else if let Part::Tool { tool, state, .. } = p {
                     // Use tool_display for basic info
-                    let (tool_name, input_summary, result) =
-                        p.tool_display().unwrap_or_default();
+                    let (tool_name, input_summary, result) = p.tool_display().unwrap_or_default();
                     let has_error = result.starts_with("Error");
                     let is_running = result == "(running)" || result == "(pending)";
 
                     // Extract duration from ToolStateTime
                     let duration_ms = match state {
                         openpad_protocol::ToolState::Completed { time, .. }
-                        | openpad_protocol::ToolState::Error { time, .. } => {
-                            time.start.zip(time.end).map(|(s, e)| ((e - s) * 1000.0) as i64)
-                        }
+                        | openpad_protocol::ToolState::Error { time, .. } => time
+                            .start
+                            .zip(time.end)
+                            .map(|(s, e)| ((e - s) * 1000.0) as i64),
                         _ => None,
                     };
 

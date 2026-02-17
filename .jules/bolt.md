@@ -9,3 +9,6 @@
 ## 2026-05-15 – Throttling Animation Redraws and Caching Render Strings
 **Learning:** Animations like "Thinking" spinners that call `redraw(cx)` every frame (~60fps) cause high CPU usage because they trigger the entire `draw_walk` tree, including expensive widget recycling and string operations. Additionally, formatting time-based labels (e.g., "1m 30s") in the render loop causes constant heap allocations.
 **Action:** Throttle redraw frequency in `handle_event` for non-critical animations (e.g., every 6 frames for 10fps). Cache formatted strings in the widget state and only update them when the underlying data actually changes (e.g., when the current second changes). This combination significantly reduces CPU and memory overhead during active UI states.
+Date: Tue Feb 17 05:01:19 UTC 2026
+Learning: When syncing Rust types with an OpenAPI spec, ensure that all variants of enums (like Part) are mapped, and optional fields use #[serde(default)] and #[serde(skip_serializing_if = "Option::is_none")] for backward compatibility.
+Action: Updated Part, PartInput, Agent, CommandRequest, and Config in openpad-protocol/src/types.rs to match openapi.json.

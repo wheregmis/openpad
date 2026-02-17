@@ -90,8 +90,24 @@ pub struct Agent {
     pub native: Option<bool>,
     #[serde(default)]
     pub hidden: Option<bool>,
+    #[serde(default, rename = "topP")]
+    pub top_p: Option<f64>,
+    #[serde(default)]
+    pub temperature: Option<f64>,
+    #[serde(default)]
+    pub color: Option<String>,
     #[serde(default)]
     pub permission: Option<PermissionRuleset>,
+    #[serde(default)]
+    pub model: Option<ModelSpec>,
+    #[serde(default)]
+    pub variant: Option<String>,
+    #[serde(default)]
+    pub prompt: Option<String>,
+    #[serde(default)]
+    pub options: HashMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub steps: Option<i64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -131,7 +147,21 @@ pub struct PathInfo {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
+    pub theme: Option<String>,
+    #[serde(default, rename = "logLevel")]
+    pub log_level: Option<String>,
+    #[serde(default)]
     pub model: Option<String>,
+    #[serde(default)]
+    pub small_model: Option<String>,
+    #[serde(default)]
+    pub default_agent: Option<String>,
+    #[serde(default)]
+    pub username: Option<String>,
+    #[serde(default)]
+    pub snapshot: Option<bool>,
+    #[serde(default)]
+    pub share: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }
@@ -502,8 +532,20 @@ pub struct PromptRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CommandRequest {
-    pub command: String,
+    #[serde(default, rename = "messageID", skip_serializing_if = "Option::is_none")]
+    pub message_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub agent: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
     #[serde(default)]
+    pub arguments: String,
+    pub command: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variant: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub parts: Option<Vec<PartInput>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub args: Option<Vec<String>>,
 }
 
@@ -806,6 +848,89 @@ pub enum Part {
         metadata: Option<HashMap<String, serde_json::Value>>,
     },
     // Other part types — we don't render them but must not break parsing
+    #[serde(rename = "subtask")]
+    Subtask {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        prompt: String,
+        description: String,
+        agent: String,
+        model: ModelSpec,
+        #[serde(default)]
+        command: Option<String>,
+    },
+    #[serde(rename = "reasoning")]
+    Reasoning {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        text: String,
+        #[serde(default)]
+        metadata: Option<HashMap<String, serde_json::Value>>,
+        time: ToolStateTime,
+    },
+    #[serde(rename = "snapshot")]
+    Snapshot {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        snapshot: String,
+    },
+    #[serde(rename = "patch")]
+    Patch {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        hash: String,
+        files: Vec<String>,
+    },
+    #[serde(rename = "agent")]
+    Agent {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        name: String,
+        source: FilePartSourceText,
+    },
+    #[serde(rename = "retry")]
+    Retry {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        attempt: f64,
+        error: AssistantError,
+        time: MessageTimeCreated,
+    },
+    #[serde(rename = "compaction")]
+    Compaction {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        #[serde(default)]
+        auto: bool,
+    },
     #[serde(other)]
     Unknown,
 }
@@ -864,6 +989,11 @@ pub struct ToolStateTime {
     pub compacted: Option<f64>,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct MessageTimeCreated {
+    pub created: i64,
+}
+
 impl Part {
     /// Extract displayable text content, if any.
     pub fn text_content(&self) -> Option<&str> {
@@ -889,11 +1019,22 @@ impl Part {
     /// Get the message ID this part belongs to, if available.
     pub fn message_id(&self) -> Option<&str> {
         match self {
-            Part::Text { message_id, .. } if !message_id.is_empty() => Some(message_id),
-            Part::File { message_id, .. } if !message_id.is_empty() => Some(message_id),
-            Part::StepStart { message_id, .. } if !message_id.is_empty() => Some(message_id),
-            Part::StepFinish { message_id, .. } if !message_id.is_empty() => Some(message_id),
-            Part::Tool { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Text { message_id, .. }
+            | Part::File { message_id, .. }
+            | Part::StepStart { message_id, .. }
+            | Part::StepFinish { message_id, .. }
+            | Part::Tool { message_id, .. }
+            | Part::Subtask { message_id, .. }
+            | Part::Reasoning { message_id, .. }
+            | Part::Snapshot { message_id, .. }
+            | Part::Patch { message_id, .. }
+            | Part::Agent { message_id, .. }
+            | Part::Retry { message_id, .. }
+            | Part::Compaction { message_id, .. }
+                if !message_id.is_empty() =>
+            {
+                Some(message_id)
+            }
             _ => None,
         }
     }
@@ -993,6 +1134,22 @@ pub enum PartInput {
         synthetic: Option<bool>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         ignored: Option<bool>,
+    },
+    Agent {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+        name: String,
+        source: FilePartSourceText,
+    },
+    Subtask {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+        prompt: String,
+        description: String,
+        agent: String,
+        model: ModelSpec,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        command: Option<String>,
     },
     File {
         #[serde(default, skip_serializing_if = "Option::is_none")]

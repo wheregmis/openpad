@@ -445,17 +445,27 @@ impl App {
             Some(CenterTabKind::Chat { .. }) => {
                 self.ui.view(cx, &[id!(session_info)]).set_visible(cx, true);
                 self.ui.view(cx, &[id!(editor_info)]).set_visible(cx, false);
-                self.ui.view(cx, &[id!(chat_composer)]).set_visible(cx, true);
+                self.ui
+                    .view(cx, &[id!(chat_composer)])
+                    .set_visible(cx, true);
             }
             Some(CenterTabKind::File { .. }) => {
-                self.ui.view(cx, &[id!(session_info)]).set_visible(cx, false);
+                self.ui
+                    .view(cx, &[id!(session_info)])
+                    .set_visible(cx, false);
                 self.ui.view(cx, &[id!(editor_info)]).set_visible(cx, true);
-                self.ui.view(cx, &[id!(chat_composer)]).set_visible(cx, false);
+                self.ui
+                    .view(cx, &[id!(chat_composer)])
+                    .set_visible(cx, false);
             }
             Some(CenterTabKind::Home) | None => {
-                self.ui.view(cx, &[id!(session_info)]).set_visible(cx, false);
+                self.ui
+                    .view(cx, &[id!(session_info)])
+                    .set_visible(cx, false);
                 self.ui.view(cx, &[id!(editor_info)]).set_visible(cx, false);
-                self.ui.view(cx, &[id!(chat_composer)]).set_visible(cx, false);
+                self.ui
+                    .view(cx, &[id!(chat_composer)])
+                    .set_visible(cx, false);
             }
         }
     }
@@ -475,7 +485,8 @@ impl App {
     }
 
     fn update_editor_header_ui_for_tab(&self, cx: &mut Cx, tab_id: LiveId) {
-        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id) else {
+        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id)
+        else {
             return;
         };
         let item = self.center_dock(cx).item(tab_id);
@@ -514,12 +525,14 @@ impl App {
             .pending_permissions
             .iter()
             .filter(|p| p.session_id == session_id)
-            .map(|p| openpad_widgets::message_list::PendingPermissionDisplay {
-                session_id: p.session_id.clone(),
-                request_id: p.id.clone(),
-                permission: p.permission.clone(),
-                patterns: p.patterns.clone(),
-            })
+            .map(
+                |p| openpad_widgets::message_list::PendingPermissionDisplay {
+                    session_id: p.session_id.clone(),
+                    request_id: p.id.clone(),
+                    permission: p.permission.clone(),
+                    patterns: p.patterns.clone(),
+                },
+            )
             .collect();
         item.message_list(cx, &[id!(message_list)])
             .set_pending_permissions(cx, &displays);
@@ -537,12 +550,14 @@ impl App {
                 item.message_list(cx, &[id!(message_list)])
                     .set_session_diffs(cx, &summary.diffs);
             } else {
-                item.view(cx, &[id!(session_summary)]).set_visible(cx, false);
+                item.view(cx, &[id!(session_summary)])
+                    .set_visible(cx, false);
                 item.message_list(cx, &[id!(message_list)])
                     .set_session_diffs(cx, &[]);
             }
         } else {
-            item.view(cx, &[id!(session_summary)]).set_visible(cx, false);
+            item.view(cx, &[id!(session_summary)])
+                .set_visible(cx, false);
             item.message_list(cx, &[id!(message_list)])
                 .set_session_diffs(cx, &[]);
         }
@@ -605,7 +620,8 @@ impl App {
     }
 
     fn has_unsaved_file_tab_changes(&self, cx: &mut Cx, tab_id: LiveId) -> bool {
-        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id) else {
+        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id)
+        else {
             return false;
         };
         let item = self.center_dock(cx).item(tab_id);
@@ -614,7 +630,9 @@ impl App {
     }
 
     fn save_file_tab(&mut self, cx: &mut Cx, tab_id: LiveId) -> bool {
-        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id).cloned() else {
+        let Some(CenterTabKind::File { open_file }) =
+            self.state.center_tabs_by_id.get(&tab_id).cloned()
+        else {
             return false;
         };
         let item = self.center_dock(cx).item(tab_id);
@@ -634,7 +652,8 @@ impl App {
             );
             return false;
         }
-        if let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get_mut(&tab_id)
+        if let Some(CenterTabKind::File { open_file }) =
+            self.state.center_tabs_by_id.get_mut(&tab_id)
         {
             open_file.text_cache = text;
             open_file.last_saved_revision = open_file.last_saved_revision.saturating_add(1);
@@ -644,7 +663,9 @@ impl App {
     }
 
     fn discard_file_tab_changes(&mut self, cx: &mut Cx, tab_id: LiveId) {
-        let Some(CenterTabKind::File { open_file }) = self.state.center_tabs_by_id.get(&tab_id).cloned() else {
+        let Some(CenterTabKind::File { open_file }) =
+            self.state.center_tabs_by_id.get(&tab_id).cloned()
+        else {
             return;
         };
         let item = self.center_dock(cx).item(tab_id);
@@ -684,9 +705,8 @@ impl App {
     fn queue_or_select_session(&mut self, cx: &mut Cx, session_id: String) {
         if let Some(tab_id) = self.current_active_file_tab_id() {
             if self.has_unsaved_file_tab_changes(cx, tab_id) {
-                self.state.pending_center_intent = Some(PendingCenterIntent::OpenSession {
-                    session_id,
-                });
+                self.state.pending_center_intent =
+                    Some(PendingCenterIntent::OpenSession { session_id });
                 self.show_unsaved_editor_dialog(cx);
                 return;
             }
@@ -696,7 +716,8 @@ impl App {
 
     fn queue_or_switch_tab(&mut self, cx: &mut Cx, tab_id: LiveId) {
         if let Some(active_file_tab_id) = self.current_active_file_tab_id() {
-            if active_file_tab_id != tab_id && self.has_unsaved_file_tab_changes(cx, active_file_tab_id)
+            if active_file_tab_id != tab_id
+                && self.has_unsaved_file_tab_changes(cx, active_file_tab_id)
             {
                 self.state.pending_center_intent = Some(PendingCenterIntent::SwitchTab { tab_id });
                 self.show_unsaved_editor_dialog(cx);
@@ -834,7 +855,8 @@ impl App {
         let item = dock.item(tab_id);
         item.editor_panel(cx, &[id!(editor_panel)])
             .set_read_only(cx, false);
-        item.editor_panel(cx, &[id!(editor_panel)]).set_text(cx, &content);
+        item.editor_panel(cx, &[id!(editor_panel)])
+            .set_text(cx, &content);
         item.editor_panel(cx, &[id!(editor_panel)]).focus_editor(cx);
         self.update_editor_header_ui_for_tab(cx, tab_id);
         self.activate_center_tab(cx, tab_id);
@@ -905,7 +927,9 @@ impl App {
                 project_id,
                 absolute_path,
             } => self.open_file_now(cx, project_id, absolute_path),
-            PendingCenterIntent::OpenSession { session_id } => self.select_session_now(cx, session_id),
+            PendingCenterIntent::OpenSession { session_id } => {
+                self.select_session_now(cx, session_id)
+            }
             PendingCenterIntent::SwitchTab { tab_id } => self.activate_center_tab(cx, tab_id),
             PendingCenterIntent::CloseTab { tab_id } => self.close_tab_now(cx, tab_id),
         }
@@ -1051,10 +1075,7 @@ impl App {
             return;
         }
 
-        let handle_area = self
-            .ui
-            .view(cx, &[id!(right_sidebar_resize_handle)])
-            .area();
+        let handle_area = self.ui.view(cx, &[id!(right_sidebar_resize_handle)]).area();
         let hit = event.hits_with_options(
             cx,
             handle_area,
@@ -1715,7 +1736,10 @@ impl AppMain for App {
             .ui
             .button(cx, &[id!(session_info), id!(session_options_btn)])
             .clicked(&actions)
-            || self.ui.button(cx, &[id!(session_options_btn)]).clicked(&actions);
+            || self
+                .ui
+                .button(cx, &[id!(session_options_btn)])
+                .clicked(&actions);
         if opts_clicked {
             log!("Session options button clicked");
             if let Some(session_id) = &self.state.current_session_id {
@@ -1832,14 +1856,18 @@ impl AppMain for App {
                     }
                     DockAction::Drag(drag_event) => {
                         if drag_event.items.len() == 1 {
-                            self.center_dock(cx)
-                                .accept_drag(cx, drag_event.clone(), DragResponse::Move);
+                            self.center_dock(cx).accept_drag(
+                                cx,
+                                drag_event.clone(),
+                                DragResponse::Move,
+                            );
                         }
                     }
                     DockAction::Drop(drop_event) => {
                         if let DragItem::FilePath { internal_id, .. } = &drop_event.items[0] {
                             if let Some(internal_id) = internal_id {
-                                self.center_dock(cx).drop_move(cx, drop_event.abs, *internal_id);
+                                self.center_dock(cx)
+                                    .drop_move(cx, drop_event.abs, *internal_id);
                             }
                         }
                     }
@@ -1864,16 +1892,14 @@ impl AppMain for App {
                     WidgetMessageListAction::RevertToMessage(message_id) => {
                         let mut target_session = self.state.current_session_id.clone();
                         if target_session.is_none() {
-                            target_session = self
-                                .state
-                                .messages_by_session
-                                .iter()
-                                .find_map(|(sid, messages)| {
+                            target_session = self.state.messages_by_session.iter().find_map(
+                                |(sid, messages)| {
                                     messages
                                         .iter()
                                         .any(|m| m.info.id() == *message_id)
                                         .then(|| sid.clone())
-                                });
+                                },
+                            );
                         }
                         if let Some(session_id) = target_session {
                             self.revert_to_message(cx, session_id, message_id.clone());
@@ -2145,17 +2171,17 @@ impl AppMain for App {
         {
             let session_id = self.state.current_session_id.clone();
             if let Some(session_id) = session_id {
-                let message_id =
-                    self.state
-                        .messages_by_session
-                        .get(&session_id)
-                        .map(|v| {
-                            v.iter().rev().find_map(|mwp| match &mwp.info {
-                                openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
-                                _ => None,
-                            })
+                let message_id = self
+                    .state
+                    .messages_by_session
+                    .get(&session_id)
+                    .map(|v| {
+                        v.iter().rev().find_map(|mwp| match &mwp.info {
+                            openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
+                            _ => None,
                         })
-                        .flatten();
+                    })
+                    .flatten();
                 self.summarize_session(cx, session_id.clone());
                 self.load_session_diff(cx, session_id, message_id);
             }

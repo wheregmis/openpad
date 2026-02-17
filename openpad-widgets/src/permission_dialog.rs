@@ -205,7 +205,11 @@ impl Widget for PermissionDialog {
             self.view.handle_event(cx, event, scope);
         });
 
-        if self.view.button(cx, &[id!(accept_button)]).clicked(&actions) {
+        if self
+            .view
+            .button(cx, &[id!(accept_button)])
+            .clicked(&actions)
+        {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
@@ -218,7 +222,11 @@ impl Widget for PermissionDialog {
             self.hide(cx);
         }
 
-        if self.view.button(cx, &[id!(reject_button)]).clicked(&actions) {
+        if self
+            .view
+            .button(cx, &[id!(reject_button)])
+            .clicked(&actions)
+        {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
@@ -231,7 +239,11 @@ impl Widget for PermissionDialog {
             self.hide(cx);
         }
 
-        if self.view.button(cx, &[id!(always_button)]).clicked(&actions) {
+        if self
+            .view
+            .button(cx, &[id!(always_button)])
+            .clicked(&actions)
+        {
             if let (Some(session_id), Some(permission_id)) =
                 (self.session_id.clone(), self.get_request_id())
             {
@@ -288,14 +300,10 @@ impl PermissionDialog {
             self.view
                 .label(cx, &[id!(context)])
                 .set_text(cx, &format!("Context:\n{}", context_text));
-            self.view
-                .widget(cx, &[id!(context)])
-                .set_visible(cx, true);
+            self.view.widget(cx, &[id!(context)]).set_visible(cx, true);
         } else {
             self.view.label(cx, &[id!(context)]).set_text(cx, "");
-            self.view
-                .widget(cx, &[id!(context)])
-                .set_visible(cx, false);
+            self.view.widget(cx, &[id!(context)]).set_visible(cx, false);
         }
 
         self.view.set_visible(cx, true);
