@@ -1,11 +1,11 @@
-use makepad_widgets::*;
 use openpad_protocol::{
-    Agent, Event as OcEvent, FileDiff, HealthResponse, Message, MessageWithParts, Part,
-    PermissionReply, PermissionRequest, Project, ProvidersResponse, Session, Skill,
+    Agent, AssistantError, Event as OcEvent, FileDiff, HealthResponse, Message, MessageWithParts,
+    Part, PermissionReply, PermissionRequest, Project, ProvidersResponse, Session, Skill,
 };
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum AppAction {
+    #[default]
     None,
     Connected,
     ConnectionFailed(String),
@@ -25,7 +25,10 @@ pub enum AppAction {
         session_id: String,
         message_id: Option<String>,
     },
-    MessagesLoaded(Vec<MessageWithParts>),
+    MessagesLoaded {
+        session_id: String,
+        messages: Vec<MessageWithParts>,
+    },
     MessageReceived(Message),
     PartReceived {
         part: Part,
@@ -54,9 +57,14 @@ pub enum AppAction {
         value: String,
     },
     PendingPermissionsLoaded(Vec<PermissionRequest>),
+    PendingPermissionReceived(PermissionRequest),
     PermissionDismissed {
         session_id: String,
         request_id: String,
+    },
+    SessionErrorReceived {
+        session_id: String,
+        error: AssistantError,
     },
     ProvidersLoaded(ProvidersResponse),
     AgentsLoaded(Vec<Agent>),
@@ -66,15 +74,39 @@ pub enum AppAction {
         provider_id: String,
         success: bool,
     },
+    SetSidebarMode(SidebarMode),
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub enum SidebarMode {
+    #[default]
+    Files,
+    Settings,
+}
+
+#[derive(Clone, Debug, Default)]
 pub enum ProjectsPanelAction {
+    #[default]
     None,
     SelectSession(String),
+    OpenFile {
+        project_id: String,
+        absolute_path: String,
+    },
     CreateSession(Option<String>),
     DeleteSession(String),
     RenameSession(String),
     AbortSession(String),
     BranchSession(String),
+    /// Open the session context menu at the given position (avoids full list redraw).
+    OpenSessionContextMenu {
+        session_id: String,
+        x: f32,
+        y: f32,
+        working: bool,
+    },
+    OpenProjectContextMenu {
+        project_id: Option<String>,
+    },
+    CloseSessionContextMenu,
 }

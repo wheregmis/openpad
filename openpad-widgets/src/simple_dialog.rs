@@ -1,118 +1,138 @@
 use makepad_widgets::*;
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::theme::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    pub SimpleDialog = {{SimpleDialog}} {
-        width: Fill, height: Fill
+    mod.widgets.SimpleDialog = #(SimpleDialog::register_widget(vm)) {
+        width: Fill
+        height: Fill
         flow: Overlay
         visible: false
 
-        // Semi-transparent background overlay
-        overlay = <View> {
-            width: Fill, height: Fill
+        overlay := View {
+            width: Fill
+            height: Fill
             show_bg: true
-            draw_bg: {
-                fn pixel(self) -> vec4 {
-                    return vec4(0.0, 0.0, 0.0, 0.5);
-                }
+            draw_bg +: {
+                color: #0008
             }
         }
 
-        // Center the dialog
-        <View> {
-            width: Fill, height: Fill
-            align: { x: 0.5, y: 0.5 }
+        View {
+            width: Fill
+            height: Fill
+            align: Align{x: 0.5 y: 0.5}
 
-            dialog_box = <RoundedView> {
-                width: 400, height: Fit
-                flow: Down,
-                padding: { left: 14, right: 14, top: 12, bottom: 12 }
-                spacing: 10,
+            dialog_box := View {
+                width: 400
+                height: Fit
+                flow: Down
+                padding: Inset{left: 14 right: 14 top: 12 bottom: 12}
+                spacing: 10
                 show_bg: true
-                draw_bg: {
-                    color: (THEME_COLOR_BG_DIALOG)
-                    uniform border_color: (THEME_COLOR_BORDER_DIALOG)
-                    uniform border_radius: 10.0
-                    uniform border_size: 1.0
-
-                    fn pixel(self) -> vec4 {
-                        let sdf = Sdf2d::viewport(self.pos * self.rect_size);
-                        sdf.box(0.5, 0.5, self.rect_size.x - 1.0, self.rect_size.y - 1.0, self.border_radius);
-                        sdf.fill_keep(self.color);
-                        sdf.stroke(self.border_color, self.border_size);
-                        return sdf.result;
-                    }
+                draw_bg +: {
+                    color: #1f2329
+                    border_color: #2b3138
+                    border_radius: 10.0
+                    border_size: 1.0
                 }
 
-                title_label = <Label> {
+                title_label := Label {
                     text: "Dialog"
-                    draw_text: {
-                        color: (THEME_COLOR_TEXT_PRIMARY)
-                        text_style: <THEME_FONT_BOLD> { font_size: 12 }
+                    draw_text +: {
+                        color: #e6e9ee
+                        text_style: theme.font_bold {font_size: 12}
                     }
                 }
 
-                message_label = <Label> {
-                    width: Fill, height: Fit
+                message_label := Label {
+                    width: Fill
+                    height: Fit
                     text: ""
-                    draw_text: {
-                        color: (THEME_COLOR_TEXT_DIM)
-                        text_style: <THEME_FONT_REGULAR> { font_size: 11 }
-                        wrap: Word
+                    draw_text +: {
+                        color: #aab3bd
+                        text_style: theme.font_regular {font_size: 11}
                     }
                 }
 
-                input_row = <View> {
-                    width: Fill, height: Fit
+                input_row := View {
+                    width: Fill
+                    height: Fit
                     visible: false
 
-                    input_field = <TextInput> {
-                        width: Fill, height: 32
-                        padding: 8,
-                        draw_text: {
-                            color: (THEME_COLOR_TEXT_PRIMARY)
-                            text_style: <THEME_FONT_REGULAR> { font_size: 11 }
+                    input_field := TextInput {
+                        width: Fill
+                        height: 32
+                        padding: Inset{left: 8 right: 8 top: 8 bottom: 8}
+                        draw_text +: {
+                            color: #e6e9ee
+                            text_style: theme.font_regular {font_size: 11}
                         }
-                        draw_bg: {
-                            color: (THEME_COLOR_BG_INPUT)
+                        draw_bg +: {
+                            color: #15181d
+                            color_focus: #15181d
                             border_radius: 8.0
                             border_size: 0.0
                         }
                     }
                 }
 
-                buttons_row = <View> {
-                    width: Fill, height: Fit
-                    flow: Right,
-                    spacing: 10,
-                    align: { x: 1.0 }
+                buttons_row := View {
+                    width: Fill
+                    height: Fit
+                    flow: Right
+                    spacing: 10
+                    align: Align{x: 1.0 y: 0.5}
 
-                    cancel_button = <Button> {
-                        width: 90, height: 32
-                        text: "Cancel"
-                        draw_bg: {
-                            color: (THEME_COLOR_SHADE_3)
-                            color_hover: (THEME_COLOR_SHADE_5)
+                    secondary_button := Button {
+                        width: 90
+                        height: 32
+                        visible: false
+                        text: "Discard"
+                        draw_bg +: {
+                            color: #4b5563
+                            color_hover: #6b7280
                             border_radius: 8.0
                             border_size: 0.0
                         }
-                        draw_text: { color: (THEME_COLOR_TEXT_PRIMARY), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                        draw_text +: {
+                            color: #e6e9ee
+                            text_style: theme.font_regular {font_size: 11}
+                        }
                     }
 
-                    confirm_button = <Button> {
-                        width: 90, height: 32
-                        text: "OK"
-                        draw_bg: {
-                            color: (THEME_COLOR_ACCENT_BLUE)
-                            color_hover: (THEME_COLOR_ACCENT_BLUE_DARK)
+                    cancel_button := Button {
+                        width: 90
+                        height: 32
+                        text: "Cancel"
+                        draw_bg +: {
+                            color: #2a2f36
+                            color_hover: #313843
                             border_radius: 8.0
                             border_size: 0.0
                         }
-                        draw_text: { color: (THEME_COLOR_TEXT_BRIGHT), text_style: <THEME_FONT_REGULAR> { font_size: 11 } }
+                        draw_text +: {
+                            color: #e6e9ee
+                            text_style: theme.font_regular {font_size: 11}
+                        }
+                    }
+
+                    confirm_button := Button {
+                        width: 90
+                        height: 32
+                        text: "OK"
+                        draw_bg +: {
+                            color: #3b82f6
+                            color_hover: #1d4ed8
+                            border_radius: 8.0
+                            border_size: 0.0
+                        }
+                        draw_text +: {
+                            color: #ffffff
+                            text_style: theme.font_regular {font_size: 11}
+                        }
                     }
                 }
             }
@@ -127,15 +147,25 @@ pub enum DialogType {
     Input,
 }
 
-#[derive(Clone, Debug, DefaultNone)]
+#[derive(Clone, Debug, Default)]
 pub enum SimpleDialogAction {
-    Confirmed { dialog_type: String, value: String },
+    Confirmed {
+        dialog_type: String,
+        value: String,
+    },
+    Secondary {
+        dialog_type: String,
+    },
     Cancelled,
+    #[default]
     None,
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct SimpleDialog {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
     #[rust]
@@ -150,28 +180,36 @@ impl Widget for SimpleDialog {
             self.view.handle_event(cx, event, scope);
         });
 
-        if self.view.button(&[id!(cancel_button)]).clicked(&actions) {
+        if self.view.button(cx, ids!(cancel_button)).clicked(&actions) {
+            cx.widget_action(self.widget_uid(), SimpleDialogAction::Cancelled);
+            self.view.set_visible(cx, false);
+            self.view.redraw(cx);
+        }
+
+        if self
+            .view
+            .button(cx, ids!(secondary_button))
+            .clicked(&actions)
+        {
             cx.widget_action(
                 self.widget_uid(),
-                &scope.path,
-                SimpleDialogAction::Cancelled,
+                SimpleDialogAction::Secondary {
+                    dialog_type: self.callback_data.clone(),
+                },
             );
             self.view.set_visible(cx, false);
             self.view.redraw(cx);
         }
 
-        if self.view.button(&[id!(confirm_button)]).clicked(&actions) {
-            // Get the input value if it's an input dialog
+        if self.view.button(cx, ids!(confirm_button)).clicked(&actions) {
             let value = if matches!(self.dialog_type, DialogType::Input) {
-                self.view.text_input(&[id!(input_field)]).text()
+                self.view.text_input(cx, ids!(input_field)).text()
             } else {
                 String::new()
             };
 
-            // Post action with callback_data (which identifies what to do) and the value
             cx.widget_action(
                 self.widget_uid(),
-                &scope.path,
                 SimpleDialogAction::Confirmed {
                     dialog_type: self.callback_data.clone(),
                     value,
@@ -194,12 +232,24 @@ impl SimpleDialogRef {
             inner.dialog_type = DialogType::Confirm;
             inner.callback_data = callback_data;
 
-            inner.view.label(&[id!(title_label)]).set_text(cx, title);
+            inner.view.label(cx, ids!(title_label)).set_text(cx, title);
             inner
                 .view
-                .label(&[id!(message_label)])
+                .label(cx, ids!(message_label))
                 .set_text(cx, message);
-            inner.view.view(&[id!(input_row)]).set_visible(cx, false);
+            inner.view.view(cx, ids!(input_row)).set_visible(cx, false);
+            inner
+                .view
+                .button(cx, ids!(secondary_button))
+                .set_visible(cx, false);
+            inner
+                .view
+                .button(cx, ids!(cancel_button))
+                .set_text(cx, "Cancel");
+            inner
+                .view
+                .button(cx, ids!(confirm_button))
+                .set_text(cx, "OK");
 
             inner.view.set_visible(cx, true);
             inner.redraw(cx);
@@ -218,16 +268,70 @@ impl SimpleDialogRef {
             inner.dialog_type = DialogType::Input;
             inner.callback_data = callback_data;
 
-            inner.view.label(&[id!(title_label)]).set_text(cx, title);
+            inner.view.label(cx, ids!(title_label)).set_text(cx, title);
             inner
                 .view
-                .label(&[id!(message_label)])
+                .label(cx, ids!(message_label))
                 .set_text(cx, message);
             inner
                 .view
-                .text_input(&[id!(input_field)])
+                .text_input(cx, ids!(input_field))
                 .set_text(cx, default_value);
-            inner.view.view(&[id!(input_row)]).set_visible(cx, true);
+            inner.view.view(cx, ids!(input_row)).set_visible(cx, true);
+            inner
+                .view
+                .button(cx, ids!(secondary_button))
+                .set_visible(cx, false);
+            inner
+                .view
+                .button(cx, ids!(cancel_button))
+                .set_text(cx, "Cancel");
+            inner
+                .view
+                .button(cx, ids!(confirm_button))
+                .set_text(cx, "OK");
+
+            inner.view.set_visible(cx, true);
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn show_confirm_with_secondary(
+        &self,
+        cx: &mut Cx,
+        title: &str,
+        message: &str,
+        confirm_text: &str,
+        secondary_text: &str,
+        cancel_text: &str,
+        callback_data: String,
+    ) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.dialog_type = DialogType::Confirm;
+            inner.callback_data = callback_data;
+
+            inner.view.label(cx, ids!(title_label)).set_text(cx, title);
+            inner
+                .view
+                .label(cx, ids!(message_label))
+                .set_text(cx, message);
+            inner.view.view(cx, ids!(input_row)).set_visible(cx, false);
+            inner
+                .view
+                .button(cx, ids!(secondary_button))
+                .set_visible(cx, true);
+            inner
+                .view
+                .button(cx, ids!(secondary_button))
+                .set_text(cx, secondary_text);
+            inner
+                .view
+                .button(cx, ids!(cancel_button))
+                .set_text(cx, cancel_text);
+            inner
+                .view
+                .button(cx, ids!(confirm_button))
+                .set_text(cx, confirm_text);
 
             inner.view.set_visible(cx, true);
             inner.redraw(cx);

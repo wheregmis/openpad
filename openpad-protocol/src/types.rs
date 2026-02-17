@@ -72,6 +72,22 @@ pub struct HealthResponse {
 // App API types
 // ============================================================================
 
+/// Output format for an AI response.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum OutputFormat {
+    /// Plain text output
+    Text,
+    /// Structured JSON output matching a schema
+    JsonSchema {
+        /// JSON schema for the output
+        schema: serde_json::Value,
+        /// Number of times to retry if output doesn't match schema
+        #[serde(default, rename = "retryCount")]
+        retry_count: Option<i64>,
+    },
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct LogRequest {
     pub service: String,
@@ -92,6 +108,10 @@ pub struct Agent {
     pub hidden: Option<bool>,
     #[serde(default)]
     pub permission: Option<PermissionRuleset>,
+    #[serde(default)]
+    pub variant: Option<String>,
+    #[serde(default)]
+    pub color: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -99,6 +119,8 @@ pub struct Skill {
     pub name: String,
     pub description: String,
     pub location: String,
+    #[serde(default)]
+    pub content: Option<String>,
 }
 
 // ============================================================================
@@ -128,12 +150,52 @@ pub struct PathInfo {
 // Config API types
 // ============================================================================
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct Config {
     #[serde(default)]
     pub model: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("model", &self.model)
+            .field("extra", &ExtraMasked(&self.extra))
+            .finish()
+    }
+}
+
+/// Helper to mask sensitive keys in a HashMap when formatting for Debug.
+struct ExtraMasked<'a>(&'a HashMap<String, serde_json::Value>);
+
+impl<'a> fmt::Debug for ExtraMasked<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut map = f.debug_map();
+        for (k, v) in self.0 {
+            let k_lower = k.to_lowercase();
+            let is_sensitive = k_lower == "key"
+                || k_lower == "token"
+                || k_lower == "secret"
+                || k_lower == "password"
+                || k_lower.ends_with("_key")
+                || k_lower.ends_with("-key")
+                || k_lower.ends_with("_token")
+                || k_lower.ends_with("-token")
+                || k_lower.ends_with("_secret")
+                || k_lower.ends_with("-secret")
+                || k_lower.ends_with("_password")
+                || k_lower.ends_with("-password");
+
+            if is_sensitive {
+                map.entry(k, &"<REDACTED>");
+            } else {
+                map.entry(k, v);
+            }
+        }
+        map.finish()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -239,6 +301,63 @@ pub struct File {
     pub path: String,
     #[serde(default)]
     pub status: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Todo {
+    pub content: String,
+    pub status: String,
+    pub priority: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Pty {
+    pub id: String,
+    pub title: String,
+    pub command: String,
+    pub args: Vec<String>,
+    pub cwd: String,
+    pub status: String,
+    pub pid: i64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct LSPStatus {
+    pub id: String,
+    pub name: String,
+    pub root: String,
+    pub status: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FormatterStatus {
+    pub name: String,
+    pub extensions: Vec<String>,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Command {
+    pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub agent: Option<String>,
+    #[serde(default)]
+    pub model: Option<String>,
+    #[serde(default)]
+    pub source: Option<String>,
+    pub template: serde_json::Value,
+    #[serde(default)]
+    pub subtask: Option<bool>,
+    pub hints: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Worktree {
+    pub name: String,
+    pub branch: String,
+    pub directory: String,
 }
 
 // ============================================================================
@@ -396,6 +515,9 @@ pub struct FileDiff {
     pub additions: i64,
     /// Number of lines deleted
     pub deletions: i64,
+    /// Status of the file change (added, deleted, modified)
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 /// Share settings for a session.
@@ -544,6 +666,9 @@ pub struct MessageTime {
 /// Token usage statistics for an AI response.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TokenUsage {
+    /// Total number of tokens used
+    #[serde(default)]
+    pub total: Option<i64>,
     /// Number of input tokens consumed
     pub input: i64,
     /// Number of output tokens generated
@@ -587,6 +712,21 @@ pub enum AssistantError {
         /// Reason for the abort
         message: String,
     },
+    /// Error when generating structured output
+    StructuredOutputError {
+        /// Error message
+        message: String,
+        /// Number of retries attempted
+        retries: i64,
+    },
+    /// Error when the context limit is exceeded
+    ContextOverflowError {
+        /// Error message
+        message: String,
+        /// Optional response body
+        #[serde(default, rename = "responseBody")]
+        response_body: Option<String>,
+    },
     /// An error occurred while communicating with the AI API
     APIError {
         /// Error message from the API
@@ -622,6 +762,9 @@ pub struct UserMessage {
     /// Optional summary of the message and its effects
     #[serde(default)]
     pub summary: Option<MessageSummary>,
+    /// Output format requested for this message
+    #[serde(default)]
+    pub format: Option<OutputFormat>,
     /// Agent that handled this message
     #[serde(default)]
     pub agent: String,
@@ -693,6 +836,12 @@ pub struct AssistantMessage {
     /// Token usage statistics
     #[serde(default)]
     pub tokens: Option<TokenUsage>,
+    /// Structured output if requested
+    #[serde(default)]
+    pub structured: Option<serde_json::Value>,
+    /// Model variant to use
+    #[serde(default)]
+    pub variant: Option<String>,
     /// How the message generation finished (e.g., "stop", "length")
     #[serde(default)]
     pub finish: Option<String>,
@@ -1094,6 +1243,24 @@ pub enum Event {
     SessionUpdated(Session),
     /// A session was deleted
     SessionDeleted(Session),
+    /// A session's status changed
+    SessionStatus {
+        session_id: String,
+        status: serde_json::Value,
+    },
+    /// A session became idle
+    SessionIdle {
+        session_id: String,
+    },
+    /// A session was compacted
+    SessionCompacted {
+        session_id: String,
+    },
+    /// File changes (diff) for a session
+    SessionDiff {
+        session_id: String,
+        diff: Vec<FileDiff>,
+    },
     /// A message was added or updated in a session
     MessageUpdated(Message),
     /// A message was removed from a session
@@ -1109,6 +1276,14 @@ pub enum Event {
         part: Part,
         /// Optional delta text for streaming updates
         delta: Option<String>,
+    },
+    /// A incremental delta update for a message part
+    PartDelta {
+        session_id: String,
+        message_id: String,
+        part_id: String,
+        field: String,
+        delta: String,
     },
     /// A part was removed from a message
     PartRemoved {
@@ -1136,6 +1311,100 @@ pub enum Event {
         request_id: String,
         /// Reply type
         reply: PermissionReply,
+    },
+    /// A question request was issued by the assistant
+    QuestionAsked(serde_json::Value),
+    /// A question request was replied to
+    QuestionReplied {
+        session_id: String,
+        request_id: String,
+        answers: Vec<Vec<String>>,
+    },
+    /// A question request was rejected
+    QuestionRejected {
+        session_id: String,
+        request_id: String,
+    },
+    /// Todo list was updated
+    TodoUpdated {
+        session_id: String,
+        todos: Vec<Todo>,
+    },
+    /// PTY session created
+    PtyCreated(Pty),
+    /// PTY session updated
+    PtyUpdated(Pty),
+    /// PTY session exited
+    PtyExited {
+        id: String,
+        exit_code: i64,
+    },
+    /// PTY session deleted
+    PtyDeleted {
+        id: String,
+    },
+    /// Project information was updated
+    ProjectUpdated(Project),
+    /// VCS branch was updated
+    VcsBranchUpdated {
+        branch: String,
+    },
+    /// File was edited
+    FileEdited {
+        file: String,
+    },
+    /// File watcher event
+    FileWatcherUpdated {
+        file: String,
+        event: String,
+    },
+    /// LSP server updated
+    LspUpdated,
+    /// LSP diagnostics received
+    LspDiagnostics {
+        server_id: String,
+        path: String,
+    },
+    /// Worktree is ready
+    WorktreeReady {
+        name: String,
+        branch: String,
+    },
+    /// Worktree creation failed
+    WorktreeFailed {
+        message: String,
+    },
+    /// MCP tools changed
+    McpToolsChanged {
+        server: String,
+    },
+    /// MCP browser open failed
+    McpBrowserOpenFailed {
+        mcp_name: String,
+        url: String,
+    },
+    /// Command was executed
+    CommandExecuted {
+        name: String,
+        session_id: String,
+        arguments: String,
+        message_id: String,
+    },
+    /// Installation was updated
+    InstallationUpdated {
+        version: String,
+    },
+    /// Update is available
+    InstallationUpdateAvailable {
+        version: String,
+    },
+    /// Server connected
+    ServerConnected,
+    /// Global instance disposed
+    GlobalDisposed,
+    /// Server instance disposed
+    ServerInstanceDisposed {
+        directory: String,
     },
     /// A generic error occurred
     Error(String),

@@ -45,6 +45,7 @@ pub use types::*;
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
 
     #[test]
     fn test_all_types_are_public() {
@@ -80,6 +81,12 @@ mod tests {
         let _: FileReadResponse;
         let _: FileStatusRequest;
         let _: File;
+        let _: Todo;
+        let _: Pty;
+        let _: LSPStatus;
+        let _: FormatterStatus;
+        let _: Command;
+        let _: Worktree;
 
         // TUI types
         let _: AppendPromptRequest;
@@ -125,6 +132,7 @@ mod tests {
         let _: AssistantError;
         let _: Part;
         let _: PartInput;
+        let _: OutputFormat;
 
         // Event types
         let _: Event;
@@ -160,6 +168,44 @@ mod tests {
 
         let deserialized: SecretString = serde_json::from_str("\"secret\"").unwrap();
         assert_eq!(deserialized.as_str(), "secret");
+    }
+
+    #[test]
+    fn test_config_masking() {
+        let mut extra = HashMap::new();
+        extra.insert(
+            "api_key".to_string(),
+            serde_json::Value::String("secret123".to_string()),
+        );
+        extra.insert(
+            "api-token".to_string(),
+            serde_json::Value::String("token456".to_string()),
+        );
+        extra.insert(
+            "db_password".to_string(),
+            serde_json::Value::String("pass789".to_string()),
+        );
+        extra.insert(
+            "max_tokens".to_string(),
+            serde_json::Value::Number(100.into()),
+        );
+
+        let config = Config {
+            model: Some("gpt-4".to_string()),
+            extra,
+        };
+
+        let debug_output = format!("{:?}", config);
+        assert!(debug_output.contains("gpt-4"));
+        assert!(debug_output.contains("max_tokens"));
+        assert!(debug_output.contains("100"));
+        assert!(debug_output.contains("api_key"));
+        assert!(debug_output.contains("api-token"));
+        assert!(debug_output.contains("db_password"));
+        assert!(debug_output.contains("<REDACTED>"));
+        assert!(!debug_output.contains("secret123"));
+        assert!(!debug_output.contains("token456"));
+        assert!(!debug_output.contains("pass789"));
     }
 
     /// Test module for validating our Rust types against the OpenAPI specification.
@@ -323,11 +369,14 @@ mod tests {
                 summary: None,
                 cost: 0.0,
                 tokens: Some(TokenUsage {
+                    total: Some(150),
                     input: 100,
                     output: 50,
                     reasoning: 0,
                     cache: CacheUsage { read: 0, write: 0 },
                 }),
+                structured: None,
+                variant: None,
                 finish: None,
             });
 
@@ -355,6 +404,7 @@ mod tests {
                     completed: None,
                 },
                 summary: None,
+                format: None,
                 agent: "default".to_string(),
                 model: Some(ModelSpec {
                     provider_id: "anthropic".to_string(),
@@ -404,6 +454,7 @@ mod tests {
         #[test]
         fn test_token_usage_structure() {
             let tokens = TokenUsage {
+                total: Some(185),
                 input: 100,
                 output: 50,
                 reasoning: 10,
@@ -411,6 +462,7 @@ mod tests {
             };
 
             let json = serde_json::to_value(&tokens).expect("Failed to serialize");
+            assert!(json.get("total").is_some());
             assert!(json.get("input").is_some());
             assert!(json.get("output").is_some());
             assert!(json.get("reasoning").is_some());
@@ -443,6 +495,14 @@ mod tests {
                     response_headers: None,
                     response_body: None,
                     metadata: None,
+                },
+                AssistantError::StructuredOutputError {
+                    message: "Schema mismatch".to_string(),
+                    retries: 2,
+                },
+                AssistantError::ContextOverflowError {
+                    message: "Context too long".to_string(),
+                    response_body: None,
                 },
             ];
 
@@ -483,6 +543,7 @@ mod tests {
                     completed: None,
                 },
                 summary: None,
+                format: None,
                 agent: "default".to_string(),
                 model: Some(ModelSpec {
                     provider_id: "anthropic".to_string(),
@@ -520,11 +581,14 @@ mod tests {
                 summary: None,
                 cost: 0.0,
                 tokens: Some(TokenUsage {
+                    total: Some(150),
                     input: 100,
                     output: 50,
                     reasoning: 0,
                     cache: CacheUsage { read: 0, write: 0 },
                 }),
+                structured: None,
+                variant: None,
                 finish: None,
             });
 
@@ -682,6 +746,7 @@ mod tests {
                 after: "new content".to_string(),
                 additions: 5,
                 deletions: 2,
+                status: None,
             };
 
             let required = schema

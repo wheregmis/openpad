@@ -2,18 +2,12 @@ use crate::constants::*;
 use crate::utils::path_utils::normalize_worktree;
 use makepad_widgets::*;
 use openpad_protocol::{Project, SessionSummary};
-use openpad_widgets::message_list::MessageListWidgetRefExt;
 use std::path::Path;
 
 /// Updates the status indicator UI (dot color and label text)
 pub fn update_status_indicator(ui: &WidgetRef, cx: &mut Cx, status_text: &str, color: Vec4) {
-    ui.label(&[id!(status_label)]).set_text(cx, status_text);
-    ui.view(&[id!(status_dot)]).apply_over(
-        cx,
-        live! {
-            draw_bg: { color: (color) }
-        },
-    );
+    ui.label(cx, &[id!(status_label)]).set_text(cx, status_text);
+    let _ = color;
 }
 
 /// Sets status to connected
@@ -33,9 +27,7 @@ pub fn set_status_error(ui: &WidgetRef, cx: &mut Cx, error: &str) {
 }
 
 pub fn update_work_indicator(ui: &WidgetRef, cx: &mut Cx, working: bool) {
-    ui.view(&[id!(work_indicator)]).set_visible(cx, working);
-    ui.message_list(&[id!(message_list)])
-        .set_working(cx, working);
+    ui.view(cx, &[id!(work_indicator)]).set_visible(cx, working);
 }
 
 /// Updates the session title label with appropriate styling
@@ -45,41 +37,39 @@ pub fn update_session_title_ui(ui: &WidgetRef, cx: &mut Cx, title: &str, is_acti
     } else {
         COLOR_TEXT_TITLE_INACTIVE
     };
-
-    ui.label(&[id!(session_title)]).set_text(cx, title);
-    ui.label(&[id!(session_title)]).apply_over(
-        cx,
-        live! {
-            draw_text: { color: (color) }
-        },
-    );
+    let marker = if is_active { "●" } else { "○" };
+    ui.label(cx, &[id!(session_title)])
+        .set_text(cx, &format!("{marker} {title}"));
+    let _ = color;
 }
 
 /// Updates the revert indicator visibility based on session revert state
 pub fn update_revert_indicator(ui: &WidgetRef, cx: &mut Cx, is_reverted: bool) {
-    ui.view(&[id!(revert_indicator)])
+    ui.view(cx, &[id!(revert_indicator)])
         .set_visible(cx, is_reverted);
-    ui.view(&[id!(unrevert_wrap)]).set_visible(cx, is_reverted);
+    ui.view(cx, &[id!(unrevert_wrap)])
+        .set_visible(cx, is_reverted);
 }
 
 pub fn update_share_ui(ui: &WidgetRef, cx: &mut Cx, share_url: Option<&str>) {
     let has_url = share_url.is_some();
-    ui.label(&[id!(share_url_label)])
+    ui.label(cx, &[id!(share_url_label)])
         .set_text(cx, share_url.unwrap_or(""));
-    ui.button(&[id!(share_button)]).set_visible(cx, !has_url);
-    ui.button(&[id!(unshare_button)]).set_visible(cx, has_url);
-    ui.button(&[id!(copy_share_button)])
+    ui.button(cx, &[id!(share_button)])
+        .set_visible(cx, !has_url);
+    ui.button(cx, &[id!(unshare_button)])
         .set_visible(cx, has_url);
-    ui.widget(&[id!(share_url_label)]).set_visible(cx, has_url);
+    ui.button(cx, &[id!(copy_share_button)])
+        .set_visible(cx, has_url);
+    ui.widget(cx, &[id!(share_url_label)])
+        .set_visible(cx, has_url);
 }
 
 pub fn update_summary_ui(ui: &WidgetRef, cx: &mut Cx, summary: Option<&SessionSummary>) {
-    let _ = summary;
-    ui.view(&[id!(session_summary)]).set_visible(cx, false);
-    ui.label(&[id!(summary_stats_label)]).set_text(cx, "");
-    ui.widget(&[id!(summary_diff)]).set_text(cx, "");
+    let _ = (ui, cx, summary);
 }
 
+#[allow(dead_code)]
 fn build_summary_markdown(summary: &SessionSummary) -> String {
     if summary.diffs.is_empty() {
         return "_No diff details available._".to_string();
@@ -151,14 +141,9 @@ pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&P
             )
         };
 
-    ui.label(&[id!(project_badge_label)])
-        .set_text(cx, &badge_text);
-    ui.label(&[id!(project_badge_label)]).apply_over(
-        cx,
-        live! {
-            draw_text: { color: (badge_text_color) }
-        },
-    );
+    let badge_prefix = if project.is_some() { "📁" } else { "◌" };
+    ui.label(cx, &[id!(project_badge_label)])
+        .set_text(cx, &format!("{badge_prefix} {badge_text}"));
 
     let display_path = if path_text.len() > 30 {
         format!("...{}", &path_text[path_text.len() - 27..])
@@ -166,21 +151,12 @@ pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&P
         path_text.clone()
     };
 
-    ui.label(&[id!(project_path_label)])
-        .set_text(cx, &display_path);
-    ui.view(&[id!(project_path_wrap)])
+    ui.label(cx, &[id!(project_path_label)])
+        .set_text(cx, &format!("↳ {display_path}"));
+    ui.view(cx, &[id!(project_path_wrap)])
         .set_visible(cx, path_visible);
-    ui.label(&[id!(project_path_label)]).apply_over(
-        cx,
-        live! {
-            draw_text: { color: (COLOR_PROJECT_PATH_TEXT) }
-        },
-    );
 
-    ui.view(&[id!(project_badge)]).apply_over(
-        cx,
-        live! {
-            draw_bg: { color: (badge_color) }
-        },
-    );
+    let _ = badge_color;
+    let _ = badge_text_color;
+    let _ = COLOR_PROJECT_PATH_TEXT;
 }

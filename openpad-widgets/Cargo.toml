@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-makepad-widgets = { git = "https://github.com/wheregmis/makepad.git", branch = "pasteboard_image" }
+makepad-widgets = { workspace = true }
+makepad-studio = { workspace = true }
 openpad-protocol = { path = "../openpad-protocol" }
 portable-pty = "0.9.0"
 hostname = "0.4"

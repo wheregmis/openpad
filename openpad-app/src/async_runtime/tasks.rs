@@ -137,7 +137,10 @@ pub fn spawn_message_loader(
 
         match target_client.list_messages(&session_id).await {
             Ok(messages) => {
-                Cx::post_action(AppAction::MessagesLoaded(messages));
+                Cx::post_action(AppAction::MessagesLoaded {
+                    session_id: session_id.clone(),
+                    messages,
+                });
             }
             Err(_) => {}
         }
@@ -546,7 +549,10 @@ pub fn spawn_message_reverter(
                 Cx::post_action(AppAction::SessionUpdated(session));
                 // Reload messages for the session using the same directory-aware client
                 if let Ok(messages) = target_client.list_messages(&session_id).await {
-                    Cx::post_action(AppAction::MessagesLoaded(messages));
+                    Cx::post_action(AppAction::MessagesLoaded {
+                        session_id: session_id.clone(),
+                        messages,
+                    });
                 }
             }
             Err(e) => {
@@ -572,7 +578,10 @@ pub fn spawn_session_unreverter(
                 Cx::post_action(AppAction::SessionUpdated(session));
                 // Reload messages for the session using the same directory-aware client
                 if let Ok(messages) = target_client.list_messages(&session_id).await {
-                    Cx::post_action(AppAction::MessagesLoaded(messages));
+                    Cx::post_action(AppAction::MessagesLoaded {
+                        session_id: session_id.clone(),
+                        messages,
+                    });
                 }
             }
             Err(e) => {

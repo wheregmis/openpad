@@ -1,63 +1,57 @@
 use makepad_widgets::*;
 
-// Diff line colors - matching theme where possible, with custom colors for better readability
-const DIFF_COLOR_ADD: Vec4 = vec4(0.301, 0.792, 0.301, 1.0); // #4dca4d - bright green
-const DIFF_COLOR_DEL: Vec4 = vec4(0.878, 0.376, 0.376, 1.0); // #e06060 - soft red
-const DIFF_COLOR_CONTEXT: Vec4 = vec4(0.733, 0.757, 0.788, 1.0); // #bbc1c9 - lighter gray for readability
-const DIFF_COLOR_HEADER: Vec4 = vec4(0.533, 0.690, 0.859, 1.0); // #88b0db - soft blue
+const DIFF_COLOR_ADD: Vec4 = vec4(0.301, 0.792, 0.301, 1.0);
+const DIFF_COLOR_DEL: Vec4 = vec4(0.878, 0.376, 0.376, 1.0);
+const DIFF_COLOR_CONTEXT: Vec4 = vec4(0.733, 0.757, 0.788, 1.0);
+const DIFF_COLOR_HEADER: Vec4 = vec4(0.533, 0.690, 0.859, 1.0);
 
-live_design! {
-    use link::theme::*;
-    use link::shaders::*;
-    use link::widgets::*;
-    use crate::theme::*;
+script_mod! {
+    use mod.prelude.widgets_internal.*
+    use mod.widgets.*
+    use mod.theme.*
 
-    // ColoredDiffText widget: Renders diff text with per-line coloring
-    // - Green for additions (+)
-    // - Red for deletions (-)
-    // - Gray for context lines
-    // - Blue for headers
-    pub ColoredDiffText = {{ColoredDiffText}} {
-        width: Fill, height: Fit
+    mod.widgets.ColoredDiffText = #(ColoredDiffText::register_widget(vm)) {
+        width: Fill
+        height: Fit
 
-        draw_text: {
-            // Slightly tighter line spacing for compact diff display
-            text_style: <THEME_FONT_CODE> { font_size: 10, line_spacing: 1.2 }
-
-            fn get_color(self) -> vec4 {
-                return self.color;
+        draw_text +: {
+            text_style: theme.font_code {font_size: 10 line_spacing: 1.2}
+            get_color: fn() {
+                return self.color
             }
         }
     }
 }
 
-#[derive(Live, LiveHook, Widget)]
+#[derive(Script, ScriptHook, Widget)]
 pub struct ColoredDiffText {
+    #[source]
+    source: ScriptObjectRef,
+
     #[deref]
     view: View,
 
     #[live]
     draw_text: DrawText,
 
-    /// Parsed diff lines with their associated types
     #[rust]
     lines: Vec<DiffLine>,
+    #[rust]
+    cached_text: String,
 }
 
-/// A single line in the diff with its type
 #[derive(Clone)]
 struct DiffLine {
     text: String,
     line_type: DiffLineType,
 }
 
-/// Type of diff line based on its prefix character
 #[derive(Clone, Copy, PartialEq)]
 enum DiffLineType {
-    Addition, // Lines starting with '+'
-    Deletion, // Lines starting with '-'
-    Context,  // Normal lines (space prefix or no special prefix)
-    Header,   // Separator lines (──) or ellipsis (...)
+    Addition,
+    Deletion,
+    Context,
+    Header,
 }
 
 impl Widget for ColoredDiffText {
@@ -65,7 +59,6 @@ impl Widget for ColoredDiffText {
         self.view.handle_event(cx, event, scope);
     }
 
-    /// Draws the diff text with each line colored according to its type
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
         cx.begin_turtle(
             walk,
@@ -75,7 +68,6 @@ impl Widget for ColoredDiffText {
             },
         );
 
-        // Render each line with its appropriate color (using constants defined above)
         for line in &self.lines {
             let text_color = match line.line_type {
                 DiffLineType::Addition => DIFF_COLOR_ADD,
@@ -95,12 +87,15 @@ impl Widget for ColoredDiffText {
 }
 
 impl ColoredDiffText {
-    /// Parse the diff text and categorize each line by type
     pub fn set_diff_text(&mut self, cx: &mut Cx, text: &str) {
+        if self.cached_text == text {
+            return;
+        }
+        self.cached_text = text.to_string();
+
         self.lines.clear();
 
         for line in text.lines() {
-            // Determine line type based on prefix
             let line_type = if line.starts_with('+') {
                 DiffLineType::Addition
             } else if line.starts_with('-') {
@@ -112,8 +107,8 @@ impl ColoredDiffText {
                 DiffLineType::Context
             };
 
-            let display_text = if line.starts_with(' ') {
-                format!("·{}", &line[1..])
+            let display_text = if let Some(stripped) = line.strip_prefix(' ') {
+                format!("·{}", stripped)
             } else {
                 line.to_string()
             };
@@ -124,14 +119,11 @@ impl ColoredDiffText {
             });
         }
 
-        // Trigger redraw to display the new content
         self.view.redraw(cx);
     }
 }
 
-/// API trait for controlling ColoredDiffText widget
 pub trait ColoredDiffTextApi {
-    /// Set the diff text content and trigger a redraw
     fn set_diff_text(&self, cx: &mut Cx, text: &str);
 }
 

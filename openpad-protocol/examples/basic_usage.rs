@@ -157,6 +157,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             Event::Unknown(event_type) => {
                                 println!("   → Unknown event: {}", event_type);
                             }
+                            _ => {
+                                println!("   → Other event: {:?}", event);
+                            }
                         }
 
                         if count >= 10 {
