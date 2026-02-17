@@ -49,7 +49,6 @@ pub struct EditorPanel {
 
     #[rust]
     read_only: bool,
-
 }
 
 impl EditorPanel {
@@ -145,7 +144,10 @@ impl Widget for EditorPanel {
             return;
         };
 
-        for action in self.editor.handle_event(cx, event, &mut Scope::empty(), session) {
+        for action in self
+            .editor
+            .handle_event(cx, event, &mut Scope::empty(), session)
+        {
             match action {
                 CodeEditorAction::TextDidChange => {
                     if !self.read_only {

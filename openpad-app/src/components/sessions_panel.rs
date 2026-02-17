@@ -4,8 +4,8 @@
 use crate::async_runtime;
 use crate::state::actions::ProjectsPanelAction;
 use makepad_widgets::*;
-use openpad_widgets::{SessionTree, SessionTreeAction};
 use openpad_protocol::{Project, Session, SessionSummary};
+use openpad_widgets::{SessionTree, SessionTreeAction};
 use std::collections::{HashMap, HashSet};
 
 script_mod! {
@@ -292,7 +292,11 @@ impl Widget for SessionsPanel {
     }
 
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
-        while self.file_tree.draw_walk(cx, &mut Scope::empty(), walk).is_step() {
+        while self
+            .file_tree
+            .draw_walk(cx, &mut Scope::empty(), walk)
+            .is_step()
+        {
             self.draw_tree(cx);
         }
         DrawStep::done()
@@ -323,9 +327,12 @@ impl SessionsPanelRef {
                     Animate::No,
                 );
             }
-            inner
-                .file_tree
-                .set_folder_is_open(cx, SessionsPanel::other_project_node_id(), true, Animate::No);
+            inner.file_tree.set_folder_is_open(
+                cx,
+                SessionsPanel::other_project_node_id(),
+                true,
+                Animate::No,
+            );
 
             inner.file_tree.redraw(cx);
         }

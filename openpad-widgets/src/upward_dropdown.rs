@@ -421,8 +421,11 @@ impl Widget for UpDropDown {
                 }
             }
 
-            menu.handle_event_with(cx, event, self.draw_bg.area(), &mut |cx, action| {
-                match action {
+            menu.handle_event_with(
+                cx,
+                event,
+                self.draw_bg.area(),
+                &mut |cx, action| match action {
                     ScrollablePopupMenuAction::WasSweeped(_node_id) => {}
                     ScrollablePopupMenuAction::WasSelected(node_id) => {
                         self.selected_item = node_id.0 .0 as usize;
@@ -440,8 +443,8 @@ impl Widget for UpDropDown {
                         close = true;
                     }
                     _ => (),
-                }
-            });
+                },
+            );
             if close {
                 self.set_closed(cx);
             }

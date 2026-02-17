@@ -263,7 +263,11 @@ impl Widget for SessionOptionsPopup {
                 if self.view.button(cx, &[id!(primary_btn)]).clicked(&actions) {
                     cx.action(ProjectsPanelAction::RenameSession(session_id));
                     cx.action(ProjectsPanelAction::CloseSessionContextMenu);
-                } else if self.view.button(cx, &[id!(secondary_btn)]).clicked(&actions) {
+                } else if self
+                    .view
+                    .button(cx, &[id!(secondary_btn)])
+                    .clicked(&actions)
+                {
                     cx.action(ProjectsPanelAction::BranchSession(session_id));
                     cx.action(ProjectsPanelAction::CloseSessionContextMenu);
                 } else if self.view.button(cx, &[id!(abort_btn)]).clicked(&actions) {
@@ -371,10 +375,7 @@ impl SessionOptionsPopupRef {
                 .view
                 .view(cx, &[id!(danger_row)])
                 .set_visible(cx, false);
-            inner
-                .view
-                .view(cx, &[id!(close_row)])
-                .set_visible(cx, true);
+            inner.view.view(cx, &[id!(close_row)]).set_visible(cx, true);
             inner
                 .view
                 .label(cx, &[id!(close_label)])

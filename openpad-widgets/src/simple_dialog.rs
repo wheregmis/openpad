@@ -149,8 +149,13 @@ pub enum DialogType {
 
 #[derive(Clone, Debug, Default)]
 pub enum SimpleDialogAction {
-    Confirmed { dialog_type: String, value: String },
-    Secondary { dialog_type: String },
+    Confirmed {
+        dialog_type: String,
+        value: String,
+    },
+    Secondary {
+        dialog_type: String,
+    },
     Cancelled,
     #[default]
     None,
@@ -181,7 +186,11 @@ impl Widget for SimpleDialog {
             self.view.redraw(cx);
         }
 
-        if self.view.button(cx, ids!(secondary_button)).clicked(&actions) {
+        if self
+            .view
+            .button(cx, ids!(secondary_button))
+            .clicked(&actions)
+        {
             cx.widget_action(
                 self.widget_uid(),
                 SimpleDialogAction::Secondary {
@@ -233,8 +242,14 @@ impl SimpleDialogRef {
                 .view
                 .button(cx, ids!(secondary_button))
                 .set_visible(cx, false);
-            inner.view.button(cx, ids!(cancel_button)).set_text(cx, "Cancel");
-            inner.view.button(cx, ids!(confirm_button)).set_text(cx, "OK");
+            inner
+                .view
+                .button(cx, ids!(cancel_button))
+                .set_text(cx, "Cancel");
+            inner
+                .view
+                .button(cx, ids!(confirm_button))
+                .set_text(cx, "OK");
 
             inner.view.set_visible(cx, true);
             inner.redraw(cx);
@@ -267,8 +282,14 @@ impl SimpleDialogRef {
                 .view
                 .button(cx, ids!(secondary_button))
                 .set_visible(cx, false);
-            inner.view.button(cx, ids!(cancel_button)).set_text(cx, "Cancel");
-            inner.view.button(cx, ids!(confirm_button)).set_text(cx, "OK");
+            inner
+                .view
+                .button(cx, ids!(cancel_button))
+                .set_text(cx, "Cancel");
+            inner
+                .view
+                .button(cx, ids!(confirm_button))
+                .set_text(cx, "OK");
 
             inner.view.set_visible(cx, true);
             inner.redraw(cx);

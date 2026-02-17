@@ -9,3 +9,7 @@
 ## 2026-05-15 – Throttling Animation Redraws and Caching Render Strings
 **Learning:** Animations like "Thinking" spinners that call `redraw(cx)` every frame (~60fps) cause high CPU usage because they trigger the entire `draw_walk` tree, including expensive widget recycling and string operations. Additionally, formatting time-based labels (e.g., "1m 30s") in the render loop causes constant heap allocations.
 **Action:** Throttle redraw frequency in `handle_event` for non-critical animations (e.g., every 6 frames for 10fps). Cache formatted strings in the widget state and only update them when the underlying data actually changes (e.g., when the current second changes). This combination significantly reduces CPU and memory overhead during active UI states.
+
+## 2026-06-10 – Relocating Expensive Computation from Draw Loops and Optimizing DP Tables
+**Learning:** Performing O(N*M) algorithms like LCS-based unified diffing inside a Makepad `draw_walk` loop is extremely expensive, especially since it runs every frame during animations or scrolling. Additionally, nested vectors (`Vec<Vec<T>>`) in DP tables cause significant heap churn.
+**Action:** Move all non-UI computation (like diff generation) to background processing or once-per-update handlers (e.g., `MessageProcessor::refresh_message_caches`). Cache the final display strings in the underlying data structures. Optimize DP tables by using a single 1D vector with manual indexing to reduce allocations from O(N) to O(1) and improve cache locality.

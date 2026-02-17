@@ -47,18 +47,22 @@ pub fn update_session_title_ui(ui: &WidgetRef, cx: &mut Cx, title: &str, is_acti
 pub fn update_revert_indicator(ui: &WidgetRef, cx: &mut Cx, is_reverted: bool) {
     ui.view(cx, &[id!(revert_indicator)])
         .set_visible(cx, is_reverted);
-    ui.view(cx, &[id!(unrevert_wrap)]).set_visible(cx, is_reverted);
+    ui.view(cx, &[id!(unrevert_wrap)])
+        .set_visible(cx, is_reverted);
 }
 
 pub fn update_share_ui(ui: &WidgetRef, cx: &mut Cx, share_url: Option<&str>) {
     let has_url = share_url.is_some();
     ui.label(cx, &[id!(share_url_label)])
         .set_text(cx, share_url.unwrap_or(""));
-    ui.button(cx, &[id!(share_button)]).set_visible(cx, !has_url);
-    ui.button(cx, &[id!(unshare_button)]).set_visible(cx, has_url);
+    ui.button(cx, &[id!(share_button)])
+        .set_visible(cx, !has_url);
+    ui.button(cx, &[id!(unshare_button)])
+        .set_visible(cx, has_url);
     ui.button(cx, &[id!(copy_share_button)])
         .set_visible(cx, has_url);
-    ui.widget(cx, &[id!(share_url_label)]).set_visible(cx, has_url);
+    ui.widget(cx, &[id!(share_url_label)])
+        .set_visible(cx, has_url);
 }
 
 pub fn update_summary_ui(ui: &WidgetRef, cx: &mut Cx, summary: Option<&SessionSummary>) {

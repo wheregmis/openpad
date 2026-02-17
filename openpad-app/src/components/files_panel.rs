@@ -160,7 +160,10 @@ impl FilesPanel {
             } else {
                 self.file_node_to_path.insert(
                     node_id,
-                    (project_id.to_string(), full_path.to_string_lossy().to_string()),
+                    (
+                        project_id.to_string(),
+                        full_path.to_string_lossy().to_string(),
+                    ),
                 );
                 self.file_tree.file(cx, node_id, &name);
             }
@@ -199,7 +202,11 @@ impl FilesPanel {
 
 impl Widget for FilesPanel {
     fn draw_walk(&mut self, cx: &mut Cx2d, _scope: &mut Scope, walk: Walk) -> DrawStep {
-        while self.file_tree.draw_walk(cx, &mut Scope::empty(), walk).is_step() {
+        while self
+            .file_tree
+            .draw_walk(cx, &mut Scope::empty(), walk)
+            .is_step()
+        {
             self.draw_tree(cx);
         }
         DrawStep::done()

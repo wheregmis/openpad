@@ -36,6 +36,8 @@ pub struct ColoredDiffText {
 
     #[rust]
     lines: Vec<DiffLine>,
+    #[rust]
+    cached_text: String,
 }
 
 #[derive(Clone)]
@@ -86,6 +88,11 @@ impl Widget for ColoredDiffText {
 
 impl ColoredDiffText {
     pub fn set_diff_text(&mut self, cx: &mut Cx, text: &str) {
+        if self.cached_text == text {
+            return;
+        }
+        self.cached_text = text.to_string();
+
         self.lines.clear();
 
         for line in text.lines() {
@@ -100,8 +107,8 @@ impl ColoredDiffText {
                 DiffLineType::Context
             };
 
-            let display_text = if line.starts_with(' ') {
-                format!("·{}", &line[1..])
+            let display_text = if let Some(stripped) = line.strip_prefix(' ') {
+                format!("·{}", stripped)
             } else {
                 line.to_string()
             };

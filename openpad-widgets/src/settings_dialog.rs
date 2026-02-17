@@ -159,7 +159,10 @@ script_mod! {
 pub enum SettingsDialogAction {
     #[default]
     None,
-    UpdateKey { provider_id: String, key: String },
+    UpdateKey {
+        provider_id: String,
+        key: String,
+    },
 }
 
 #[derive(Script, ScriptHook, Widget)]
