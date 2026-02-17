@@ -461,6 +461,10 @@ pub struct MessageList {
     tail_follow: bool,
     #[rust]
     streaming_anim_item: Option<usize>,
+    #[rust]
+    cached_last_assistant_idx: Option<usize>,
+    #[rust]
+    cached_last_assistant_has_running: bool,
 }
 
 impl MessageList {
@@ -477,11 +481,11 @@ impl MessageList {
         }
     }
 
-    fn steps_button_label(msg: &DisplayMessage) -> String {
+    fn steps_button_label(msg: &DisplayMessage) -> &'static str {
         if msg.show_steps {
-            "▾ Details".to_string()
+            "▾ Details"
         } else {
-            "▸ Details".to_string()
+            "▸ Details"
         }
     }
 
@@ -497,6 +501,16 @@ impl MessageList {
         let list = self.view.portal_list(cx, &[id!(list)]);
         list.set_tail_range(true);
         list.set_first_id_and_scroll(total.saturating_sub(1), 0.0);
+    }
+
+    fn update_cached_indices(&mut self) {
+        self.cached_last_assistant_idx = self.messages.iter().rposition(|m| m.role == "assistant");
+
+        self.cached_last_assistant_has_running = if let Some(idx) = self.cached_last_assistant_idx {
+            self.messages[idx].steps.iter().any(|s| s.has_running)
+        } else {
+            false
+        };
     }
 }
 
@@ -646,12 +660,7 @@ impl Widget for MessageList {
                         if !self.is_working {
                             continue;
                         }
-                        let last_assistant_has_running = self
-                            .messages
-                            .iter()
-                            .rfind(|m| m.role == "assistant")
-                            .map(|m| m.steps.iter().any(|s| s.has_running))
-                            .unwrap_or(false);
+                        let last_assistant_has_running = self.cached_last_assistant_has_running;
                         if last_assistant_has_running {
                             continue;
                         }
@@ -762,8 +771,7 @@ impl Widget for MessageList {
                         } else {
                             msg.text.as_str()
                         };
-                        let last_assistant_idx =
-                            self.messages.iter().rposition(|m| m.role == "assistant");
+                        let last_assistant_idx = self.cached_last_assistant_idx;
                         let streaming_msg = self.is_working
                             && msg.role == "assistant"
                             && last_assistant_idx == Some(item_id);
@@ -988,12 +996,7 @@ impl Widget for MessageList {
                                         steps_base.view(cx, &[row_id]).set_visible(cx, true);
                                         let header_button =
                                             steps_base.view(cx, &[row_id]).button(cx, &[header_id]);
-                                        if step.has_error {
-                                            header_button
-                                                .set_text(cx, &format!("! {}", header));
-                                        } else {
-                                            header_button.set_text(cx, header);
-                                        }
+                                        header_button.set_text(cx, header);
                                         steps_base
                                             .view(cx, &[row_id])
                                             .view(cx, &[body_id])
@@ -1074,6 +1077,7 @@ impl MessageListRef {
             if inner.tail_follow && msg_count > 0 {
                 inner.tail_to_end(cx);
             }
+            inner.update_cached_indices();
             inner.redraw(cx);
         }
     }
@@ -1091,7 +1095,8 @@ impl MessageListRef {
                     if inner.tail_follow {
                         inner.tail_to_end(cx);
                     }
-                    inner.redraw(cx);
+                    inner.update_cached_indices();
+            inner.redraw(cx);
                     return;
                 }
             }
@@ -1125,6 +1130,7 @@ impl MessageListRef {
             if inner.tail_follow {
                 inner.tail_to_end(cx);
             }
+            inner.update_cached_indices();
             inner.redraw(cx);
         }
     }
@@ -1165,6 +1171,7 @@ impl MessageListRef {
             if inner.tail_follow {
                 inner.tail_to_end(cx);
             }
+            inner.update_cached_indices();
             inner.redraw(cx);
         }
     }
@@ -1174,6 +1181,7 @@ impl MessageListRef {
             inner.messages.clear();
             inner.tail_follow = true;
             inner.streaming_anim_item = None;
+            inner.update_cached_indices();
             inner.redraw(cx);
         }
     }
@@ -1194,6 +1202,7 @@ impl MessageListRef {
                 inner.working_since = None;
                 inner.streaming_anim_item = None;
             }
+            inner.update_cached_indices();
             inner.redraw(cx);
         }
     }
@@ -1204,6 +1213,7 @@ impl MessageListRef {
             if inner.tail_follow {
                 inner.tail_to_end(cx);
             }
+            inner.update_cached_indices();
             inner.redraw(cx);
         }
     }
@@ -1213,6 +1223,7 @@ impl MessageListRef {
             inner
                 .pending_permissions
                 .retain(|p| p.request_id != request_id);
+            inner.update_cached_indices();
             inner.redraw(cx);
         }
     }
@@ -1230,6 +1241,7 @@ impl MessageListRef {
                     last_assistant.show_diffs = false;
                 }
             }
+            inner.update_cached_indices();
             inner.redraw(cx);
         }
     }

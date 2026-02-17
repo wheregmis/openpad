@@ -411,9 +411,10 @@ impl MessageProcessor {
     pub fn refresh_step_caches(step: &mut DisplayStep) {
         step.cached_description = Self::get_step_description(step);
         step.cached_body = Self::format_step_body(step);
-        // Optimization: avoid reformatting step headers in the draw loop
-        step.cached_header_expanded = format!("▾ {}", step.cached_description);
-        step.cached_header_collapsed = format!("▸ {}", step.cached_description);
+        // Optimization: avoid reformatting step headers (including error prefix) in the draw loop
+        let prefix = if step.has_error { "! " } else { "" };
+        step.cached_header_expanded = format!("{}▾ {}", prefix, step.cached_description);
+        step.cached_header_collapsed = format!("{}▸ {}", prefix, step.cached_description);
     }
 
     pub fn refresh_message_caches(msg: &mut DisplayMessage) {
