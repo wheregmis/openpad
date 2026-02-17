@@ -521,7 +521,7 @@ impl Widget for MessageList {
                 // Optimization: throttle redraw frequency from ~60fps to ~10fps
                 // This significantly reduces CPU usage during the "thinking" state
                 self.frame_count += 1;
-                if self.frame_count % 6 == 0 {
+                if self.frame_count.is_multiple_of(6) {
                     self.thinking_frame = (self.thinking_frame + 1) % 6;
                     self.redraw(cx);
                 }
@@ -544,7 +544,9 @@ impl Widget for MessageList {
                 continue;
             }
 
-            if widget.button(cx, &[id!(copy_action_button)]).clicked(&actions)
+            if widget
+                .button(cx, &[id!(copy_action_button)])
+                .clicked(&actions)
                 || widget.button(cx, &[id!(copy_button)]).clicked(&actions)
             {
                 cx.copy_to_clipboard(&self.messages[item_id].text);
@@ -571,15 +573,14 @@ impl Widget for MessageList {
 
             if item_id < self.messages.len() {
                 let msg = &self.messages[item_id];
-                if !msg.diffs.is_empty() {
-                    if widget
+                if !msg.diffs.is_empty()
+                    && widget
                         .diff_view(cx, &[id!(diff_view)])
                         .summary_header_clicked(cx)
-                    {
-                        if let Some(message) = self.messages.get_mut(item_id) {
-                            message.show_diffs = !message.show_diffs;
-                            self.redraw(cx);
-                        }
+                {
+                    if let Some(message) = self.messages.get_mut(item_id) {
+                        message.show_diffs = !message.show_diffs;
+                        self.redraw(cx);
                     }
                 }
             }
@@ -680,8 +681,8 @@ impl Widget for MessageList {
 
                         // Optimization: cache the timer text to avoid repeated formatting and allocations
                         // in the draw loop, which runs every frame during animations.
-                        if elapsed as u64 != self.last_timer_secs {
-                            self.last_timer_secs = elapsed as u64;
+                        if elapsed != self.last_timer_secs {
+                            self.last_timer_secs = elapsed;
                             self.cached_timer_text = if elapsed > 0 {
                                 format!("· {}m, {}s", mins, secs)
                             } else {
@@ -783,11 +784,15 @@ impl Widget for MessageList {
                         let item_widget = list.item(cx, item_id, template);
 
                         if msg.role == "user" {
-                            item_widget.widget(cx, &[id!(msg_text)]).set_text(cx, fallback_text);
+                            item_widget
+                                .widget(cx, &[id!(msg_text)])
+                                .set_text(cx, fallback_text);
                         } else {
                             let use_markdown = false;
                             if use_markdown {
-                                item_widget.view(cx, &[id!(label_view)]).set_visible(cx, false);
+                                item_widget
+                                    .view(cx, &[id!(label_view)])
+                                    .set_visible(cx, false);
                                 item_widget
                                     .view(cx, &[id!(markdown_view)])
                                     .set_visible(cx, true);
@@ -810,7 +815,9 @@ impl Widget for MessageList {
                                 item_widget
                                     .view(cx, &[id!(markdown_view)])
                                     .set_visible(cx, false);
-                                item_widget.view(cx, &[id!(label_view)]).set_visible(cx, true);
+                                item_widget
+                                    .view(cx, &[id!(label_view)])
+                                    .set_visible(cx, true);
                                 item_widget
                                     .widget(cx, &[id!(msg_label)])
                                     .set_text(cx, fallback_text);
@@ -890,17 +897,16 @@ impl Widget for MessageList {
                                     .set_text(cx, &msg.cached_grouped_summary);
                                 item_widget
                                     .button(cx, &[id!(steps_button)])
-                                    .set_text(cx, &Self::steps_button_label(msg));
+                                    .set_text(cx, Self::steps_button_label(msg));
                             }
                             item_widget
                                 .view(cx, &[id!(steps_expanded)])
                                 .set_visible(cx, has_steps && msg.show_steps);
                             if has_steps && msg.show_steps {
-                                let steps_base = item_widget.view(cx, &[
-                                    id!(steps_expanded),
-                                    id!(steps_scroll),
-                                    id!(content),
-                                ]);
+                                let steps_base = item_widget.view(
+                                    cx,
+                                    &[id!(steps_expanded), id!(steps_scroll), id!(content)],
+                                );
                                 for step_id in 0..Self::MAX_STEP_ROWS {
                                     let (row_id, header_id, body_id, content_id, dot_id, line_id) =
                                         match step_id {
@@ -1007,7 +1013,8 @@ impl Widget for MessageList {
                                             .set_text(cx, &step.cached_body);
                                         let _ = dot_id;
                                         let show_line = step_id + 1 < msg.steps.len();
-                                        let line_view = steps_base.view(cx, &[row_id]).view(cx, &[line_id]);
+                                        let line_view =
+                                            steps_base.view(cx, &[row_id]).view(cx, &[line_id]);
                                         line_view.set_visible(cx, show_line);
                                     } else {
                                         steps_base.view(cx, &[row_id]).set_visible(cx, false);
@@ -1020,12 +1027,20 @@ impl Widget for MessageList {
                             item_widget
                                 .button(cx, &[id!(revert_button)])
                                 .set_visible(cx, false);
-                            item_widget.view(cx, &[id!(msg_actions)]).set_visible(cx, true);
+                            item_widget
+                                .view(cx, &[id!(msg_actions)])
+                                .set_visible(cx, true);
                             let diff_view = item_widget.diff_view(cx, &[id!(diff_view)]);
-                            if msg.diffs.is_empty() {
+                            if msg.cached_full_diff.is_empty() {
                                 diff_view.clear_diffs(cx);
                             } else {
-                                diff_view.set_diffs(cx, &msg.diffs);
+                                diff_view.set_diff_text(
+                                    cx,
+                                    &msg.cached_diff_files,
+                                    &msg.cached_diff_add,
+                                    &msg.cached_diff_del,
+                                    &msg.cached_full_diff,
+                                );
                             }
                             diff_view.set_expanded(cx, msg.show_diffs);
                         }
@@ -1064,10 +1079,12 @@ impl MessageListRef {
                 }
             }
             if let Some(last) = inner.messages.last_mut() {
-                if last.role == "assistant" && last.text.is_empty() && !last.steps.is_empty() {
-                    if last.steps.iter().any(|s| s.has_running) || last_had_running_steps {
-                        last.show_steps = true;
-                    }
+                if last.role == "assistant"
+                    && last.text.is_empty()
+                    && !last.steps.is_empty()
+                    && (last.steps.iter().any(|s| s.has_running) || last_had_running_steps)
+                {
+                    last.show_steps = true;
                 }
             }
             if !had_messages {
@@ -1096,7 +1113,7 @@ impl MessageListRef {
                         inner.tail_to_end(cx);
                     }
                     inner.update_cached_indices();
-            inner.redraw(cx);
+                    inner.redraw(cx);
                     return;
                 }
             }
@@ -1124,6 +1141,10 @@ impl MessageListRef {
                 cached_timestamp: String::new(),
                 cached_token_usage: String::new(),
                 cached_cost: String::new(),
+                cached_full_diff: String::new(),
+                cached_diff_files: String::new(),
+                cached_diff_add: String::new(),
+                cached_diff_del: String::new(),
             };
             MessageProcessor::refresh_message_caches(&mut msg);
             inner.messages.push(msg);
@@ -1165,6 +1186,10 @@ impl MessageListRef {
                 cached_timestamp: String::new(),
                 cached_token_usage: String::new(),
                 cached_cost: String::new(),
+                cached_full_diff: String::new(),
+                cached_diff_files: String::new(),
+                cached_diff_add: String::new(),
+                cached_diff_del: String::new(),
             };
             MessageProcessor::refresh_message_caches(&mut msg);
             inner.messages.push(msg);

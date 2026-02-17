@@ -63,12 +63,8 @@ pub struct OpenFileState {
 #[derive(Clone, Debug)]
 pub enum CenterTabKind {
     Home,
-    Chat {
-        session_id: String,
-    },
-    File {
-        open_file: OpenFileState,
-    },
+    Chat { session_id: String },
+    File { open_file: OpenFileState },
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
@@ -246,7 +242,11 @@ impl AppState {
             .unwrap_or(&[])
     }
 
-    pub fn set_messages_for_session(&mut self, session_id: String, messages: Vec<MessageWithParts>) {
+    pub fn set_messages_for_session(
+        &mut self,
+        session_id: String,
+        messages: Vec<MessageWithParts>,
+    ) {
         self.messages_by_session.insert(session_id, messages);
     }
 }
@@ -573,7 +573,8 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
                 "Setting provider dropdown with {} labels",
                 state.provider_labels.len()
             );
-            let provider_dd = ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(provider_dropdown)]);
+            let provider_dd =
+                ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(provider_dropdown)]);
             provider_dd.set_labels(cx, state.provider_labels.clone());
             provider_dd.set_selected_item(cx, 0);
             log!(
@@ -721,7 +722,10 @@ fn handle_message_updated(
     }
 
     {
-        let session_messages = state.messages_by_session.entry(session_id.clone()).or_default();
+        let session_messages = state
+            .messages_by_session
+            .entry(session_id.clone())
+            .or_default();
         if let Some(existing) = session_messages
             .iter_mut()
             .find(|m| m.info.id() == message.id())

@@ -172,7 +172,11 @@ impl Widget for PermissionCard {
             return;
         }
 
-        if self.view.button(cx, &[id!(approve_button)]).clicked(&actions) {
+        if self
+            .view
+            .button(cx, &[id!(approve_button)])
+            .clicked(&actions)
+        {
             cx.action(PermissionCardAction::Approved {
                 session_id: self.session_id.clone(),
                 request_id: self.request_id.clone(),
@@ -180,7 +184,11 @@ impl Widget for PermissionCard {
             self.mark_resolved_inner(cx, "Approved");
         }
 
-        if self.view.button(cx, &[id!(always_button)]).clicked(&actions) {
+        if self
+            .view
+            .button(cx, &[id!(always_button)])
+            .clicked(&actions)
+        {
             cx.action(PermissionCardAction::AlwaysApproved {
                 session_id: self.session_id.clone(),
                 request_id: self.request_id.clone(),

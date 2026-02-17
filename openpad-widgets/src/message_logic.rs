@@ -1,6 +1,13 @@
 use openpad_protocol::{FileDiff, Message, MessageWithParts, Part, TokenUsage};
 use std::collections::HashMap;
 
+#[derive(Debug)]
+enum DiffOp<'a> {
+    Equal(&'a str),
+    Delete(&'a str),
+    Insert(&'a str),
+}
+
 /// Categories for grouping tools by type
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum ToolCategory {
@@ -13,16 +20,24 @@ pub enum ToolCategory {
 impl ToolCategory {
     pub fn from_tool_name(tool: &str) -> Self {
         let lower = tool.to_lowercase();
-        if lower.contains("read") || lower.contains("grep") || lower.contains("glob")
-            || lower.contains("search") || lower.contains("cat") || lower.contains("find")
+        if lower.contains("read")
+            || lower.contains("grep")
+            || lower.contains("glob")
+            || lower.contains("search")
+            || lower.contains("cat")
+            || lower.contains("find")
         {
             ToolCategory::Files
-        } else if lower.contains("bash") || lower.contains("execute")
-            || lower.contains("shell") || lower.contains("run")
+        } else if lower.contains("bash")
+            || lower.contains("execute")
+            || lower.contains("shell")
+            || lower.contains("run")
         {
             ToolCategory::Commands
-        } else if lower.contains("edit") || lower.contains("write")
-            || lower.contains("patch") || lower.contains("apply")
+        } else if lower.contains("edit")
+            || lower.contains("write")
+            || lower.contains("patch")
+            || lower.contains("apply")
         {
             ToolCategory::Edits
         } else {
@@ -108,6 +123,10 @@ pub struct DisplayMessage {
     pub cached_timestamp: String,
     pub cached_token_usage: String,
     pub cached_cost: String,
+    pub cached_full_diff: String,
+    pub cached_diff_files: String,
+    pub cached_diff_add: String,
+    pub cached_diff_del: String,
 }
 
 pub struct MessageProcessor;
@@ -185,17 +204,17 @@ impl MessageProcessor {
                     });
                 } else if let Part::Tool { tool, state, .. } = p {
                     // Use tool_display for basic info
-                    let (tool_name, input_summary, result) =
-                        p.tool_display().unwrap_or_default();
+                    let (tool_name, input_summary, result) = p.tool_display().unwrap_or_default();
                     let has_error = result.starts_with("Error");
                     let is_running = result == "(running)" || result == "(pending)";
 
                     // Extract duration from ToolStateTime
                     let duration_ms = match state {
                         openpad_protocol::ToolState::Completed { time, .. }
-                        | openpad_protocol::ToolState::Error { time, .. } => {
-                            time.start.zip(time.end).map(|(s, e)| ((e - s) * 1000.0) as i64)
-                        }
+                        | openpad_protocol::ToolState::Error { time, .. } => time
+                            .start
+                            .zip(time.end)
+                            .map(|(s, e)| ((e - s) * 1000.0) as i64),
                         _ => None,
                     };
 
@@ -323,6 +342,10 @@ impl MessageProcessor {
                         cached_timestamp: String::new(),
                         cached_token_usage: String::new(),
                         cached_cost: String::new(),
+                        cached_full_diff: String::new(),
+                        cached_diff_files: String::new(),
+                        cached_diff_add: String::new(),
+                        cached_diff_del: String::new(),
                     });
                 }
                 continue;
@@ -357,6 +380,10 @@ impl MessageProcessor {
                         cached_timestamp: String::new(),
                         cached_token_usage: String::new(),
                         cached_cost: String::new(),
+                        cached_full_diff: String::new(),
+                        cached_diff_files: String::new(),
+                        cached_diff_add: String::new(),
+                        cached_diff_del: String::new(),
                     };
                     Self::refresh_message_caches(&mut msg);
                     display.push(msg);
@@ -394,6 +421,10 @@ impl MessageProcessor {
                 cached_timestamp: String::new(),
                 cached_token_usage: String::new(),
                 cached_cost: String::new(),
+                cached_full_diff: String::new(),
+                cached_diff_files: String::new(),
+                cached_diff_add: String::new(),
+                cached_diff_del: String::new(),
             };
             Self::refresh_message_caches(&mut msg);
             display.push(msg);
@@ -448,6 +479,41 @@ impl MessageProcessor {
             .cost
             .map(crate::utils::formatters::format_cost)
             .unwrap_or_default();
+
+        // Optimization: Pre-calculate and cache unified diffs once when the message is created/updated.
+        // This avoids expensive LCS/DP computations (O(N*M)) in the draw loop every frame.
+        if !msg.diffs.is_empty() {
+            let total_additions: i64 = msg.diffs.iter().map(|d| d.additions).sum();
+            let total_deletions: i64 = msg.diffs.iter().map(|d| d.deletions).sum();
+            let file_count = msg.diffs.len();
+
+            msg.cached_diff_files = format!(
+                "{} file{} changed",
+                file_count,
+                if file_count == 1 { "" } else { "s" }
+            );
+            msg.cached_diff_add = format!("+{}", total_additions);
+            msg.cached_diff_del = format!("-{}", total_deletions);
+
+            let mut full_diff = String::new();
+            for diff in &msg.diffs {
+                let header = format!(
+                    "... {} (+{} -{})\n",
+                    diff.file, diff.additions, diff.deletions
+                );
+                full_diff.push_str(&header);
+
+                let unified = Self::compute_unified_diff(&diff.before, &diff.after, 3);
+                full_diff.push_str(&unified);
+                full_diff.push('\n');
+            }
+            msg.cached_full_diff = full_diff;
+        } else {
+            msg.cached_full_diff.clear();
+            msg.cached_diff_files.clear();
+            msg.cached_diff_add.clear();
+            msg.cached_diff_del.clear();
+        }
     }
 
     pub fn compute_thinking_data(msg: &DisplayMessage) -> (String, Vec<(String, String, String)>) {
@@ -623,7 +689,7 @@ impl MessageProcessor {
             "Running commands".to_string()
         } else if tool_names.len() == 1 {
             if let Some(detail) = step.details.first() {
-                format!("{}", Self::format_tool_name(&detail.tool))
+                Self::format_tool_name(&detail.tool)
             } else {
                 "Processing".to_string()
             }
@@ -648,7 +714,11 @@ impl MessageProcessor {
 
     pub fn format_path(path: &str) -> String {
         if path.len() > 40 {
-            if let Some(filename) = path.split('/').last().or_else(|| path.split('\\').last()) {
+            if let Some(filename) = path
+                .split('/')
+                .next_back()
+                .or_else(|| path.split('\\').next_back())
+            {
                 return format!(".../{}", filename);
             }
         }
@@ -716,6 +786,179 @@ impl MessageProcessor {
         } else {
             formatted_parts.join(" ")
         }
+    }
+
+    /// Compute a unified diff between two strings with the given number of context lines.
+    /// Uses an iterative LCS approach safe for large files. Optimized with a 1D DP table.
+    pub fn compute_unified_diff(before: &str, after: &str, context: usize) -> String {
+        let old_lines: Vec<&str> = before.lines().collect();
+        let new_lines: Vec<&str> = after.lines().collect();
+
+        let diff_ops = Self::compute_diff_ops(&old_lines, &new_lines);
+
+        if diff_ops.is_empty() {
+            return String::from(" (no changes)\n");
+        }
+
+        // Build output with context
+        let mut output = String::new();
+        let mut i = 0;
+        let total = diff_ops.len();
+
+        while i < total {
+            // Find the start of a change hunk
+            if matches!(diff_ops[i], DiffOp::Equal(_)) {
+                i += 1;
+                continue;
+            }
+
+            // Determine context start
+            let context_start = i.saturating_sub(context);
+
+            // Find end of this hunk (including trailing context)
+            let mut hunk_end = i;
+            while hunk_end < total {
+                if matches!(diff_ops[hunk_end], DiffOp::Equal(_)) {
+                    // Count consecutive equals
+                    let eq_start = hunk_end;
+                    while hunk_end < total && matches!(diff_ops[hunk_end], DiffOp::Equal(_)) {
+                        hunk_end += 1;
+                    }
+                    let eq_count = hunk_end - eq_start;
+                    // If gap between changes is larger than 2*context, break
+                    if hunk_end < total && eq_count > context * 2 {
+                        hunk_end = eq_start + context;
+                        break;
+                    }
+                    if hunk_end >= total {
+                        hunk_end = std::cmp::min(eq_start + context, total);
+                        break;
+                    }
+                } else {
+                    hunk_end += 1;
+                }
+            }
+
+            // Print separator if not at the start
+            if context_start > 0 {
+                output.push_str("...\n");
+            }
+
+            for op in diff_ops.iter().take(hunk_end).skip(context_start) {
+                match op {
+                    DiffOp::Equal(line) => {
+                        output.push(' ');
+                        output.push_str(line);
+                        output.push('\n');
+                    }
+                    DiffOp::Delete(line) => {
+                        output.push('-');
+                        output.push_str(line);
+                        output.push('\n');
+                    }
+                    DiffOp::Insert(line) => {
+                        output.push('+');
+                        output.push_str(line);
+                        output.push('\n');
+                    }
+                }
+            }
+
+            i = hunk_end;
+        }
+
+        output
+    }
+
+    /// Compute diff operations using iterative LCS (Myers-like approach via DP table).
+    /// For very large files, we fall back to a simpler line-by-line comparison.
+    fn compute_diff_ops<'a>(old: &[&'a str], new: &[&'a str]) -> Vec<DiffOp<'a>> {
+        let old_len = old.len();
+        let new_len = new.len();
+
+        // For very large files, use a simpler approach to avoid memory issues
+        if old_len * new_len > 4_000_000 {
+            return Self::simple_diff(old, new);
+        }
+
+        // Optimization: Use a 1D vector for the DP table to reduce heap allocations (from O(N) to O(1))
+        // and improve cache locality, resulting in faster diff computation for larger files.
+        let stride = new_len + 1;
+        let mut dp = vec![0u32; (old_len + 1) * stride];
+
+        for i in 1..=old_len {
+            for j in 1..=new_len {
+                if old[i - 1] == new[j - 1] {
+                    dp[i * stride + j] = dp[(i - 1) * stride + (j - 1)] + 1;
+                } else {
+                    dp[i * stride + j] =
+                        std::cmp::max(dp[(i - 1) * stride + j], dp[i * stride + (j - 1)]);
+                }
+            }
+        }
+
+        // Backtrack iteratively to build diff ops
+        let mut ops = Vec::new();
+        let mut i = old_len;
+        let mut j = new_len;
+
+        while i > 0 || j > 0 {
+            if i > 0 && j > 0 && old[i - 1] == new[j - 1] {
+                ops.push(DiffOp::Equal(old[i - 1]));
+                i -= 1;
+                j -= 1;
+            } else if j > 0 && (i == 0 || dp[i * stride + (j - 1)] >= dp[(i - 1) * stride + j]) {
+                ops.push(DiffOp::Insert(new[j - 1]));
+                j -= 1;
+            } else {
+                ops.push(DiffOp::Delete(old[i - 1]));
+                i -= 1;
+            }
+        }
+
+        ops.reverse();
+        ops
+    }
+
+    /// Simple diff for very large files: show all old lines as deleted, all new lines as inserted,
+    /// with common prefix/suffix preserved.
+    fn simple_diff<'a>(old: &[&'a str], new: &[&'a str]) -> Vec<DiffOp<'a>> {
+        let mut ops = Vec::new();
+
+        // Find common prefix
+        let prefix_len = old
+            .iter()
+            .zip(new.iter())
+            .take_while(|(a, b)| a == b)
+            .count();
+
+        // Find common suffix (not overlapping with prefix)
+        let old_remaining = &old[prefix_len..];
+        let new_remaining = &new[prefix_len..];
+        let suffix_len = old_remaining
+            .iter()
+            .rev()
+            .zip(new_remaining.iter().rev())
+            .take_while(|(a, b)| a == b)
+            .count();
+
+        let old_mid = &old[prefix_len..old.len() - suffix_len];
+        let new_mid = &new[prefix_len..new.len() - suffix_len];
+
+        for line in &old[..prefix_len] {
+            ops.push(DiffOp::Equal(line));
+        }
+        for line in old_mid {
+            ops.push(DiffOp::Delete(line));
+        }
+        for line in new_mid {
+            ops.push(DiffOp::Insert(line));
+        }
+        for line in &old[old.len() - suffix_len..] {
+            ops.push(DiffOp::Equal(line));
+        }
+
+        ops
     }
 
     pub fn format_step_body(step: &DisplayStep) -> String {

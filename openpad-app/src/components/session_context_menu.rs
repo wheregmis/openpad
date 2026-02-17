@@ -127,7 +127,11 @@ impl Widget for SessionContextMenu {
             None => return,
         };
 
-        if self.view.button(cx, &[id!(menu_collapse)]).clicked(&actions) {
+        if self
+            .view
+            .button(cx, &[id!(menu_collapse)])
+            .clicked(&actions)
+        {
             cx.action(ProjectsPanelAction::CloseSessionContextMenu);
         } else if self.view.button(cx, &[id!(menu_rename)]).clicked(&actions) {
             cx.action(ProjectsPanelAction::RenameSession(session_id));
