@@ -1,7 +1,11 @@
 use crate::async_runtime;
+use crate::components::editor_panel::{EditorPanelAction, EditorPanelWidgetRefExt};
 use crate::components::session_options_popup::SessionOptionsPopupWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
-use crate::state::{self, AppAction, AppState, ProjectsPanelAction, SidebarMode};
+use crate::state::{
+    self, AppAction, AppState, CenterPanelMode, PendingOpenTarget, ProjectsPanelAction,
+    SidebarMode,
+};
 use makepad_widgets::*;
 use openpad_protocol::OpenCodeClient;
 use openpad_widgets::message_list::MessageListWidgetRefExt;
@@ -14,6 +18,7 @@ use openpad_widgets::{
     SidePanelWidgetRefExt, SimpleDialogAction,
 };
 use regex::Regex;
+use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
 // Lazy-initialized regex for detecting image data URLs
@@ -42,6 +47,32 @@ fn image_extension_for_mime(mime_type: &str) -> &'static str {
         "image/svg+xml" => "svg",
         _ => "png",
     }
+}
+
+fn is_text_like_path(path: &Path) -> bool {
+    static TEXT_EXTENSIONS: &[&str] = &[
+        "rs", "toml", "md", "txt", "json", "yaml", "yml", "lock", "sh", "zsh", "bash", "fish",
+        "js", "ts", "tsx", "jsx", "html", "css", "scss", "xml", "ini", "conf", "cfg", "env",
+        "proto", "sql", "go", "py", "java", "kt", "swift", "c", "h", "cpp", "hpp", "cc", "hh",
+        "cmake", "mk", "dockerfile", "service", "ron", "csv",
+    ];
+
+    let filename = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .to_lowercase();
+    if filename == "dockerfile" {
+        return true;
+    }
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| TEXT_EXTENSIONS.contains(&e.to_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
+fn is_probably_binary(bytes: &[u8]) -> bool {
+    bytes.iter().take(8192).any(|b| *b == 0)
 }
 
 app_main!(App);
@@ -211,7 +242,52 @@ script_mod! {
                                 unrevert_wrap := View { visible: false unrevert_button := Button { width: Fit, height: 20, text: "Unrevert" } }
                             }
 
-                            ChatPanel {}
+                            center_page_flip := PageFlip {
+                                width: Fill
+                                height: Fill
+                                active_page: @conversation_page
+
+                                conversation_page := ChatPanel {}
+
+                                editor_page := View {
+                                    width: Fill, height: Fill
+                                    flow: Down
+
+                                    editor_header := View {
+                                        width: Fill, height: 30
+                                        flow: Right
+                                        spacing: 8
+                                        show_bg: true
+                                        draw_bg +: {
+                                            color: #171a20
+                                            border_size: 1.0
+                                            border_color: #262c35
+                                        }
+                                        padding: Inset{left: 10 right: 10 top: 5 bottom: 5}
+
+                                        editor_file_label := Label {
+                                            width: Fit, height: Fit
+                                            text: "No file selected"
+                                        }
+                                        View { width: Fill }
+                                        editor_dirty_label := Label {
+                                            width: Fit, height: Fit
+                                            visible: false
+                                            text: "● Unsaved"
+                                            draw_text +: { color: #f59e0b, text_style: theme.font_bold { font_size: 10 } }
+                                        }
+                                        editor_save_button := Button {
+                                            width: Fit, height: 20
+                                            text: "Save"
+                                        }
+                                    }
+
+                                    editor_panel := EditorPanel {
+                                        width: Fill
+                                        height: Fill
+                                    }
+                                }
+                            }
                             terminal_panel_wrap := TerminalPanelWrap {}
                         }
 
@@ -272,6 +348,7 @@ impl App {
         makepad_code_editor::script_mod(vm);
         openpad_widgets::script_mod(vm);
         crate::components::files_panel::script_mod(vm);
+        crate::components::editor_panel::script_mod(vm);
         crate::components::sessions_panel::script_mod(vm);
         crate::components::sidebar_header::script_mod(vm);
         crate::components::session_options_popup::script_mod(vm);
@@ -338,6 +415,175 @@ impl App {
                 .set_text(cx, &skill.description);
         }
         self.ui.redraw(cx);
+    }
+
+    fn update_center_panel_mode_ui(&self, cx: &mut Cx) {
+        let page_id = match self.state.center_panel_mode {
+            CenterPanelMode::Conversation => id!(conversation_page),
+            CenterPanelMode::Editor => id!(editor_page),
+        };
+        self.ui
+            .page_flip(cx, &[id!(center_page_flip)])
+            .set_active_page(cx, page_id);
+    }
+
+    fn update_editor_header_ui(&self, cx: &mut Cx) {
+        if let Some(open) = self.state.open_file.as_ref() {
+            self.ui
+                .label(cx, &[id!(editor_file_label)])
+                .set_text(cx, &open.absolute_path);
+            self.ui
+                .label(cx, &[id!(editor_dirty_label)])
+                .set_visible(cx, open.dirty);
+        } else {
+            self.ui
+                .label(cx, &[id!(editor_file_label)])
+                .set_text(cx, "No file selected");
+            self.ui
+                .label(cx, &[id!(editor_dirty_label)])
+                .set_visible(cx, false);
+        }
+    }
+
+    fn show_unsaved_editor_dialog(&self, cx: &mut Cx) {
+        self.ui
+            .simple_dialog(cx, &[id!(simple_dialog)])
+            .show_confirm_with_secondary(
+                cx,
+                "Unsaved changes",
+                "You have unsaved changes in the open file.",
+                "Save",
+                "Discard",
+                "Cancel",
+                "unsaved_editor".to_string(),
+            );
+    }
+
+    fn queue_or_open_file(&mut self, cx: &mut Cx, project_id: String, absolute_path: String) {
+        if self
+            .state
+            .open_file
+            .as_ref()
+            .map(|f| f.dirty)
+            .unwrap_or(false)
+        {
+            self.state.pending_open_after_save = Some(PendingOpenTarget::File {
+                project_id,
+                absolute_path,
+            });
+            self.show_unsaved_editor_dialog(cx);
+            return;
+        }
+        self.open_file_now(cx, project_id, absolute_path);
+    }
+
+    fn queue_or_select_session(&mut self, cx: &mut Cx, session_id: String) {
+        if self
+            .state
+            .open_file
+            .as_ref()
+            .map(|f| f.dirty)
+            .unwrap_or(false)
+        {
+            self.state.pending_open_after_save =
+                Some(PendingOpenTarget::Conversation { session_id });
+            self.show_unsaved_editor_dialog(cx);
+            return;
+        }
+        self.select_session_now(cx, session_id);
+    }
+
+    fn open_file_now(&mut self, cx: &mut Cx, project_id: String, absolute_path: String) {
+        let path = Path::new(&absolute_path);
+        if !path.is_file() || !is_text_like_path(path) {
+            return;
+        }
+
+        let Ok(bytes) = std::fs::read(path) else {
+            return;
+        };
+        if is_probably_binary(&bytes) {
+            return;
+        }
+
+        let content = String::from_utf8_lossy(&bytes).to_string();
+        self.state
+            .switch_to_editor_mode(project_id, absolute_path.clone(), content.clone());
+        self.state.pending_open_after_save = None;
+        self.ui
+            .editor_panel(cx, &[id!(editor_panel)])
+            .set_read_only(cx, false);
+        self.ui.editor_panel(cx, &[id!(editor_panel)]).set_text(cx, &content);
+        self.ui
+            .editor_panel(cx, &[id!(editor_panel)])
+            .focus_editor(cx);
+        self.update_center_panel_mode_ui(cx);
+        self.update_editor_header_ui(cx);
+        self.ui.redraw(cx);
+    }
+
+    fn save_open_editor(&mut self, cx: &mut Cx) -> bool {
+        let Some(open_file) = self.state.open_file.clone() else {
+            return false;
+        };
+        if !open_file.dirty {
+            return true;
+        }
+
+        let text = self.ui.editor_panel(cx, &[id!(editor_panel)]).get_text();
+        if std::fs::write(&open_file.absolute_path, text.as_bytes()).is_err() {
+            return false;
+        }
+
+        if let Some(of) = self.state.open_file.as_mut() {
+            of.text_cache = text;
+            of.dirty = false;
+            of.last_saved_revision = of.last_saved_revision.saturating_add(1);
+        }
+        self.update_editor_header_ui(cx);
+        self.ui.redraw(cx);
+        true
+    }
+
+    fn run_pending_open_target(&mut self, cx: &mut Cx) {
+        let Some(target) = self.state.pending_open_after_save.clone() else {
+            return;
+        };
+        self.state.pending_open_after_save = None;
+        match target {
+            PendingOpenTarget::File {
+                project_id,
+                absolute_path,
+            } => self.open_file_now(cx, project_id, absolute_path),
+            PendingOpenTarget::Conversation { session_id } => self.select_session_now(cx, session_id),
+        }
+    }
+
+    fn discard_editor_changes(&mut self, cx: &mut Cx) {
+        if let Some(open) = self.state.open_file.as_mut() {
+            open.dirty = false;
+        }
+        self.update_editor_header_ui(cx);
+    }
+
+    fn select_session_now(&mut self, cx: &mut Cx, session_id: String) {
+        self.state.switch_to_conversation_mode();
+        self.update_center_panel_mode_ui(cx);
+        self.state.selected_session_id = Some(session_id.clone());
+        self.state.current_session_id = Some(session_id.clone());
+        self.state.is_working = false;
+        self.state.messages_data.clear();
+        self.ui
+            .message_list(cx, &[id!(message_list)])
+            .set_messages(cx, &self.state.messages_data, None);
+        crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
+        self.state.update_files_panel(&self.ui, cx);
+        self.state.update_sessions_panel(&self.ui, cx);
+        self.state.update_session_title_ui(&self.ui, cx);
+        self.state.update_project_context_ui(&self.ui, cx);
+        self.state.update_session_meta_ui(&self.ui, cx);
+        self.load_messages(session_id);
+        self.load_pending_permissions();
     }
 
     fn set_sidebar_width(&mut self, cx: &mut Cx, width: f32) {
@@ -970,7 +1216,14 @@ impl App {
         async_runtime::spawn_session_unreverter(runtime, client, session_id, directory);
     }
 
-    fn handle_dialog_confirmed(&mut self, _cx: &mut Cx, dialog_type: String, value: String) {
+    fn handle_dialog_confirmed(&mut self, cx: &mut Cx, dialog_type: String, value: String) {
+        if dialog_type == "unsaved_editor" {
+            if self.save_open_editor(cx) {
+                self.run_pending_open_target(cx);
+            }
+            return;
+        }
+
         // Parse the dialog_type which is in format "action:data"
         let Some((action, data)) = dialog_type.split_once(':') else {
             return;
@@ -1006,6 +1259,17 @@ impl App {
             }
             _ => {}
         }
+    }
+
+    fn handle_dialog_secondary(&mut self, cx: &mut Cx, dialog_type: String) {
+        if dialog_type == "unsaved_editor" {
+            self.discard_editor_changes(cx);
+            self.run_pending_open_target(cx);
+        }
+    }
+
+    fn handle_dialog_cancelled(&mut self, _cx: &mut Cx) {
+        self.state.pending_open_after_save = None;
     }
 }
 
@@ -1053,6 +1317,8 @@ impl AppMain for App {
                     .animator_play(cx, &[id!(open), id!(on)]);
                 self.update_sidebar_handle_visibility(cx);
                 self.update_sidebar_panel_visibility(cx);
+                self.update_center_panel_mode_ui(cx);
+                self.update_editor_header_ui(cx);
             }
             Event::Actions(actions) => {
                 self.handle_actions(cx, actions);
@@ -1071,6 +1337,11 @@ impl AppMain for App {
                         }
                         KeyCode::KeyI => {
                             self.toggle_right_sidebar(cx);
+                        }
+                        KeyCode::KeyS => {
+                            if self.state.center_panel_mode == CenterPanelMode::Editor {
+                                self.save_open_editor(cx);
+                            }
                         }
                         _ => {}
                     }
@@ -1116,23 +1387,13 @@ impl AppMain for App {
             if let Some(panel_action) = action.downcast_ref::<ProjectsPanelAction>() {
                 match panel_action {
                     ProjectsPanelAction::SelectSession(session_id) => {
-                        self.state.selected_session_id = Some(session_id.clone());
-                        self.state.current_session_id = Some(session_id.clone());
-                        self.state.is_working = false;
-                        self.state.messages_data.clear();
-                        self.ui.message_list(cx, &[id!(message_list)]).set_messages(
-                            cx,
-                            &self.state.messages_data,
-                            None,
-                        );
-                        crate::ui::state_updates::update_work_indicator(&self.ui, cx, false);
-                        self.state.update_files_panel(&self.ui, cx);
-                        self.state.update_sessions_panel(&self.ui, cx);
-                        self.state.update_session_title_ui(&self.ui, cx);
-                        self.state.update_project_context_ui(&self.ui, cx);
-                        self.state.update_session_meta_ui(&self.ui, cx);
-                        self.load_messages(session_id.clone());
-                        self.load_pending_permissions();
+                        self.queue_or_select_session(cx, session_id.clone());
+                    }
+                    ProjectsPanelAction::OpenFile {
+                        project_id,
+                        absolute_path,
+                    } => {
+                        self.queue_or_open_file(cx, project_id.clone(), absolute_path.clone());
                     }
                     ProjectsPanelAction::CreateSession(project_id) => {
                         log!(
@@ -1195,6 +1456,16 @@ impl AppMain for App {
                             .hide(cx);
                     }
                     _ => {}
+                }
+            }
+
+            if let Some(editor_action) = action.downcast_ref::<EditorPanelAction>() {
+                match editor_action {
+                    EditorPanelAction::TextDidChange => {
+                        self.state.mark_editor_dirty();
+                        self.update_editor_header_ui(cx);
+                    }
+                    EditorPanelAction::None => {}
                 }
             }
 
@@ -1369,8 +1640,11 @@ impl AppMain for App {
                     SimpleDialogAction::Confirmed { dialog_type, value } => {
                         self.handle_dialog_confirmed(cx, dialog_type.clone(), value.clone());
                     }
+                    SimpleDialogAction::Secondary { dialog_type } => {
+                        self.handle_dialog_secondary(cx, dialog_type.clone());
+                    }
                     SimpleDialogAction::Cancelled => {
-                        // Dialog was cancelled, no action needed
+                        self.handle_dialog_cancelled(cx);
                     }
                     SimpleDialogAction::None => {}
                 }
@@ -1473,6 +1747,14 @@ impl AppMain for App {
                 self.summarize_session(cx, session_id.clone());
                 self.load_session_diff(cx, session_id, message_id);
             }
+        }
+
+        if self
+            .ui
+            .button(cx, &[id!(editor_save_button)])
+            .clicked(&actions)
+        {
+            self.save_open_editor(cx);
         }
 
         if self

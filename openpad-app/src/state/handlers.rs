@@ -53,6 +53,34 @@ impl ModelDropdownEntry {
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum CenterPanelMode {
+    #[default]
+    Conversation,
+    Editor,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct OpenFileState {
+    pub project_id: String,
+    pub absolute_path: String,
+    pub display_name: String,
+    pub text_cache: String,
+    pub dirty: bool,
+    pub last_saved_revision: u64,
+}
+
+#[derive(Clone, Debug)]
+pub enum PendingOpenTarget {
+    File {
+        project_id: String,
+        absolute_path: String,
+    },
+    Conversation {
+        session_id: String,
+    },
+}
+
 /// Information about an attached file ready to be sent
 #[derive(Clone, Debug)]
 pub struct AttachedFile {
@@ -95,6 +123,9 @@ pub struct AppState {
     pub selected_skill_idx: Option<usize>,
     pub attached_files: Vec<AttachedFile>,
     pub config: Option<openpad_protocol::Config>,
+    pub center_panel_mode: CenterPanelMode,
+    pub open_file: Option<OpenFileState>,
+    pub pending_open_after_save: Option<PendingOpenTarget>,
 }
 
 impl AppState {
@@ -188,6 +219,39 @@ impl AppState {
     pub fn selected_skill_prompt(&self) -> Option<String> {
         self.selected_skill()
             .map(|skill| format!("Use skill: {}", skill.name))
+    }
+
+    pub fn switch_to_conversation_mode(&mut self) {
+        self.center_panel_mode = CenterPanelMode::Conversation;
+    }
+
+    pub fn switch_to_editor_mode(&mut self, project_id: String, absolute_path: String, content: String) {
+        let display_name = std::path::Path::new(&absolute_path)
+            .file_name()
+            .and_then(|v| v.to_str())
+            .unwrap_or(&absolute_path)
+            .to_string();
+        self.center_panel_mode = CenterPanelMode::Editor;
+        self.open_file = Some(OpenFileState {
+            project_id,
+            absolute_path,
+            display_name,
+            text_cache: content,
+            dirty: false,
+            last_saved_revision: 0,
+        });
+    }
+
+    pub fn mark_editor_dirty(&mut self) {
+        if let Some(open_file) = self.open_file.as_mut() {
+            open_file.dirty = true;
+        }
+    }
+
+    pub fn clear_editor_state(&mut self) {
+        self.open_file = None;
+        self.pending_open_after_save = None;
+        self.center_panel_mode = CenterPanelMode::Conversation;
     }
 }
 

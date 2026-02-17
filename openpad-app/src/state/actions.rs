@@ -81,6 +81,10 @@ pub enum ProjectsPanelAction {
     #[default]
     None,
     SelectSession(String),
+    OpenFile {
+        project_id: String,
+        absolute_path: String,
+    },
     CreateSession(Option<String>),
     DeleteSession(String),
     RenameSession(String),

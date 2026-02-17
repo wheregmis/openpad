@@ -1,8 +1,10 @@
 //! Files panel for IDE-style left sidebar using Makepad's dedicated FileTree widget.
 
-use makepad_widgets::file_tree::FileTree;
+use crate::state::actions::ProjectsPanelAction;
+use makepad_widgets::file_tree::{FileTree, FileTreeAction};
 use makepad_widgets::*;
 use openpad_protocol::Project;
+use std::collections::HashMap;
 use std::path::Path;
 
 script_mod! {
@@ -80,6 +82,8 @@ pub struct FilesPanel {
 
     #[rust]
     projects: Vec<Project>,
+    #[rust]
+    file_node_to_path: HashMap<LiveId, (String, String)>,
 }
 
 impl FilesPanel {
@@ -154,12 +158,17 @@ impl FilesPanel {
                     self.file_tree.end_folder();
                 }
             } else {
+                self.file_node_to_path.insert(
+                    node_id,
+                    (project_id.to_string(), full_path.to_string_lossy().to_string()),
+                );
                 self.file_tree.file(cx, node_id, &name);
             }
         }
     }
 
     fn draw_tree(&mut self, cx: &mut Cx2d) {
+        self.file_node_to_path.clear();
         let projects = self.projects.clone();
         for project in &projects {
             if project.worktree == "/" || project.worktree.is_empty() {
@@ -179,6 +188,8 @@ impl FilesPanel {
                 .begin_folder(cx, project_node_id, &display_name)
                 .is_ok()
             {
+                self.file_node_to_path
+                    .insert(project_node_id, (project.id.clone(), root.clone()));
                 self.draw_dir_recursive(cx, &project.id, root_path);
                 self.file_tree.end_folder();
             }
@@ -195,7 +206,24 @@ impl Widget for FilesPanel {
     }
 
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        self.file_tree.handle_event(cx, event, scope);
+        let actions = cx.capture_actions(|cx| {
+            self.file_tree.handle_event(cx, event, scope);
+        });
+
+        if let Some(item) = actions.find_widget_action(self.file_tree.widget_uid()) {
+            if let FileTreeAction::FileClicked(node_id) = item.cast() {
+                let Some((project_id, absolute_path)) = self.file_node_to_path.get(&node_id) else {
+                    return;
+                };
+                if absolute_path.is_empty() {
+                    return;
+                }
+                cx.action(ProjectsPanelAction::OpenFile {
+                    project_id: project_id.clone(),
+                    absolute_path: absolute_path.clone(),
+                });
+            }
+        }
     }
 }
 

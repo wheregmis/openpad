@@ -86,6 +86,23 @@ script_mod! {
                     spacing: 10
                     align: Align{x: 1.0 y: 0.5}
 
+                    secondary_button := Button {
+                        width: 90
+                        height: 32
+                        visible: false
+                        text: "Discard"
+                        draw_bg +: {
+                            color: #4b5563
+                            color_hover: #6b7280
+                            border_radius: 8.0
+                            border_size: 0.0
+                        }
+                        draw_text +: {
+                            color: #e6e9ee
+                            text_style: theme.font_regular {font_size: 11}
+                        }
+                    }
+
                     cancel_button := Button {
                         width: 90
                         height: 32
@@ -133,6 +150,7 @@ pub enum DialogType {
 #[derive(Clone, Debug, Default)]
 pub enum SimpleDialogAction {
     Confirmed { dialog_type: String, value: String },
+    Secondary { dialog_type: String },
     Cancelled,
     #[default]
     None,
@@ -159,6 +177,17 @@ impl Widget for SimpleDialog {
 
         if self.view.button(cx, ids!(cancel_button)).clicked(&actions) {
             cx.widget_action(self.widget_uid(), SimpleDialogAction::Cancelled);
+            self.view.set_visible(cx, false);
+            self.view.redraw(cx);
+        }
+
+        if self.view.button(cx, ids!(secondary_button)).clicked(&actions) {
+            cx.widget_action(
+                self.widget_uid(),
+                SimpleDialogAction::Secondary {
+                    dialog_type: self.callback_data.clone(),
+                },
+            );
             self.view.set_visible(cx, false);
             self.view.redraw(cx);
         }
@@ -200,6 +229,12 @@ impl SimpleDialogRef {
                 .label(cx, ids!(message_label))
                 .set_text(cx, message);
             inner.view.view(cx, ids!(input_row)).set_visible(cx, false);
+            inner
+                .view
+                .button(cx, ids!(secondary_button))
+                .set_visible(cx, false);
+            inner.view.button(cx, ids!(cancel_button)).set_text(cx, "Cancel");
+            inner.view.button(cx, ids!(confirm_button)).set_text(cx, "OK");
 
             inner.view.set_visible(cx, true);
             inner.redraw(cx);
@@ -228,6 +263,54 @@ impl SimpleDialogRef {
                 .text_input(cx, ids!(input_field))
                 .set_text(cx, default_value);
             inner.view.view(cx, ids!(input_row)).set_visible(cx, true);
+            inner
+                .view
+                .button(cx, ids!(secondary_button))
+                .set_visible(cx, false);
+            inner.view.button(cx, ids!(cancel_button)).set_text(cx, "Cancel");
+            inner.view.button(cx, ids!(confirm_button)).set_text(cx, "OK");
+
+            inner.view.set_visible(cx, true);
+            inner.redraw(cx);
+        }
+    }
+
+    pub fn show_confirm_with_secondary(
+        &self,
+        cx: &mut Cx,
+        title: &str,
+        message: &str,
+        confirm_text: &str,
+        secondary_text: &str,
+        cancel_text: &str,
+        callback_data: String,
+    ) {
+        if let Some(mut inner) = self.borrow_mut() {
+            inner.dialog_type = DialogType::Confirm;
+            inner.callback_data = callback_data;
+
+            inner.view.label(cx, ids!(title_label)).set_text(cx, title);
+            inner
+                .view
+                .label(cx, ids!(message_label))
+                .set_text(cx, message);
+            inner.view.view(cx, ids!(input_row)).set_visible(cx, false);
+            inner
+                .view
+                .button(cx, ids!(secondary_button))
+                .set_visible(cx, true);
+            inner
+                .view
+                .button(cx, ids!(secondary_button))
+                .set_text(cx, secondary_text);
+            inner
+                .view
+                .button(cx, ids!(cancel_button))
+                .set_text(cx, cancel_text);
+            inner
+                .view
+                .button(cx, ids!(confirm_button))
+                .set_text(cx, confirm_text);
 
             inner.view.set_visible(cx, true);
             inner.redraw(cx);
