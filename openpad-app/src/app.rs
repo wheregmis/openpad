@@ -1168,12 +1168,7 @@ impl AppMain for App {
                         reply,
                     } => {
                         needs_center_refresh = true;
-                        state::handle_permission_responded(
-                            &mut self.state,
-                            &self.ui,
-                            cx,
-                            request_id,
-                        );
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                         self.respond_to_permission(
                             cx,
                             session_id.clone(),
@@ -1201,16 +1196,19 @@ impl AppMain for App {
                                 async_runtime::spawn_permission_reply(
                                     runtime,
                                     client,
-                                    session_id,
+                                    session_id.clone(),
                                     request_id.clone(),
                                     openpad_protocol::PermissionReply::Once,
                                 );
                             }
-                            state::handle_permission_responded(
+                            state::handle_app_action(
                                 &mut self.state,
                                 &self.ui,
                                 cx,
-                                &request_id,
+                                &AppAction::PermissionDismissed {
+                                    session_id: session_id.clone(),
+                                    request_id: request_id.clone(),
+                                },
                             );
                         }
                     }
@@ -1227,16 +1225,19 @@ impl AppMain for App {
                                 async_runtime::spawn_permission_reply(
                                     runtime,
                                     client,
-                                    session_id,
+                                    session_id.clone(),
                                     request_id.clone(),
                                     openpad_protocol::PermissionReply::Always,
                                 );
                             }
-                            state::handle_permission_responded(
+                            state::handle_app_action(
                                 &mut self.state,
                                 &self.ui,
                                 cx,
-                                &request_id,
+                                &AppAction::PermissionDismissed {
+                                    session_id: session_id.clone(),
+                                    request_id: request_id.clone(),
+                                },
                             );
                         }
                     }
@@ -1253,16 +1254,19 @@ impl AppMain for App {
                                 async_runtime::spawn_permission_reply(
                                     runtime,
                                     client,
-                                    session_id,
+                                    session_id.clone(),
                                     request_id.clone(),
                                     openpad_protocol::PermissionReply::Reject,
                                 );
                             }
-                            state::handle_permission_responded(
+                            state::handle_app_action(
                                 &mut self.state,
                                 &self.ui,
                                 cx,
-                                &request_id,
+                                &AppAction::PermissionDismissed {
+                                    session_id: session_id.clone(),
+                                    request_id: request_id.clone(),
+                                },
                             );
                         }
                     }
@@ -1279,11 +1283,15 @@ impl AppMain for App {
                         reply,
                     } => {
                         needs_center_refresh = true;
-                        state::handle_permission_responded(
+                        state::handle_app_action(
                             &mut self.state,
                             &self.ui,
                             cx,
-                            request_id,
+                            &AppAction::PermissionResponded {
+                                session_id: session_id.clone(),
+                                request_id: request_id.clone(),
+                                reply: reply.clone(),
+                            },
                         );
                         self.respond_to_permission(
                             cx,

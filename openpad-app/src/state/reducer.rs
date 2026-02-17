@@ -2,12 +2,53 @@ use crate::state::actions::AppAction;
 use crate::state::effects::StateEffect;
 use crate::state::{AppState, PendingCenterIntent};
 use makepad_widgets::LiveId;
+use openpad_protocol::{AssistantError, AssistantMessage, Message, MessageTime, MessageWithParts, Part};
 use std::collections::HashMap;
 
 pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEffect> {
     let mut effects = Vec::new();
 
     match action {
+        AppAction::Connected => {
+            state.connected = true;
+            state.error_message = None;
+            state.is_working = false;
+        }
+        AppAction::ConnectionFailed(err) => {
+            state.error_message = Some(err.clone());
+            state.is_working = false;
+        }
+        AppAction::HealthUpdated(health) => {
+            state.health_ok = Some(health.healthy);
+            if health.healthy {
+                state.connected = true;
+                state.error_message = None;
+            } else {
+                state.connected = false;
+                state.is_working = false;
+            }
+        }
+        AppAction::ProjectsLoaded(projects) => {
+            state.projects = projects.clone();
+        }
+        AppAction::CurrentProjectLoaded(project) => {
+            state.current_project = Some(project.clone());
+        }
+        AppAction::SessionsLoaded(sessions) => {
+            state.sessions = sessions.clone();
+        }
+        AppAction::SessionLoaded(session) => {
+            if state.current_session_id.is_none() {
+                state.current_session_id = Some(session.id.clone());
+                state.messages_data.clear();
+            }
+
+            if let Some(existing) = state.find_session_mut(&session.id) {
+                *existing = session.clone();
+            } else {
+                state.sessions.push(session.clone());
+            }
+        }
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
             state.messages_data.clear();
@@ -77,13 +118,234 @@ pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEf
                 message_id,
             });
         }
+        AppAction::MessageReceived(message) => {
+            reduce_message_received(state, message);
+        }
+        AppAction::PartReceived { part, delta: _ } => {
+            reduce_part_received(state, part);
+        }
         AppAction::PendingPermissionsLoaded(permissions) => {
             state.pending_permissions = permissions.clone();
+        }
+        AppAction::PendingPermissionReceived(request) => {
+            enqueue_pending_permission(state, request);
+        }
+        AppAction::PermissionResponded {
+            session_id: _,
+            request_id,
+            reply: _,
+        } => {
+            remove_pending_permission(state, request_id);
+        }
+        AppAction::PermissionDismissed {
+            session_id: _,
+            request_id,
+        } => {
+            remove_pending_permission(state, request_id);
+        }
+        AppAction::SessionErrorReceived { session_id, error } => {
+            reduce_session_error(state, session_id, error);
+        }
+        AppAction::SendMessageFailed(err) => {
+            state.error_message = Some(err.clone());
+            state.is_working = false;
+        }
+        AppAction::ProvidersLoaded(providers_response) => {
+            state.providers = providers_response.providers.clone();
+
+            let mut provider_labels = vec!["Default".to_string()];
+            provider_labels.extend(
+                state
+                    .providers
+                    .iter()
+                    .map(|p| p.name.as_deref().unwrap_or(&p.id).to_string()),
+            );
+            state.provider_labels = provider_labels;
+            state.selected_provider_idx = 0;
+            state.update_model_list_for_provider();
+        }
+        AppAction::AgentsLoaded(agents) => {
+            state.agents = agents.clone();
+            state.selected_agent_idx = None;
+        }
+        AppAction::SkillsLoaded(skills) => {
+            state.skills = skills.clone();
+            state.selected_skill_idx = None;
+        }
+        AppAction::ConfigLoaded(config) => {
+            state.config = Some(config.clone());
         }
         _ => {}
     }
 
     effects
+}
+
+fn reduce_message_received(state: &mut AppState, message: &Message) {
+    let session_id = message.session_id().to_string();
+
+    if let Message::Assistant(msg) = message {
+        let working = msg.time.completed.is_none() && msg.error.is_none();
+        state
+            .working_by_session
+            .insert(session_id.clone(), working);
+    }
+
+    if state.current_session_id.is_none() {
+        state.current_session_id = Some(session_id.clone());
+    }
+
+    {
+        let session_messages = state
+            .messages_by_session
+            .entry(session_id.clone())
+            .or_default();
+        if let Some(existing) = session_messages
+            .iter_mut()
+            .find(|m| m.info.id() == message.id())
+        {
+            existing.info = message.clone();
+        } else {
+            session_messages.push(MessageWithParts {
+                info: message.clone(),
+                parts: Vec::new(),
+            });
+        }
+    }
+
+    let current_sid = state.current_session_id.as_deref().unwrap_or("");
+    if session_id == current_sid {
+        if let Message::Assistant(msg) = message {
+            state.is_working = msg.time.completed.is_none() && msg.error.is_none();
+        }
+
+        if let Some(session_messages) = state.messages_by_session.get(&session_id) {
+            state.messages_data = session_messages.clone();
+        }
+    }
+}
+
+fn reduce_part_received(state: &mut AppState, part: &Part) {
+    let Some(msg_id) = part.message_id() else {
+        return;
+    };
+
+    let mut should_update_work = false;
+    let mut work_session_id: Option<String> = None;
+    let mut did_mutate_parts = false;
+    let mut matched_session_id: Option<String> = None;
+
+    for (sid, messages) in state.messages_by_session.iter_mut() {
+        if let Some(mwp) = messages.iter_mut().find(|m| m.info.id() == msg_id) {
+            matched_session_id = Some(sid.clone());
+            if matches!(mwp.info, Message::Assistant(_)) {
+                should_update_work = true;
+                work_session_id = Some(mwp.info.session_id().to_string());
+            }
+
+            match part {
+                Part::Text { id, .. } if !id.is_empty() => {
+                    if let Some(existing) = mwp.parts.iter_mut().find(|p| {
+                        matches!(p, Part::Text { id: existing_id, .. } if existing_id == id)
+                    }) {
+                        *existing = part.clone();
+                    } else {
+                        mwp.parts.push(part.clone());
+                    }
+                    did_mutate_parts = true;
+                }
+                _ => {
+                    mwp.parts.push(part.clone());
+                    did_mutate_parts = true;
+                }
+            };
+            break;
+        }
+    }
+
+    if let Some(current_sid) = state.current_session_id.clone() {
+        if did_mutate_parts && matched_session_id.as_deref() == Some(current_sid.as_str()) {
+            if let Some(session_messages) = state.messages_by_session.get(&current_sid) {
+                state.messages_data = session_messages.clone();
+            }
+        }
+    }
+
+    if should_update_work {
+        state.is_working = true;
+        if let Some(session_id) = work_session_id {
+            state.working_by_session.insert(session_id, true);
+        }
+    }
+}
+
+fn enqueue_pending_permission(state: &mut AppState, request: &openpad_protocol::PermissionRequest) {
+    if state
+        .pending_permissions
+        .iter()
+        .any(|pending| pending.id == request.id)
+    {
+        return;
+    }
+    state.pending_permissions.push(request.clone());
+}
+
+fn remove_pending_permission(state: &mut AppState, request_id: &str) {
+    state
+        .pending_permissions
+        .retain(|permission| permission.id != request_id);
+}
+
+fn reduce_session_error(state: &mut AppState, session_id: &str, error: &AssistantError) {
+    state.is_working = false;
+    if state.current_session_id.as_deref() != Some(session_id) {
+        return;
+    }
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as i64;
+    let message_id = format!("err_{}_{}", session_id, now);
+
+    let assistant = AssistantMessage {
+        id: message_id.clone(),
+        session_id: session_id.to_string(),
+        time: MessageTime {
+            created: now,
+            completed: Some(now),
+        },
+        error: Some(error.clone()),
+        parent_id: String::new(),
+        model_id: String::new(),
+        provider_id: String::new(),
+        mode: String::new(),
+        agent: String::new(),
+        path: None,
+        summary: None,
+        cost: 0.0,
+        tokens: None,
+        structured: None,
+        variant: None,
+        finish: None,
+    };
+
+    let part = Part::Text {
+        id: format!("part_{}", message_id),
+        session_id: session_id.to_string(),
+        message_id: message_id.clone(),
+        text: "Session error".to_string(),
+    };
+
+    let entry = state
+        .messages_by_session
+        .entry(session_id.to_string())
+        .or_default();
+    entry.push(MessageWithParts {
+        info: Message::Assistant(assistant),
+        parts: vec![part],
+    });
+    state.messages_data = entry.clone();
 }
 
 pub fn upsert_session_tab(
@@ -133,7 +395,10 @@ pub fn resolve_pending_center_intent(
 mod tests {
     use super::*;
     use crate::state::handlers::{CenterTabKind, OpenFileState};
-    use openpad_protocol::{Message, MessageTime, MessageWithParts, SessionTime, UserMessage};
+    use openpad_protocol::{
+        AssistantMessage, Message, MessageTime, MessageWithParts, PermissionRequest, SessionTime,
+        UserMessage,
+    };
 
     fn user_message(session_id: &str, id: &str) -> MessageWithParts {
         MessageWithParts {
@@ -154,6 +419,30 @@ mod tests {
             }),
             parts: vec![],
         }
+    }
+
+    fn assistant_message(session_id: &str, id: &str, completed: Option<i64>) -> Message {
+        Message::Assistant(AssistantMessage {
+            id: id.to_string(),
+            session_id: session_id.to_string(),
+            time: MessageTime {
+                created: 1,
+                completed,
+            },
+            error: None,
+            parent_id: String::new(),
+            model_id: String::new(),
+            provider_id: String::new(),
+            mode: String::new(),
+            agent: String::new(),
+            path: None,
+            summary: None,
+            cost: 0.0,
+            tokens: None,
+            structured: None,
+            variant: None,
+            finish: None,
+        })
     }
 
     #[test]
@@ -178,6 +467,99 @@ mod tests {
     }
 
     #[test]
+    fn message_received_updates_working_for_target_session() {
+        let mut state = AppState::default();
+        state.current_session_id = Some("s1".to_string());
+
+        reduce_app_state(
+            &mut state,
+            &AppAction::MessageReceived(assistant_message("s1", "a1", None)),
+        );
+
+        assert_eq!(state.working_by_session.get("s1").copied(), Some(true));
+        assert!(state.is_working);
+        assert_eq!(state.messages_for_session("s1").len(), 1);
+        assert_eq!(state.messages_data.len(), 1);
+    }
+
+    #[test]
+    fn pending_permission_received_dedupes_by_id() {
+        let mut state = AppState::default();
+        let request = PermissionRequest {
+            id: "perm-1".to_string(),
+            session_id: "s1".to_string(),
+            permission: "read".to_string(),
+            patterns: vec!["*".to_string()],
+            metadata: HashMap::new(),
+            always: vec![],
+            tool: None,
+        };
+
+        reduce_app_state(
+            &mut state,
+            &AppAction::PendingPermissionReceived(request.clone()),
+        );
+        reduce_app_state(&mut state, &AppAction::PendingPermissionReceived(request));
+
+        assert_eq!(state.pending_permissions.len(), 1);
+    }
+
+    #[test]
+    fn permission_responded_removes_pending_request() {
+        let mut state = AppState::default();
+        state.pending_permissions.push(PermissionRequest {
+            id: "perm-2".to_string(),
+            session_id: "s1".to_string(),
+            permission: "edit".to_string(),
+            patterns: vec!["*".to_string()],
+            metadata: HashMap::new(),
+            always: vec![],
+            tool: None,
+        });
+
+        reduce_app_state(
+            &mut state,
+            &AppAction::PermissionResponded {
+                session_id: "s1".to_string(),
+                request_id: "perm-2".to_string(),
+                reply: openpad_protocol::PermissionReply::Once,
+            },
+        );
+
+        assert!(state.pending_permissions.is_empty());
+    }
+
+    #[test]
+    fn session_loaded_preserves_active_when_already_set() {
+        let mut state = AppState::default();
+        state.current_session_id = Some("active".to_string());
+        let loaded = openpad_protocol::Session {
+            id: "loaded".to_string(),
+            slug: String::new(),
+            project_id: "p".to_string(),
+            directory: "/tmp".to_string(),
+            parent_id: None,
+            title: String::new(),
+            version: String::new(),
+            time: SessionTime {
+                created: 1,
+                updated: 1,
+                compacting: None,
+                archived: None,
+            },
+            summary: None,
+            share: None,
+            permission: None,
+            revert: None,
+        };
+
+        reduce_app_state(&mut state, &AppAction::SessionLoaded(loaded.clone()));
+
+        assert_eq!(state.current_session_id.as_deref(), Some("active"));
+        assert!(state.sessions.iter().any(|s| s.id == loaded.id));
+    }
+
+    #[test]
     fn upsert_session_tab_dedupes_existing() {
         let mut map = HashMap::new();
         let existing = LiveId(11);
@@ -199,6 +581,30 @@ mod tests {
         assert_eq!(tab, LiveId(77));
         assert!(created);
         assert_eq!(map.get("/tmp/a.rs").copied(), Some(LiveId(77)));
+    }
+
+    #[test]
+    fn upsert_session_tab_creates_when_missing() {
+        let mut map = HashMap::new();
+
+        let (tab, created) = upsert_session_tab(&mut map, "s2".to_string(), LiveId(31));
+
+        assert_eq!(tab, LiveId(31));
+        assert!(created);
+        assert_eq!(map.get("s2").copied(), Some(LiveId(31)));
+    }
+
+    #[test]
+    fn upsert_file_tab_dedupes_existing() {
+        let mut map = HashMap::new();
+        let existing = LiveId(90);
+        map.insert("/tmp/a.rs".to_string(), existing);
+
+        let (tab, created) = upsert_file_tab(&mut map, "/tmp/a.rs".to_string(), LiveId(91));
+
+        assert_eq!(tab, existing);
+        assert!(!created);
+        assert_eq!(map.len(), 1);
     }
 
     #[test]
@@ -263,5 +669,24 @@ mod tests {
         assert!(!state.working_by_session.contains_key("s1"));
         assert!(!state.tab_by_session.contains_key("s1"));
         assert!(state.sessions.is_empty());
+    }
+
+    #[test]
+    fn health_update_unhealthy_clears_connected_and_working() {
+        let mut state = AppState::default();
+        state.connected = true;
+        state.is_working = true;
+
+        reduce_app_state(
+            &mut state,
+            &AppAction::HealthUpdated(openpad_protocol::HealthResponse {
+                healthy: false,
+                version: String::new(),
+            }),
+        );
+
+        assert_eq!(state.health_ok, Some(false));
+        assert!(!state.connected);
+        assert!(!state.is_working);
     }
 }

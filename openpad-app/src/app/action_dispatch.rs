@@ -37,12 +37,7 @@ impl App {
                         request_id,
                         reply,
                     } => {
-                        state::handle_permission_responded(
-                            &mut self.state,
-                            &self.ui,
-                            cx,
-                            request_id,
-                        );
+                        state::handle_app_action(&mut self.state, &self.ui, cx, app_action);
                         self.respond_to_permission(
                             cx,
                             session_id.clone(),

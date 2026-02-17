@@ -1,6 +1,6 @@
 use openpad_protocol::{
-    Agent, Event as OcEvent, FileDiff, HealthResponse, Message, MessageWithParts, Part,
-    PermissionReply, PermissionRequest, Project, ProvidersResponse, Session, Skill,
+    Agent, AssistantError, Event as OcEvent, FileDiff, HealthResponse, Message, MessageWithParts,
+    Part, PermissionReply, PermissionRequest, Project, ProvidersResponse, Session, Skill,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -57,9 +57,14 @@ pub enum AppAction {
         value: String,
     },
     PendingPermissionsLoaded(Vec<PermissionRequest>),
+    PendingPermissionReceived(PermissionRequest),
     PermissionDismissed {
         session_id: String,
         request_id: String,
+    },
+    SessionErrorReceived {
+        session_id: String,
+        error: AssistantError,
     },
     ProvidersLoaded(ProvidersResponse),
     AgentsLoaded(Vec<Agent>),

@@ -6,9 +6,8 @@ use crate::state::actions::AppAction;
 use crate::ui::state_updates;
 use makepad_widgets::*;
 use openpad_protocol::{
-    Agent, AssistantError, AssistantMessage, Event as OcEvent, Message, MessageTime,
-    MessageWithParts, ModelSpec, Part, PermissionRequest, PermissionRuleset, Project, Provider,
-    Session, Skill,
+    Agent, Event as OcEvent, MessageWithParts, ModelSpec, PermissionRequest, PermissionRuleset,
+    Project, Provider, Session, Skill,
 };
 use openpad_widgets::settings_dialog::SettingsDialogWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
@@ -386,179 +385,108 @@ impl AppState {
             );
     }
 
-    /// Clears all messages and updates the UI
-    pub fn clear_messages(&mut self, ui: &WidgetRef, cx: &mut Cx) {
-        let _ = (ui, cx);
-        self.messages_data.clear();
-    }
-
-    /// Handles session deletion, clearing relevant state and updating UI
-    pub fn handle_session_deletion(&mut self, ui: &WidgetRef, cx: &mut Cx, session_id: &str) {
-        // If the deleted session is currently selected, clear it
-        if self.current_session_id.as_deref() == Some(session_id) {
-            self.current_session_id = None;
-            self.selected_session_id = None;
-            self.is_working = false;
-            self.clear_messages(ui, cx);
-            state_updates::update_work_indicator(ui, cx, false);
-        } else if self.selected_session_id.as_deref() == Some(session_id) {
-            self.selected_session_id = None;
-        }
-        self.messages_by_session.remove(session_id);
-        self.tab_by_session.remove(session_id);
-        // Remove from sessions list
-        self.sessions.retain(|s| s.id != session_id);
-    }
 }
 
 /// Handles AppAction events
 pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, action: &AppAction) {
-    let effects = if matches!(action, AppAction::MessagesLoaded { .. }) {
-        crate::state::reducer::reduce_app_state(state, action)
-    } else {
-        Vec::new()
-    };
+    let effects = crate::state::reducer::reduce_app_state(state, action);
 
     match action {
         AppAction::Connected => {
-            state.connected = true;
-            state.error_message = None;
-            state.is_working = false;
             state_updates::set_status_connected(ui, cx);
             state_updates::update_work_indicator(ui, cx, false);
             cx.redraw_all();
         }
         AppAction::ConnectionFailed(err) => {
-            state.error_message = Some(err.clone());
-            state.is_working = false;
             state_updates::set_status_error(ui, cx, err);
             state_updates::update_work_indicator(ui, cx, false);
             cx.redraw_all();
         }
         AppAction::HealthUpdated(health) => {
-            state.health_ok = Some(health.healthy);
             if health.healthy {
-                state.connected = true;
-                state.error_message = None;
                 state_updates::set_status_connected(ui, cx);
             } else {
-                state.connected = false;
-                state.is_working = false;
                 state_updates::set_status_disconnected(ui, cx);
                 state_updates::update_work_indicator(ui, cx, false);
             }
             cx.redraw_all();
         }
-        AppAction::ProjectsLoaded(projects) => {
-            state.projects = projects.clone();
+        AppAction::ProjectsLoaded(_) => {
             state.update_files_panel(ui, cx);
             state.update_sessions_panel(ui, cx);
             state.update_project_context_ui(ui, cx);
         }
-        AppAction::CurrentProjectLoaded(project) => {
-            state.current_project = Some(project.clone());
+        AppAction::CurrentProjectLoaded(_) => {
             state.update_project_context_ui(ui, cx);
         }
-        AppAction::SessionsLoaded(sessions) => {
-            state.sessions = sessions.clone();
+        AppAction::SessionsLoaded(_) => {
             state.refresh_session_ui(ui, cx);
         }
-        AppAction::SessionCreated(session) => {
-            state.current_session_id = Some(session.id.clone());
-            state.clear_messages(ui, cx);
-            state
-                .messages_by_session
-                .entry(session.id.clone())
-                .or_default();
-
-            // Add the session to the sessions list immediately (don't wait for SSE)
-            // Check if it's not already there to avoid duplicates
-            if !state.sessions.iter().any(|s| s.id == session.id) {
-                state.sessions.push(session.clone());
-            }
-
-            // Update current_project to match the session's project
-            if let Some(project) = state.projects.iter().find(|p| p.id == session.project_id) {
-                state.current_project = Some(project.clone());
-            }
-
+        AppAction::SessionLoaded(_) => {
+            state.refresh_session_ui(ui, cx);
+        }
+        AppAction::SessionCreated(_) => {
             state.refresh_session_ui(ui, cx);
             cx.redraw_all();
         }
-        AppAction::SessionDeleted(session_id) => {
-            state.handle_session_deletion(ui, cx, session_id);
+        AppAction::SessionDeleted(_) => {
+            state_updates::update_work_indicator(ui, cx, state.is_working);
             state.refresh_session_ui(ui, cx);
             cx.redraw_all();
         }
-        AppAction::SessionUpdated(session) => {
-            // Update the session in the list
-            if let Some(existing) = state.find_session_mut(&session.id) {
-                *existing = session.clone();
-            }
+        AppAction::SessionUpdated(_) => {
             state.refresh_session_ui(ui, cx);
             cx.redraw_all();
         }
-        AppAction::SessionDiffLoaded { session_id, diffs } => {
-            if let Some(existing) = state.find_session_mut(session_id) {
-                let summary =
-                    existing
-                        .summary
-                        .get_or_insert_with(|| openpad_protocol::SessionSummary {
-                            additions: 0,
-                            deletions: 0,
-                            files: diffs.len() as i64,
-                            diffs: Vec::new(),
-                        });
-                summary.diffs = diffs.clone();
-            }
+        AppAction::SessionDiffLoaded { .. } => {
             state.update_session_meta_ui(ui, cx);
-
-            if state.current_session_id.as_deref() == Some(session_id.as_str()) {
-                // Keep a copy in messages_data for active-session consumers.
-                state.messages_data = state.messages_for_session(session_id).to_vec();
-            }
-
             cx.redraw_all();
         }
         AppAction::MessagesLoaded {
             session_id: _,
             messages: _,
         } => {}
+        AppAction::MessageReceived(message) => {
+            if matches!(message, openpad_protocol::Message::Assistant(_)) {
+                state.update_sessions_panel(ui, cx);
+                if state.current_session_id.as_deref() == Some(message.session_id()) {
+                    state_updates::update_work_indicator(ui, cx, state.is_working);
+                }
+            }
+        }
+        AppAction::PartReceived { .. } => {
+            state.update_sessions_panel(ui, cx);
+            state_updates::update_work_indicator(ui, cx, state.is_working);
+        }
         AppAction::SendMessageFailed(err) => {
-            state.error_message = Some(err.clone());
-            state.is_working = false;
             state_updates::set_status_error(ui, cx, err);
             state_updates::update_work_indicator(ui, cx, false);
             cx.redraw_all();
         }
-        AppAction::PendingPermissionsLoaded(permissions) => {
-            state.pending_permissions = permissions.clone();
+        AppAction::PendingPermissionsLoaded(_) => {
             show_next_pending_permission(state, ui, cx);
+        }
+        AppAction::PendingPermissionReceived(_) => {
+            show_next_pending_permission(state, ui, cx);
+        }
+        AppAction::PermissionResponded { .. } => {
+            show_next_pending_permission(state, ui, cx);
+        }
+        AppAction::PermissionDismissed { .. } => {
+            show_next_pending_permission(state, ui, cx);
+        }
+        AppAction::SessionErrorReceived { .. } => {
+            state_updates::update_work_indicator(ui, cx, false);
         }
         AppAction::ProvidersLoaded(providers_response) => {
             log!(
                 "ProvidersLoaded: {} providers",
                 providers_response.providers.len()
             );
-            state.providers = providers_response.providers.clone();
-
-            // Build provider dropdown labels (Default + provider names)
-            let mut provider_labels = vec!["Default".to_string()];
-            provider_labels.extend(
-                state
-                    .providers
-                    .iter()
-                    .map(|p| p.name.as_deref().unwrap_or(&p.id).to_string()),
-            );
-            state.provider_labels = provider_labels.clone();
-            state.selected_provider_idx = 0;
 
             log!("Providers count: {}", state.providers.len());
-            log!("Provider labels count: {}", provider_labels.len());
-            log!("Provider labels: {:?}", provider_labels);
-
-            // Initialize model list based on Default (all models)
-            state.update_model_list_for_provider();
+            log!("Provider labels count: {}", state.provider_labels.len());
+            log!("Provider labels: {:?}", state.provider_labels);
 
             // Set provider dropdown
             log!(
@@ -594,30 +522,25 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::AgentsLoaded(agents) => {
             log!("AgentsLoaded: {} agents", agents.len());
-            state.agents = agents.clone();
             let mut labels: Vec<String> = vec!["Default".to_string()];
             labels.extend(state.agents.iter().map(|a| a.name.clone()));
             ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(agent_dropdown)])
                 .set_labels(cx, labels);
             ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(agent_dropdown)])
                 .set_selected_item(cx, 0);
-            state.selected_agent_idx = None;
             cx.redraw_all();
         }
         AppAction::SkillsLoaded(skills) => {
             log!("SkillsLoaded: {} skills", skills.len());
-            state.skills = skills.clone();
             let mut labels: Vec<String> = vec!["Skill".to_string()];
             labels.extend(state.skills.iter().map(|s| s.name.clone()));
             ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_labels(cx, labels);
             ui.up_drop_down(cx, &[id!(input_bar_toolbar), id!(skill_dropdown)])
                 .set_selected_item(cx, 0);
-            state.selected_skill_idx = None;
             cx.redraw_all();
         }
         AppAction::ConfigLoaded(config) => {
-            state.config = Some(config.clone());
             ui.settings_dialog(cx, &[id!(side_panel), id!(settings_panel)])
                 .set_config(cx, &config);
             cx.redraw_all();
@@ -633,327 +556,74 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         _ => {}
     }
 
-    for effect in effects {
-        match effect {
-            crate::state::effects::StateEffect::RequestSessionDiff {
-                session_id,
-                message_id,
-            } => {
-                cx.action(AppAction::RequestSessionDiff {
-                    session_id,
-                    message_id,
-                });
-            }
-        }
-    }
+    crate::state::effect_executor::execute_state_effects(cx, effects);
 }
 
 /// Handles OpenCode SSE events
 pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, event: &OcEvent) {
     match event {
         OcEvent::SessionCreated(session) => {
-            if state.current_session_id.is_none() {
-                state.current_session_id = Some(session.id.clone());
-                state.clear_messages(ui, cx);
-            }
-            // Only add the session if it's not already in the list (avoid duplicates from AppAction::SessionCreated)
-            if !state.sessions.iter().any(|s| s.id == session.id) {
-                state.sessions.push(session.clone());
-            }
-            state.refresh_session_ui(ui, cx);
+            handle_app_action(state, ui, cx, &AppAction::SessionLoaded(session.clone()));
         }
         OcEvent::SessionUpdated(session) => {
-            if let Some(existing) = state.find_session_mut(&session.id) {
-                *existing = session.clone();
-            }
-            state.refresh_session_ui(ui, cx);
+            handle_app_action(state, ui, cx, &AppAction::SessionUpdated(session.clone()));
         }
         OcEvent::SessionDeleted(session) => {
-            state.handle_session_deletion(ui, cx, &session.id);
-            state.refresh_session_ui(ui, cx);
+            handle_app_action(state, ui, cx, &AppAction::SessionDeleted(session.id.clone()));
         }
         OcEvent::MessageUpdated(message) => {
-            handle_message_updated(state, ui, cx, message);
+            handle_app_action(state, ui, cx, &AppAction::MessageReceived(message.clone()));
         }
-        OcEvent::PartUpdated { part, .. } => {
-            handle_part_updated(state, ui, cx, part);
+        OcEvent::PartUpdated { part, delta } => {
+            handle_app_action(
+                state,
+                ui,
+                cx,
+                &AppAction::PartReceived {
+                    part: part.clone(),
+                    delta: delta.clone(),
+                },
+            );
         }
         OcEvent::PermissionAsked(request) => {
-            enqueue_pending_permission(state, request);
-            show_next_pending_permission(state, ui, cx);
+            handle_app_action(
+                state,
+                ui,
+                cx,
+                &AppAction::PendingPermissionReceived(request.clone()),
+            );
         }
-        OcEvent::PermissionReplied { request_id, .. } => {
-            remove_pending_permission(state, request_id);
-            show_next_pending_permission(state, ui, cx);
+        OcEvent::PermissionReplied {
+            session_id,
+            request_id,
+            ..
+        } => {
+            handle_app_action(
+                state,
+                ui,
+                cx,
+                &AppAction::PermissionDismissed {
+                    session_id: session_id.clone(),
+                    request_id: request_id.clone(),
+                },
+            );
         }
         OcEvent::SessionError { session_id, error } => {
-            update_work_indicator(state, ui, cx, false);
-            if state.current_session_id.as_deref() == Some(session_id.as_str()) {
-                push_session_error_message(state, ui, cx, session_id, error);
-            }
+            handle_app_action(
+                state,
+                ui,
+                cx,
+                &AppAction::SessionErrorReceived {
+                    session_id: session_id.clone(),
+                    error: error.clone(),
+                },
+            );
         }
         _ => {}
     }
 }
 
-pub fn handle_permission_responded(
-    state: &mut AppState,
-    ui: &WidgetRef,
-    cx: &mut Cx,
-    request_id: &str,
-) {
-    remove_pending_permission(state, request_id);
-    show_next_pending_permission(state, ui, cx);
-}
-
-/// Handles message update events
-fn handle_message_updated(
-    state: &mut AppState,
-    ui: &WidgetRef,
-    cx: &mut Cx,
-    message: &openpad_protocol::Message,
-) {
-    let _ = ui;
-    let session_id = message.session_id().to_string();
-
-    if let openpad_protocol::Message::Assistant(msg) = message {
-        let working = msg.time.completed.is_none() && msg.error.is_none();
-        set_session_working(state, ui, cx, &session_id, working);
-    }
-
-    // If we don't have a current session yet (race during creation),
-    // accept the message and set the session.
-    if state.current_session_id.is_none() {
-        state.current_session_id = Some(session_id.clone());
-    }
-
-    {
-        let session_messages = state
-            .messages_by_session
-            .entry(session_id.clone())
-            .or_default();
-        if let Some(existing) = session_messages
-            .iter_mut()
-            .find(|m| m.info.id() == message.id())
-        {
-            existing.info = message.clone();
-        } else {
-            session_messages.push(MessageWithParts {
-                info: message.clone(),
-                parts: Vec::new(),
-            });
-        }
-    }
-
-    let current_sid = state.current_session_id.as_deref().unwrap_or("");
-    if session_id == current_sid {
-        if let openpad_protocol::Message::Assistant(msg) = message {
-            let working = msg.time.completed.is_none() && msg.error.is_none();
-            update_work_indicator(state, ui, cx, working);
-        }
-
-        if let Some(session_messages) = state.messages_by_session.get(&session_id) {
-            state.messages_data = session_messages.clone();
-        }
-    }
-}
-
-/// Handles part update events
-fn handle_part_updated(
-    state: &mut AppState,
-    ui: &WidgetRef,
-    cx: &mut Cx,
-    part: &openpad_protocol::Part,
-) {
-    let _ = ui;
-    // Get message_id from the part - handle both text and non-text parts (tools, steps)
-    let msg_id = part.message_id();
-    if msg_id.is_none() {
-        return;
-    }
-    let msg_id = msg_id.unwrap();
-
-    let mut should_update_work = false;
-    let mut work_session_id: Option<String> = None;
-    let mut did_mutate_parts = false;
-    let mut requires_full_rebuild = false;
-    let mut incremental_append: Option<(String, String)> = None;
-    let mut matched_session_id: Option<String> = None;
-
-    for (sid, messages) in state.messages_by_session.iter_mut() {
-        if let Some(mwp) = messages.iter_mut().find(|m| m.info.id() == msg_id) {
-            matched_session_id = Some(sid.clone());
-            if matches!(mwp.info, openpad_protocol::Message::Assistant(_)) {
-                should_update_work = true;
-                work_session_id = Some(mwp.info.session_id().to_string());
-            }
-
-            let role = match &mwp.info {
-                openpad_protocol::Message::Assistant(_) => "assistant",
-                openpad_protocol::Message::User(_) => "user",
-            };
-
-            match part {
-                openpad_protocol::Part::Text { id, text, .. } => {
-                    if !id.is_empty() {
-                        if let Some(existing) = mwp.parts.iter_mut().find(|p| {
-                            matches!(p, openpad_protocol::Part::Text { id: existing_id, .. } if existing_id == id)
-                        }) {
-                            *existing = part.clone();
-                            did_mutate_parts = true;
-                            // Existing-id replacement may be non-delta content; keep correctness.
-                            requires_full_rebuild = true;
-                        } else {
-                            mwp.parts.push(part.clone());
-                            did_mutate_parts = true;
-                            if !text.is_empty() {
-                                incremental_append = Some((role.to_string(), text.clone()));
-                            }
-                        }
-                    } else {
-                        // Text parts without IDs are treated as streaming deltas.
-                        // Append part and incrementally update UI text.
-                        mwp.parts.push(part.clone());
-                        did_mutate_parts = true;
-                        if !text.is_empty() {
-                            incremental_append = Some((role.to_string(), text.clone()));
-                        }
-                    }
-                }
-                _ => {
-                    // For non-text parts (StepStart, Tool, StepFinish), always append.
-                    mwp.parts.push(part.clone());
-                    did_mutate_parts = true;
-                    requires_full_rebuild = true;
-                }
-            };
-            break;
-        }
-    }
-
-    if let Some(current_sid) = state.current_session_id.clone() {
-        if did_mutate_parts && matched_session_id.as_deref() == Some(current_sid.as_str()) {
-            if let Some(session_messages) = state.messages_by_session.get(&current_sid) {
-                state.messages_data = session_messages.clone();
-            }
-            let _ = (requires_full_rebuild, incremental_append, msg_id);
-        }
-    }
-
-    if should_update_work {
-        update_work_indicator(state, ui, cx, true);
-        if let Some(session_id) = work_session_id {
-            set_session_working(state, ui, cx, &session_id, true);
-        }
-    }
-}
-
-fn update_work_indicator(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, working: bool) {
-    if state.is_working == working {
-        return;
-    }
-    state.is_working = working;
-    state_updates::update_work_indicator(ui, cx, working);
-}
-
-fn set_session_working(
-    state: &mut AppState,
-    ui: &WidgetRef,
-    cx: &mut Cx,
-    session_id: &str,
-    working: bool,
-) {
-    let previous = state.working_by_session.get(session_id).copied();
-    if previous == Some(working) {
-        return;
-    }
-    if working {
-        state
-            .working_by_session
-            .insert(session_id.to_string(), true);
-    } else {
-        state
-            .working_by_session
-            .insert(session_id.to_string(), false);
-    }
-    state.update_sessions_panel(ui, cx);
-}
-
-fn enqueue_pending_permission(state: &mut AppState, request: &PermissionRequest) {
-    if state
-        .pending_permissions
-        .iter()
-        .any(|pending| pending.id == request.id)
-    {
-        return;
-    }
-    state.pending_permissions.push(request.clone());
-}
-
-fn remove_pending_permission(state: &mut AppState, request_id: &str) {
-    state
-        .pending_permissions
-        .retain(|permission| permission.id != request_id);
-}
-
 fn show_next_pending_permission(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx) {
     let _ = (state, ui);
     cx.redraw_all();
-}
-
-fn push_session_error_message(
-    state: &mut AppState,
-    ui: &WidgetRef,
-    cx: &mut Cx,
-    session_id: &str,
-    error: &AssistantError,
-) {
-    let _ = (ui, cx);
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as i64;
-    let message_id = format!("err_{}_{}", session_id, now);
-
-    let assistant = AssistantMessage {
-        id: message_id.clone(),
-        session_id: session_id.to_string(),
-        time: MessageTime {
-            created: now,
-            completed: Some(now),
-        },
-        error: Some(error.clone()),
-        parent_id: String::new(),
-        model_id: String::new(),
-        provider_id: String::new(),
-        mode: String::new(),
-        agent: String::new(),
-        path: None,
-        summary: None,
-        cost: 0.0,
-        tokens: None,
-        structured: None,
-        variant: None,
-        finish: None,
-    };
-
-    let part = Part::Text {
-        id: format!("part_{}", message_id),
-        session_id: session_id.to_string(),
-        message_id: message_id.clone(),
-        text: "Session error".to_string(),
-    };
-
-    let entry = state
-        .messages_by_session
-        .entry(session_id.to_string())
-        .or_default();
-    entry.push(MessageWithParts {
-        info: Message::Assistant(assistant),
-        parts: vec![part],
-    });
-
-    if state.current_session_id.as_deref() == Some(session_id) {
-        state.messages_data = entry.clone();
-    }
 }
