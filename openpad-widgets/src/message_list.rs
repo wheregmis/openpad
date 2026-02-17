@@ -35,8 +35,8 @@ script_mod! {
         }
 
         list := PortalList {
-            auto_tail: true
-            smooth_tail: true
+            auto_tail: false
+            smooth_tail: false
             drag_scrolling: false
             scroll_bar: ScrollBar {}
 
