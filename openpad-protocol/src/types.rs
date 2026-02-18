@@ -100,18 +100,36 @@ pub struct Agent {
     pub name: String,
     #[serde(default)]
     pub description: Option<String>,
-    #[serde(default)]
-    pub mode: Option<String>,
+    pub mode: String,
     #[serde(default)]
     pub native: Option<bool>,
     #[serde(default)]
     pub hidden: Option<bool>,
+    #[serde(rename = "topP")]
     #[serde(default)]
-    pub permission: Option<PermissionRuleset>,
+    pub top_p: Option<f64>,
+    #[serde(default)]
+    pub temperature: Option<f64>,
+    #[serde(default)]
+    pub color: Option<String>,
+    pub permission: PermissionRuleset,
+    #[serde(default)]
+    pub model: Option<AgentModelSpec>,
     #[serde(default)]
     pub variant: Option<String>,
     #[serde(default)]
-    pub color: Option<String>,
+    pub prompt: Option<String>,
+    pub options: HashMap<String, serde_json::Value>,
+    #[serde(default)]
+    pub steps: Option<i64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct AgentModelSpec {
+    #[serde(rename = "modelID")]
+    pub model_id: String,
+    #[serde(rename = "providerID")]
+    pub provider_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -132,7 +150,40 @@ pub struct Project {
     pub id: String,
     pub worktree: String,
     #[serde(default)]
+    pub vcs: Option<String>,
+    #[serde(default)]
     pub name: Option<String>,
+    #[serde(default)]
+    pub icon: Option<ProjectIcon>,
+    #[serde(default)]
+    pub commands: Option<ProjectCommands>,
+    pub time: ProjectTime,
+    #[serde(default)]
+    pub sandboxes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ProjectIcon {
+    #[serde(default)]
+    pub url: Option<String>,
+    #[serde(default)]
+    pub r#override: Option<String>,
+    #[serde(default)]
+    pub color: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ProjectCommands {
+    #[serde(default)]
+    pub start: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ProjectTime {
+    pub created: f64,
+    pub updated: f64,
+    #[serde(default)]
+    pub initialized: Option<f64>,
 }
 
 // ============================================================================
@@ -210,8 +261,78 @@ pub struct Provider {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Model {
     pub id: String,
+    #[serde(rename = "providerID")]
+    pub provider_id: String,
+    pub api: ModelApi,
+    pub name: String,
     #[serde(default)]
-    pub name: Option<String>,
+    pub family: Option<String>,
+    pub capabilities: ModelCapabilities,
+    pub cost: ModelCost,
+    pub limit: ModelLimit,
+    pub status: String,
+    pub options: HashMap<String, serde_json::Value>,
+    pub headers: HashMap<String, String>,
+    pub release_date: String,
+    #[serde(default)]
+    pub variants: Option<HashMap<String, serde_json::Value>>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ModelApi {
+    pub id: String,
+    pub url: String,
+    pub npm: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ModelCapabilities {
+    pub temperature: bool,
+    pub reasoning: bool,
+    pub attachment: bool,
+    pub toolcall: bool,
+    pub input: ModelModalities,
+    pub output: ModelModalities,
+    pub interleaved: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ModelModalities {
+    pub text: bool,
+    pub audio: bool,
+    pub image: bool,
+    pub video: bool,
+    pub pdf: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ModelCost {
+    pub input: f64,
+    pub output: f64,
+    pub cache: ModelCacheCost,
+    #[serde(default, rename = "experimentalOver200K")]
+    pub experimental_over_200k: Option<ModelCostOver200K>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ModelCacheCost {
+    pub read: f64,
+    pub write: f64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ModelCostOver200K {
+    pub input: f64,
+    pub output: f64,
+    pub cache: ModelCacheCost,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ModelLimit {
+    pub context: f64,
+    #[serde(default)]
+    pub input: Option<f64>,
+    pub output: f64,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -379,6 +500,45 @@ pub struct ShowToastRequest {
     pub message: String,
     #[serde(default)]
     pub variant: Option<String>, // e.g., "success", "error", "info"
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum SessionStatus {
+    Idle,
+    Retry {
+        attempt: f64,
+        message: String,
+        next: f64,
+    },
+    Busy,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct QuestionRequest {
+    pub id: String,
+    #[serde(rename = "sessionID")]
+    pub session_id: String,
+    pub questions: Vec<QuestionInfo>,
+    #[serde(default)]
+    pub tool: Option<PermissionToolContext>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct QuestionInfo {
+    pub question: String,
+    pub header: String,
+    pub options: Vec<QuestionOption>,
+    #[serde(default)]
+    pub multiple: Option<bool>,
+    #[serde(default)]
+    pub custom: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct QuestionOption {
+    pub label: String,
+    pub description: String,
 }
 
 // ============================================================================
@@ -895,6 +1055,34 @@ pub enum Part {
         #[serde(default)]
         text: String,
     },
+    #[serde(rename = "subtask")]
+    Subtask {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        prompt: String,
+        description: String,
+        agent: String,
+        model: AgentModelSpec,
+        #[serde(default)]
+        command: Option<String>,
+    },
+    #[serde(rename = "reasoning")]
+    Reasoning {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        text: String,
+        #[serde(default)]
+        metadata: Option<HashMap<String, serde_json::Value>>,
+        time: PartTime,
+    },
     #[serde(rename = "file")]
     File {
         #[serde(default)]
@@ -909,6 +1097,22 @@ pub enum Part {
         filename: Option<String>,
         #[serde(default)]
         url: String,
+    },
+    #[serde(rename = "tool")]
+    Tool {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        #[serde(default, rename = "callID")]
+        call_id: String,
+        #[serde(default)]
+        tool: String,
+        state: ToolState,
+        #[serde(default)]
+        metadata: Option<HashMap<String, serde_json::Value>>,
     },
     #[serde(rename = "step-start")]
     StepStart {
@@ -938,25 +1142,83 @@ pub enum Part {
         #[serde(default)]
         tokens: Option<TokenUsage>,
     },
-    #[serde(rename = "tool")]
-    Tool {
+    #[serde(rename = "snapshot")]
+    Snapshot {
         #[serde(default)]
         id: String,
         #[serde(default, rename = "sessionID")]
         session_id: String,
         #[serde(default, rename = "messageID")]
         message_id: String,
-        #[serde(default, rename = "callID")]
-        call_id: String,
+        snapshot: String,
+    },
+    #[serde(rename = "patch")]
+    Patch {
         #[serde(default)]
-        tool: String,
-        state: ToolState,
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        hash: String,
+        files: Vec<String>,
+    },
+    #[serde(rename = "agent")]
+    Agent {
         #[serde(default)]
-        metadata: Option<HashMap<String, serde_json::Value>>,
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        name: String,
+        #[serde(default)]
+        source: Option<PartSourceValue>,
+    },
+    #[serde(rename = "retry")]
+    Retry {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        attempt: f64,
+        error: AssistantError,
+        time: PartTimeCreated,
+    },
+    #[serde(rename = "compaction")]
+    Compaction {
+        #[serde(default)]
+        id: String,
+        #[serde(default, rename = "sessionID")]
+        session_id: String,
+        #[serde(default, rename = "messageID")]
+        message_id: String,
+        auto: bool,
     },
     // Other part types — we don't render them but must not break parsing
     #[serde(other)]
     Unknown,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PartTime {
+    pub start: f64,
+    #[serde(default)]
+    pub end: Option<f64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PartTimeCreated {
+    pub created: f64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PartSourceValue {
+    pub value: String,
+    pub start: i64,
+    pub end: i64,
 }
 
 /// Tool execution state (pending / running / completed / error).
@@ -1018,6 +1280,7 @@ impl Part {
     pub fn text_content(&self) -> Option<&str> {
         match self {
             Part::Text { text, .. } if !text.is_empty() => Some(text),
+            Part::Reasoning { text, .. } if !text.is_empty() => Some(text),
             _ => None,
         }
     }
@@ -1039,10 +1302,17 @@ impl Part {
     pub fn message_id(&self) -> Option<&str> {
         match self {
             Part::Text { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Subtask { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Reasoning { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::File { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::StepStart { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::StepFinish { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::Tool { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Snapshot { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Patch { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Agent { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Retry { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::Compaction { message_id, .. } if !message_id.is_empty() => Some(message_id),
             _ => None,
         }
     }
@@ -1153,6 +1423,24 @@ pub enum PartInput {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         source: Option<FilePartSource>,
     },
+    Agent {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+        name: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        source: Option<PartSourceValue>,
+    },
+    Subtask {
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        id: Option<String>,
+        prompt: String,
+        description: String,
+        agent: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        model: Option<AgentModelSpec>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        command: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1246,7 +1534,7 @@ pub enum Event {
     /// A session's status changed
     SessionStatus {
         session_id: String,
-        status: serde_json::Value,
+        status: SessionStatus,
     },
     /// A session became idle
     SessionIdle {
@@ -1313,7 +1601,7 @@ pub enum Event {
         reply: PermissionReply,
     },
     /// A question request was issued by the assistant
-    QuestionAsked(serde_json::Value),
+    QuestionAsked(QuestionRequest),
     /// A question request was replied to
     QuestionReplied {
         session_id: String,
@@ -1329,6 +1617,25 @@ pub enum Event {
     TodoUpdated {
         session_id: String,
         todos: Vec<Todo>,
+    },
+    /// TUI prompt append
+    TuiPromptAppend {
+        text: String,
+    },
+    /// TUI command execute
+    TuiCommandExecute {
+        command: String,
+    },
+    /// TUI toast show
+    TuiToastShow {
+        title: Option<String>,
+        message: String,
+        variant: String,
+        duration: Option<f64>,
+    },
+    /// TUI session select
+    TuiSessionSelect {
+        session_id: String,
     },
     /// PTY session created
     PtyCreated(Pty),

@@ -294,6 +294,41 @@ mod tests {
         }
 
         #[test]
+        fn test_agent_matches_openapi() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "Agent").expect("Agent schema not found");
+
+            let agent = Agent {
+                name: "test-agent".to_string(),
+                description: Some("Test description".to_string()),
+                mode: "primary".to_string(),
+                native: Some(true),
+                hidden: Some(false),
+                top_p: Some(0.9),
+                temperature: Some(0.7),
+                color: Some("#ff0000".to_string()),
+                permission: vec![],
+                model: Some(AgentModelSpec {
+                    model_id: "test-model".to_string(),
+                    provider_id: "test-provider".to_string(),
+                }),
+                variant: Some("test-variant".to_string()),
+                prompt: Some("test-prompt".to_string()),
+                options: HashMap::new(),
+                steps: Some(10),
+            };
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("Agent schema missing required fields");
+
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
+
+            validate_serialization(&agent, &required_fields);
+        }
+
+        #[test]
         fn test_openapi_spec_loads() {
             let spec = load_openapi_spec();
             assert!(spec.is_object(), "OpenAPI spec should be an object");
@@ -778,14 +813,61 @@ mod tests {
             assert_eq!(json.get("id").and_then(|v| v.as_str()), Some("anthropic"));
             assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("Anthropic"));
 
-            // Test Model - also simplified in our implementation
+            // Test Model
             let _model_schema = get_schema(&spec, "Model").expect("Model schema not found");
             let model = Model {
                 id: "claude-3".to_string(),
-                name: Some("Claude 3".to_string()),
+                provider_id: "anthropic".to_string(),
+                api: ModelApi {
+                    id: "anthropic".to_string(),
+                    url: "https://api.anthropic.com".to_string(),
+                    npm: "@anthropic-ai/sdk".to_string(),
+                },
+                name: "Claude 3".to_string(),
+                family: Some("claude".to_string()),
+                capabilities: ModelCapabilities {
+                    temperature: true,
+                    reasoning: true,
+                    attachment: true,
+                    toolcall: true,
+                    input: ModelModalities {
+                        text: true,
+                        audio: false,
+                        image: true,
+                        video: false,
+                        pdf: true,
+                    },
+                    output: ModelModalities {
+                        text: true,
+                        audio: false,
+                        image: false,
+                        video: false,
+                        pdf: false,
+                    },
+                    interleaved: serde_json::Value::Bool(true),
+                },
+                cost: ModelCost {
+                    input: 0.0,
+                    output: 0.0,
+                    cache: ModelCacheCost {
+                        read: 0.0,
+                        write: 0.0,
+                    },
+                    experimental_over_200k: None,
+                },
+                limit: ModelLimit {
+                    context: 200000.0,
+                    input: None,
+                    output: 4096.0,
+                },
+                status: "active".to_string(),
+                options: HashMap::new(),
+                headers: HashMap::new(),
+                release_date: "2024-03-04".to_string(),
+                variants: None,
             };
 
-            // Verify our simplified model serializes correctly
+            // Verify model serializes correctly
             let json = serde_json::to_value(&model).expect("Failed to serialize Model");
             assert_eq!(json.get("id").and_then(|v| v.as_str()), Some("claude-3"));
             assert_eq!(json.get("name").and_then(|v| v.as_str()), Some("Claude 3"));

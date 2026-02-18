@@ -740,7 +740,8 @@ fn parse_sse_event(data: &str) -> Option<Event> {
         }
         "session.status" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
-            let status = props.get("status")?.clone();
+            let status: crate::SessionStatus =
+                serde_json::from_value(props.get("status")?.clone()).ok()?;
             Some(Event::SessionStatus { session_id, status })
         }
         "session.idle" => {
@@ -821,7 +822,7 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             })
         }
         "question.asked" => {
-            let request = props.clone();
+            let request: crate::QuestionRequest = serde_json::from_value(props.clone()).ok()?;
             Some(Event::QuestionAsked(request))
         }
         "question.replied" => {
@@ -847,6 +848,33 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
             let todos: Vec<Todo> = serde_json::from_value(props.get("todos")?.clone()).ok()?;
             Some(Event::TodoUpdated { session_id, todos })
+        }
+        "tui.prompt.append" => {
+            let text = props.get("text")?.as_str()?.to_string();
+            Some(Event::TuiPromptAppend { text })
+        }
+        "tui.command.execute" => {
+            let command = props.get("command")?.as_str()?.to_string();
+            Some(Event::TuiCommandExecute { command })
+        }
+        "tui.toast.show" => {
+            let title = props
+                .get("title")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string());
+            let message = props.get("message")?.as_str()?.to_string();
+            let variant = props.get("variant")?.as_str()?.to_string();
+            let duration = props.get("duration").and_then(|v| v.as_f64());
+            Some(Event::TuiToastShow {
+                title,
+                message,
+                variant,
+                duration,
+            })
+        }
+        "tui.session.select" => {
+            let session_id = props.get("sessionID")?.as_str()?.to_string();
+            Some(Event::TuiSessionSelect { session_id })
         }
         "pty.created" => {
             let info: Pty = serde_json::from_value(props.get("info")?.clone()).ok()?;
