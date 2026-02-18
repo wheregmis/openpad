@@ -191,11 +191,116 @@ script_mod! {
                         spacing: 3,
                         margin: Inset{ top: 8 }
 
-                        tool_row_0 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_0 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_0 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_0 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_1 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_1 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_1 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_1 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_2 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_2 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_2 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_2 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_3 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_3 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_3 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_3 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
-                        tool_row_4 := View { visible: false, width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.5 }, tool_icon_4 := Label { width: Fit, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" }, tool_name_4 := Label { width: Fit, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }, text: "" }, tool_input_4 := Label { width: Fill, height: Fit, draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }, text: "" } }
+                        tool_row_0 := View {
+                            visible: false
+                            width: Fill, height: Fit
+                            flow: Right, spacing: 6
+                            align: Align{ y: 0.5 }
+
+                            tool_icon_0 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_name_0 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_input_0 := Label {
+                                width: Fill, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                        }
+                        tool_row_1 := View {
+                            visible: false
+                            width: Fill, height: Fit
+                            flow: Right, spacing: 6
+                            align: Align{ y: 0.5 }
+
+                            tool_icon_1 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_name_1 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_input_1 := Label {
+                                width: Fill, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                        }
+                        tool_row_2 := View {
+                            visible: false
+                            width: Fill, height: Fit
+                            flow: Right, spacing: 6
+                            align: Align{ y: 0.5 }
+
+                            tool_icon_2 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_name_2 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_input_2 := Label {
+                                width: Fill, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                        }
+                        tool_row_3 := View {
+                            visible: false
+                            width: Fill, height: Fit
+                            flow: Right, spacing: 6
+                            align: Align{ y: 0.5 }
+
+                            tool_icon_3 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_name_3 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_input_3 := Label {
+                                width: Fill, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                        }
+                        tool_row_4 := View {
+                            visible: false
+                            width: Fill, height: Fit
+                            flow: Right, spacing: 6
+                            align: Align{ y: 0.5 }
+
+                            tool_icon_4 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_name_4 := Label {
+                                width: Fit, height: Fit
+                                draw_text +: { color: #d2dae8, text_style: theme.font_bold { font_size: 9 } }
+                                text: ""
+                            }
+                            tool_input_4 := Label {
+                                width: Fill, height: Fit
+                                draw_text +: { color: #b8c2d3, text_style: theme.font_regular { font_size: 9 } }
+                                text: ""
+                            }
+                        }
                     }
                 }
             }
@@ -313,16 +418,516 @@ script_mod! {
                                 width: Fill, height: Fit
                                 flow: Down
                                 spacing: 4
-                                step_row_0 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_0_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_0_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_0_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_0_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_0_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_0_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_0_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_1 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_1_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_1_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_1_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_1_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_1_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_1_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_1_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_2 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_2_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_2_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_2_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_2_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_2_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_2_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_2_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_3 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_3_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_3_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_3_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_3_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_3_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_3_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_3_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_4 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_4_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_4_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_4_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_4_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_4_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_4_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_4_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_5 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_5_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_5_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_5_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_5_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_5_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_5_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_5_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_6 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_6_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_6_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_6_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_6_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_6_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_6_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_6_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_7 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_7_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_7_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_7_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_7_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_7_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_7_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_7_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_8 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_8_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_8_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_8_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_8_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_8_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_8_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_8_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
-                                step_row_9 := View { width: Fill, height: Fit, flow: Down, spacing: 2, step_row_9_header_row := View { width: Fill, height: Fit, flow: Right, spacing: 6, align: Align{ y: 0.0 }, step_row_9_rail := View { width: 10, height: Fill, flow: Down, align: Align{ x: 0.5 }, step_row_9_dot := RoundedView { width: 6, height: 6, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #444, border_radius: 3.0 } }, step_row_9_line := View { width: 2, height: Fill, margin: Inset{ top: 4 }, show_bg: true, draw_bg +: { color: #333 } } }, step_row_9_header := Button { width: Fill, height: Fit, padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }, align: Align{ x: 0.0 }, draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }, text: "" } }, step_row_9_body := View { visible: true, width: Fill, height: Fit, flow: Down, padding: Inset{ left: 18, top: 2, bottom: 4 }, step_row_9_content := Label { width: Fill, height: Fit, draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }, text: "" } } }
+                                step_row_0 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_0_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_0_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_0_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_0_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_0_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_0_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_0_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_1 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_1_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_1_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_1_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_1_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_1_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_1_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_1_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_2 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_2_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_2_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_2_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_2_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_2_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_2_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_2_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_3 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_3_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_3_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_3_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_3_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_3_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_3_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_3_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_4 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_4_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_4_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_4_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_4_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_4_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_4_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_4_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_5 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_5_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_5_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_5_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_5_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_5_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_5_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_5_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_6 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_6_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_6_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_6_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_6_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_6_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_6_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_6_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_7 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_7_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_7_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_7_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_7_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_7_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_7_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_7_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_8 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_8_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_8_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_8_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_8_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_8_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_8_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_8_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
+                                step_row_9 := View {
+                                    width: Fill, height: Fit
+                                    flow: Down, spacing: 2
+
+                                    step_row_9_header_row := View {
+                                        width: Fill, height: Fit
+                                        flow: Right, spacing: 6
+                                        align: Align{ y: 0.0 }
+
+                                        step_row_9_rail := View {
+                                            width: 10, height: Fill
+                                            flow: Down
+                                            align: Align{ x: 0.5 }
+
+                                            step_row_9_dot := RoundedView {
+                                                width: 6, height: 6
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #444, border_radius: 3.0 }
+                                            }
+                                            step_row_9_line := View {
+                                                width: 2, height: Fill
+                                                margin: Inset{ top: 4 }
+                                                show_bg: true
+                                                draw_bg +: { color: #333 }
+                                            }
+                                        }
+
+                                        step_row_9_header := Button {
+                                            width: Fill, height: Fit
+                                            padding: Inset{ left: 4, right: 6, top: 2, bottom: 2 }
+                                            align: Align{ x: 0.0 }
+                                            draw_bg +: { color: #0000, color_hover: #333, border_radius: 4.0, border_size: 0.0 }
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9 } }
+                                            text: ""
+                                        }
+                                    }
+
+                                    step_row_9_body := View {
+                                        visible: true
+                                        width: Fill, height: Fit
+                                        flow: Down
+                                        padding: Inset{ left: 18, top: 2, bottom: 4 }
+
+                                        step_row_9_content := Label {
+                                            width: Fill, height: Fit
+                                            draw_text +: { color: #d2dae8, text_style: theme.font_regular { font_size: 9, line_spacing: 1.3 } }
+                                            text: ""
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
