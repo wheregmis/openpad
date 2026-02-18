@@ -108,7 +108,9 @@ impl App {
             return;
         };
 
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };

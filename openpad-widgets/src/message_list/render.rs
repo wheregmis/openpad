@@ -1,7 +1,12 @@
 use super::*;
 
 impl MessageList {
-    pub(crate) fn draw_walk_impl(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+    pub(crate) fn draw_walk_impl(
+        &mut self,
+        cx: &mut Cx2d,
+        scope: &mut Scope,
+        walk: Walk,
+    ) -> DrawStep {
         let is_empty =
             self.messages.is_empty() && self.pending_permissions.is_empty() && !self.is_working;
         self.view
@@ -97,7 +102,9 @@ impl MessageList {
                             .set_visible(cx, has_tools);
                         if let Some(tools) = running_tools {
                             for (idx, (icon, name, input)) in tools.iter().take(5).enumerate() {
-                                let Some(&(row_id, icon_id, name_id, input_id)) = Self::TOOL_ROW.get(idx) else {
+                                let Some(&(row_id, icon_id, name_id, input_id)) =
+                                    Self::TOOL_ROW.get(idx)
+                                else {
                                     continue;
                                 };
                                 let tools_view = item_widget.view(cx, &[id!(thinking_tools)]);
@@ -258,7 +265,15 @@ impl MessageList {
                                     &[id!(steps_expanded), id!(steps_scroll), id!(content)],
                                 );
                                 for step_id in 0..Self::MAX_STEP_ROWS {
-                                    let Some(&(row_id, header_id, body_id, content_id, dot_id, line_id)) = Self::STEP_ROW.get(step_id) else {
+                                    let Some(&(
+                                        row_id,
+                                        header_id,
+                                        body_id,
+                                        content_id,
+                                        dot_id,
+                                        line_id,
+                                    )) = Self::STEP_ROW.get(step_id)
+                                    else {
                                         continue;
                                     };
                                     if step_id < msg.steps.len() {

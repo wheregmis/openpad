@@ -5,7 +5,7 @@ use std::sync::OnceLock;
 // Lazy-initialized regex for detecting image data URLs
 static IMAGE_DATA_URL_REGEX: OnceLock<Regex> = OnceLock::new();
 
-fn get_image_data_url_regex() -> &'static Regex {
+pub(crate) fn get_image_data_url_regex() -> &'static Regex {
     IMAGE_DATA_URL_REGEX.get_or_init(|| {
         Regex::new(r"data:(image/(?:png|jpeg|jpg|gif|webp|tiff|svg\+xml));base64,([A-Za-z0-9+/=]+)")
             .expect("Failed to compile image data URL regex")
@@ -76,7 +76,9 @@ impl App {
     }
 
     pub(super) fn send_message(&mut self, cx: &mut Cx, text: String) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };

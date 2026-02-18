@@ -2,7 +2,9 @@ use crate::state::actions::AppAction;
 use crate::state::effects::StateEffect;
 use crate::state::{AppState, PendingCenterIntent};
 use makepad_widgets::LiveId;
-use openpad_protocol::{AssistantError, AssistantMessage, Message, MessageTime, MessageWithParts, Part};
+use openpad_protocol::{
+    AssistantError, AssistantMessage, Message, MessageTime, MessageWithParts, Part,
+};
 use std::collections::HashMap;
 
 pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEffect> {
@@ -52,7 +54,10 @@ pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEf
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
             state.messages_data.clear();
-            state.messages_by_session.entry(session.id.clone()).or_default();
+            state
+                .messages_by_session
+                .entry(session.id.clone())
+                .or_default();
 
             if !state.sessions.iter().any(|s| s.id == session.id) {
                 state.sessions.push(session.clone());
@@ -186,9 +191,7 @@ fn reduce_message_received(state: &mut AppState, message: &Message) {
 
     if let Message::Assistant(msg) = message {
         let working = msg.time.completed.is_none() && msg.error.is_none();
-        state
-            .working_by_session
-            .insert(session_id.clone(), working);
+        state.working_by_session.insert(session_id.clone(), working);
     }
 
     if state.current_session_id.is_none() {
@@ -245,9 +248,9 @@ fn reduce_part_received(state: &mut AppState, part: &Part) {
 
             match part {
                 Part::Text { id, .. } if !id.is_empty() => {
-                    if let Some(existing) = mwp.parts.iter_mut().find(|p| {
-                        matches!(p, Part::Text { id: existing_id, .. } if existing_id == id)
-                    }) {
+                    if let Some(existing) = mwp.parts.iter_mut().find(
+                        |p| matches!(p, Part::Text { id: existing_id, .. } if existing_id == id),
+                    ) {
                         *existing = part.clone();
                     } else {
                         mwp.parts.push(part.clone());
