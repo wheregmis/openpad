@@ -50,20 +50,27 @@ script_mod! {
             UserMsg := View {
                 width: Fill, height: Fit
                 flow: Down,
-                padding: Inset{ top: 4, bottom: 4, left: 100, right: 24 }
-                align: Align{ x: 1.0 }
+                padding: Inset{ top: 4, bottom: 4, left: 24, right: 24 }
 
                 UserBubble {
                     width: Fill, height: Fit
                     flow: Down,
-                    align: Align{ x: 1.0 }
 
                     View {
-                        width: Fit, height: Fit
+                        width: Fill, height: Fit
                         flow: Right,
                         spacing: 8,
                         margin: Inset{ bottom: 4 }
                         align: Align{ y: 0.5 }
+
+                        Label {
+                            width: Fit, height: Fit
+                            draw_text +: {
+                                color: #555,
+                                text_style: theme.font_bold { font_size: 8 },
+                            }
+                            text: "YOU"
+                        }
 
                         timestamp_label := Label {
                             width: Fit, height: Fit
@@ -74,29 +81,7 @@ script_mod! {
                             text: "..."
                         }
 
-                        Label {
-                            width: Fit, height: Fit
-                            draw_text +: {
-                                color: #555,
-                                text_style: theme.font_bold { font_size: 8 },
-                            }
-                            text: "YOU"
-                        }
-                    }
-
-                    msg_text := Label {
-                        width: Fill, height: Fit
-                        draw_text +: {
-                            color: #ddd,
-                            text_style: theme.font_regular { font_size: 10, line_spacing: 1.4 },
-                        }
-                    }
-
-                    msg_actions := View {
-                        width: Fit, height: Fit
-                        flow: Right,
-                        spacing: 6,
-                        margin: Inset{ top: 6 }
+                        View { width: Fill }
 
                         copy_button := Button {
                             width: Fit, height: 20
@@ -111,6 +96,14 @@ script_mod! {
                                 color_hover: #aaa
                                 text_style: theme.font_regular { font_size: 8 }
                             }
+                        }
+                    }
+
+                    msg_text := Label {
+                        width: Fill, height: Fit
+                        draw_text +: {
+                            color: #ddd,
+                            text_style: theme.font_regular { font_size: 10, line_spacing: 1.4 },
                         }
                     }
                 }

@@ -307,9 +307,9 @@ script_mod! {
                             }
 
                             terminal_overlay := View {
-                                width: Fill, height: Fit
-                                align: Align{x: 0.0 y: 1.0}
+                                width: Fill, height: Fill
                                 flow: Down
+                                View { width: Fill, height: Fill }
                                 terminal_panel_wrap := TerminalPanelWrap {}
                             }
                         }

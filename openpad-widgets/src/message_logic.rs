@@ -169,7 +169,8 @@ impl MessageProcessor {
     pub fn rebuild_from_parts(messages_with_parts: &[MessageWithParts]) -> Vec<DisplayMessage> {
         let mut display = Vec::new();
         let mut pending_diffs: Option<Vec<FileDiff>> = None;
-        let mut pending_steps_only: Option<DisplayMessage> = None;
+        // Accumulates all consecutive assistant turns between two user messages into one card.
+        let mut pending_assistant: Option<DisplayMessage> = None;
 
         for mwp in messages_with_parts {
             let (role, timestamp, model_id, tokens, cost, error_text, is_error, duration_ms) =
@@ -344,83 +345,88 @@ impl MessageProcessor {
                 }
             }
 
-            let steps_only =
-                role == "assistant" && text.is_empty() && !steps.is_empty() && !is_error;
-
-            if steps_only {
-                if let Some(ref mut pending) = pending_steps_only {
-                    pending.steps.extend(steps);
-                    pending.duration_ms = pending.duration_ms.or(duration_ms);
-                } else {
-                    pending_steps_only = Some(DisplayMessage {
-                        role: role.to_string(),
-                        message_id: Some(message_id),
-                        timestamp,
-                        model_id,
-                        tokens,
-                        cost,
-                        steps,
-                        show_steps: true,
-                        duration_ms,
-                        ..DisplayMessage::default()
-                    });
+            if role == "user" {
+                // Flush any accumulated assistant turns before this user message.
+                if let Some(mut prev) = pending_assistant.take() {
+                    if prev.text.is_empty() && !prev.steps.is_empty() {
+                        prev.show_steps = true;
+                    }
+                    Self::refresh_message_caches(&mut prev);
+                    display.push(prev);
                 }
+                let mut msg = DisplayMessage {
+                    role: role.to_string(),
+                    text,
+                    message_id: Some(message_id),
+                    timestamp,
+                    ..DisplayMessage::default()
+                };
+                Self::refresh_message_caches(&mut msg);
+                display.push(msg);
                 continue;
             }
 
-            if role == "assistant" && !text.is_empty() {
-                if let Some(pending) = pending_steps_only.take() {
-                    let mut merged_steps = pending.steps;
-                    merged_steps.extend(steps);
-                    let merged_duration = duration_ms.or(pending.duration_ms);
-                    let mut msg = DisplayMessage {
-                        role: role.to_string(),
-                        text,
-                        message_id: Some(message_id),
-                        timestamp,
-                        model_id,
-                        tokens,
-                        cost,
-                        error_text,
-                        is_error,
-                        diffs,
-                        steps: merged_steps,
-                        duration_ms: merged_duration,
-                        ..DisplayMessage::default()
-                    };
-                    Self::refresh_message_caches(&mut msg);
-                    display.push(msg);
-                    continue;
+            // Merge this assistant turn into pending_assistant.
+            if let Some(ref mut pending) = pending_assistant {
+                pending.steps.extend(steps);
+                if !text.is_empty() {
+                    if !pending.text.is_empty() {
+                        pending.text.push_str("\n\n");
+                    }
+                    pending.text.push_str(&text);
+                    pending.show_steps = false;
                 }
+                // Sum cost and duration across turns.
+                if let Some(c) = cost {
+                    match &mut pending.cost {
+                        Some(pc) => *pc += c,
+                        None => pending.cost = Some(c),
+                    }
+                }
+                if let Some(d) = duration_ms {
+                    match &mut pending.duration_ms {
+                        Some(pd) => *pd += d,
+                        None => pending.duration_ms = Some(d),
+                    }
+                }
+                // Take the latest model/tokens/error from each turn.
+                if model_id.is_some() {
+                    pending.model_id = model_id;
+                }
+                if tokens.is_some() {
+                    pending.tokens = tokens;
+                }
+                if error_text.is_some() {
+                    pending.error_text = error_text;
+                    pending.is_error = is_error;
+                }
+                if !diffs.is_empty() {
+                    pending.diffs.extend(diffs);
+                }
+                // Use the latest message_id so revert points to the most recent turn.
+                pending.message_id = Some(message_id);
+            } else {
+                let show_steps = text.is_empty() && !steps.is_empty();
+                pending_assistant = Some(DisplayMessage {
+                    role: role.to_string(),
+                    text,
+                    message_id: Some(message_id),
+                    timestamp,
+                    model_id,
+                    tokens,
+                    cost,
+                    error_text,
+                    is_error,
+                    diffs,
+                    steps,
+                    show_steps,
+                    duration_ms,
+                    ..DisplayMessage::default()
+                });
             }
-
-            if let Some(prev) = pending_steps_only.take() {
-                display.push(prev);
-            }
-
-            let show_steps = role == "assistant" && text.is_empty() && !steps.is_empty();
-
-            let mut msg = DisplayMessage {
-                role: role.to_string(),
-                text,
-                message_id: Some(message_id),
-                timestamp,
-                model_id,
-                tokens,
-                cost,
-                error_text,
-                is_error,
-                diffs,
-                steps,
-                show_steps,
-                duration_ms,
-                ..DisplayMessage::default()
-            };
-            Self::refresh_message_caches(&mut msg);
-            display.push(msg);
         }
-        if let Some(mut prev) = pending_steps_only.take() {
-            if prev.role == "assistant" && prev.text.is_empty() && !prev.steps.is_empty() {
+        if let Some(mut prev) = pending_assistant.take() {
+            if prev.text.is_empty() && !prev.steps.is_empty() {
                 prev.show_steps = true;
             }
             Self::refresh_message_caches(&mut prev);

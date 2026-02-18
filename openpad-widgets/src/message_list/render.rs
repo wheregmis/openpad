@@ -38,6 +38,13 @@ impl MessageList {
                     }
 
                     if item_id >= self.messages.len() + self.pending_permissions.len() {
+                        // Only the exact ThinkingMsg slot is valid. The PortalList can return
+                        // stale item_ids one frame after set_item_range shrinks (e.g. after
+                        // consecutive assistant turns get merged), which would otherwise
+                        // render multiple identical ThinkingMsg cards.
+                        if item_id > self.messages.len() + self.pending_permissions.len() {
+                            continue;
+                        }
                         if !self.is_working {
                             continue;
                         }
