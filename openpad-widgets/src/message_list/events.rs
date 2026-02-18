@@ -77,18 +77,8 @@ impl MessageList {
                     let steps_base =
                         widget.view(cx, &[id!(steps_expanded), id!(steps_scroll), id!(content)]);
                     for step_id in 0..MessageList::MAX_STEP_ROWS.min(msg.steps.len()) {
-                        let (row_id, header_id) = match step_id {
-                            0 => (live_id!(step_row_0), live_id!(step_row_0_header)),
-                            1 => (live_id!(step_row_1), live_id!(step_row_1_header)),
-                            2 => (live_id!(step_row_2), live_id!(step_row_2_header)),
-                            3 => (live_id!(step_row_3), live_id!(step_row_3_header)),
-                            4 => (live_id!(step_row_4), live_id!(step_row_4_header)),
-                            5 => (live_id!(step_row_5), live_id!(step_row_5_header)),
-                            6 => (live_id!(step_row_6), live_id!(step_row_6_header)),
-                            7 => (live_id!(step_row_7), live_id!(step_row_7_header)),
-                            8 => (live_id!(step_row_8), live_id!(step_row_8_header)),
-                            9 => (live_id!(step_row_9), live_id!(step_row_9_header)),
-                            _ => continue,
+                        let Some(&(row_id, header_id, _, _, _, _)) = MessageList::STEP_ROW.get(step_id) else {
+                            continue;
                         };
                         if steps_base
                             .view(cx, &[row_id])
