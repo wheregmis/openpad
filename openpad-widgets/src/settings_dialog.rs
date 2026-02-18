@@ -1,6 +1,6 @@
 use crate::upward_dropdown::UpDropDownWidgetExt;
 use makepad_widgets::*;
-use openpad_protocol::{Config, Provider};
+use openpad_protocol::{Config, Provider, SecretString};
 
 script_mod! {
     use mod.prelude.widgets_internal.*
@@ -161,7 +161,7 @@ pub enum SettingsDialogAction {
     None,
     UpdateKey {
         provider_id: String,
-        key: String,
+        key: SecretString,
     },
 }
 
@@ -211,7 +211,7 @@ impl Widget for SettingsDialog {
                     if !key.is_empty() {
                         cx.action(SettingsDialogAction::UpdateKey {
                             provider_id: provider.id.clone(),
-                            key,
+                            key: SecretString::from(key),
                         });
                     }
                 }

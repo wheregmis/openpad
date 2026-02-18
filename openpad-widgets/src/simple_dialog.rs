@@ -1,4 +1,5 @@
 use makepad_widgets::*;
+use openpad_protocol::SecretString;
 
 script_mod! {
     use mod.prelude.widgets_internal.*
@@ -151,7 +152,7 @@ pub enum DialogType {
 pub enum SimpleDialogAction {
     Confirmed {
         dialog_type: String,
-        value: String,
+        value: SecretString,
     },
     Secondary {
         dialog_type: String,
@@ -212,7 +213,7 @@ impl Widget for SimpleDialog {
                 self.widget_uid(),
                 SimpleDialogAction::Confirmed {
                     dialog_type: self.callback_data.clone(),
-                    value,
+                    value: SecretString::from(value),
                 },
             );
 

@@ -1,6 +1,7 @@
 use openpad_protocol::{
     Agent, AssistantError, Event as OcEvent, FileDiff, HealthResponse, Message, MessageWithParts,
-    Part, PermissionReply, PermissionRequest, Project, ProvidersResponse, Session, Skill,
+    Part, PermissionReply, PermissionRequest, Project, ProvidersResponse, SecretString, Session,
+    Skill,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -54,7 +55,7 @@ pub enum AppAction {
     UnrevertSession(String),
     DialogConfirmed {
         dialog_type: String,
-        value: String,
+        value: SecretString,
     },
     PendingPermissionsLoaded(Vec<PermissionRequest>),
     PendingPermissionReceived(PermissionRequest),
