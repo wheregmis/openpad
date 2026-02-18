@@ -998,3 +998,28 @@ impl MessageProcessor {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::MessageProcessor;
+
+    #[test]
+    fn needs_markdown_detects_code_blocks() {
+        assert!(MessageProcessor::compute_needs_markdown("hello ```rust\ncode\n``` world"));
+    }
+
+    #[test]
+    fn needs_markdown_detects_inline_code() {
+        assert!(MessageProcessor::compute_needs_markdown("use `cargo build`"));
+    }
+
+    #[test]
+    fn needs_markdown_detects_heading() {
+        assert!(MessageProcessor::compute_needs_markdown("# Title\nsome text"));
+    }
+
+    #[test]
+    fn needs_markdown_false_for_plain_text() {
+        assert!(!MessageProcessor::compute_needs_markdown("hello world, no markdown here"));
+    }
+}

@@ -131,7 +131,7 @@ impl MessageList {
                                 .widget(cx, &[id!(msg_text)])
                                 .set_text(cx, fallback_text);
                         } else {
-                            let use_markdown = false;
+                            let use_markdown = msg.cached_needs_markdown;
                             if use_markdown {
                                 item_widget
                                     .view(cx, &[id!(label_view)])
