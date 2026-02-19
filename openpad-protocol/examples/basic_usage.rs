@@ -136,6 +136,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         }
                                     }
                                     Part::Unknown => println!("      Unknown part type"),
+                                    _ => println!("      Other part type: {:?}", part),
                                 }
                             }
                             Event::PartRemoved { session_id, message_id, part_id } => {
