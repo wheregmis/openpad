@@ -90,15 +90,33 @@ script_mod! {
                 new_session_header_button := Button {
                     width: 20, height: 20
                     margin: Inset{ left: 2 }
-                    text: "+"
+                    text: "New session"
+                    draw_text +: { color: #0000 }
                     draw_bg +: {
                         color: theme.THEME_COLOR_TRANSPARENT
                         color_hover: theme.THEME_COLOR_HOVER_SUBTLE
                         color_active: theme.THEME_COLOR_HOVER_SUBTLE
                         border_radius: 5.0
                         border_size: 0.0
+
+                        pixel: fn() {
+                            let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+                            sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, self.border_radius)
+                            sdf.fill(mix(self.color, self.color_hover, self.hover))
+
+                            let cx = self.rect_size.x * 0.5
+                            let cy = self.rect_size.y * 0.5
+                            let thickness = 0.8
+                            let size = 4.0
+                            let plus_color = theme.THEME_COLOR_TEXT_MUTED
+                            sdf.rect(cx - size, cy - thickness, size * 2.0, thickness * 2.0)
+                            sdf.fill(plus_color)
+                            sdf.rect(cx - thickness, cy - size, thickness * 2.0, size * 2.0)
+                            sdf.fill(plus_color)
+
+                            return sdf.result
+                        }
                     }
-                    draw_text +: { color: theme.THEME_COLOR_TEXT_MUTED, text_style: theme.font_bold { font_size: 11 } }
                 }
             }
 
@@ -195,19 +213,35 @@ script_mod! {
                     padding: Inset{ right: 3, top: 1, bottom: 1 }
                     menu_button := Button {
                         width: 24, height: 24
-                        text: "⋯"
+                        text: "Session options"
                         align: Align{ x: 0.5, y: 0.5 }
+                        draw_text +: { color: #0000 }
                         draw_bg +: {
                             color: theme.THEME_COLOR_TRANSPARENT
                             color_hover: theme.THEME_COLOR_HOVER_SUBTLE
                             color_active: theme.THEME_COLOR_HOVER_SUBTLE
                             border_radius: 5.0
                             border_size: 0.0
-                        }
-                        draw_text +: {
-                            color: theme.THEME_COLOR_SHADE_8
-                            color_hover: theme.THEME_COLOR_SHADE_10
-                            text_style: theme.font_bold { font_size: 9.5 }
+
+                            pixel: fn() {
+                                let sdf = Sdf2d.viewport(self.pos * self.rect_size)
+                                sdf.box(0.0, 0.0, self.rect_size.x, self.rect_size.y, self.border_radius)
+                                sdf.fill(mix(self.color, self.color_hover, self.hover))
+
+                                let cx = self.rect_size.x * 0.5
+                                let cy = self.rect_size.y * 0.5
+                                let r = 1.0
+                                let gap = 3.5
+                                let dot_color = theme.THEME_COLOR_SHADE_8
+                                sdf.circle(cx - gap, cy, r)
+                                sdf.fill(dot_color)
+                                sdf.circle(cx, cy, r)
+                                sdf.fill(dot_color)
+                                sdf.circle(cx + gap, cy, r)
+                                sdf.fill(dot_color)
+
+                                return sdf.result
+                            }
                         }
                     }
                 }

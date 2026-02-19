@@ -31,26 +31,121 @@ impl MessageList {
     /// Pre-computed LiveId tuples for step rows. Eliminates match arms in render/events.
     /// Order: (row, header, body, content, dot, line)
     pub(super) const STEP_ROW: [(LiveId, LiveId, LiveId, LiveId, LiveId, LiveId); 10] = [
-        (live_id!(step_row_0), live_id!(step_row_0_header), live_id!(step_row_0_body), live_id!(step_row_0_content), live_id!(step_row_0_dot), live_id!(step_row_0_line)),
-        (live_id!(step_row_1), live_id!(step_row_1_header), live_id!(step_row_1_body), live_id!(step_row_1_content), live_id!(step_row_1_dot), live_id!(step_row_1_line)),
-        (live_id!(step_row_2), live_id!(step_row_2_header), live_id!(step_row_2_body), live_id!(step_row_2_content), live_id!(step_row_2_dot), live_id!(step_row_2_line)),
-        (live_id!(step_row_3), live_id!(step_row_3_header), live_id!(step_row_3_body), live_id!(step_row_3_content), live_id!(step_row_3_dot), live_id!(step_row_3_line)),
-        (live_id!(step_row_4), live_id!(step_row_4_header), live_id!(step_row_4_body), live_id!(step_row_4_content), live_id!(step_row_4_dot), live_id!(step_row_4_line)),
-        (live_id!(step_row_5), live_id!(step_row_5_header), live_id!(step_row_5_body), live_id!(step_row_5_content), live_id!(step_row_5_dot), live_id!(step_row_5_line)),
-        (live_id!(step_row_6), live_id!(step_row_6_header), live_id!(step_row_6_body), live_id!(step_row_6_content), live_id!(step_row_6_dot), live_id!(step_row_6_line)),
-        (live_id!(step_row_7), live_id!(step_row_7_header), live_id!(step_row_7_body), live_id!(step_row_7_content), live_id!(step_row_7_dot), live_id!(step_row_7_line)),
-        (live_id!(step_row_8), live_id!(step_row_8_header), live_id!(step_row_8_body), live_id!(step_row_8_content), live_id!(step_row_8_dot), live_id!(step_row_8_line)),
-        (live_id!(step_row_9), live_id!(step_row_9_header), live_id!(step_row_9_body), live_id!(step_row_9_content), live_id!(step_row_9_dot), live_id!(step_row_9_line)),
+        (
+            live_id!(step_row_0),
+            live_id!(step_row_0_header),
+            live_id!(step_row_0_body),
+            live_id!(step_row_0_content),
+            live_id!(step_row_0_dot),
+            live_id!(step_row_0_line),
+        ),
+        (
+            live_id!(step_row_1),
+            live_id!(step_row_1_header),
+            live_id!(step_row_1_body),
+            live_id!(step_row_1_content),
+            live_id!(step_row_1_dot),
+            live_id!(step_row_1_line),
+        ),
+        (
+            live_id!(step_row_2),
+            live_id!(step_row_2_header),
+            live_id!(step_row_2_body),
+            live_id!(step_row_2_content),
+            live_id!(step_row_2_dot),
+            live_id!(step_row_2_line),
+        ),
+        (
+            live_id!(step_row_3),
+            live_id!(step_row_3_header),
+            live_id!(step_row_3_body),
+            live_id!(step_row_3_content),
+            live_id!(step_row_3_dot),
+            live_id!(step_row_3_line),
+        ),
+        (
+            live_id!(step_row_4),
+            live_id!(step_row_4_header),
+            live_id!(step_row_4_body),
+            live_id!(step_row_4_content),
+            live_id!(step_row_4_dot),
+            live_id!(step_row_4_line),
+        ),
+        (
+            live_id!(step_row_5),
+            live_id!(step_row_5_header),
+            live_id!(step_row_5_body),
+            live_id!(step_row_5_content),
+            live_id!(step_row_5_dot),
+            live_id!(step_row_5_line),
+        ),
+        (
+            live_id!(step_row_6),
+            live_id!(step_row_6_header),
+            live_id!(step_row_6_body),
+            live_id!(step_row_6_content),
+            live_id!(step_row_6_dot),
+            live_id!(step_row_6_line),
+        ),
+        (
+            live_id!(step_row_7),
+            live_id!(step_row_7_header),
+            live_id!(step_row_7_body),
+            live_id!(step_row_7_content),
+            live_id!(step_row_7_dot),
+            live_id!(step_row_7_line),
+        ),
+        (
+            live_id!(step_row_8),
+            live_id!(step_row_8_header),
+            live_id!(step_row_8_body),
+            live_id!(step_row_8_content),
+            live_id!(step_row_8_dot),
+            live_id!(step_row_8_line),
+        ),
+        (
+            live_id!(step_row_9),
+            live_id!(step_row_9_header),
+            live_id!(step_row_9_body),
+            live_id!(step_row_9_content),
+            live_id!(step_row_9_dot),
+            live_id!(step_row_9_line),
+        ),
     ];
 
     /// Pre-computed LiveId tuples for tool rows. Eliminates match arms in render.
     /// Order: (row, icon, name, input)
     pub(super) const TOOL_ROW: [(LiveId, LiveId, LiveId, LiveId); 5] = [
-        (live_id!(tool_row_0), live_id!(tool_icon_0), live_id!(tool_name_0), live_id!(tool_input_0)),
-        (live_id!(tool_row_1), live_id!(tool_icon_1), live_id!(tool_name_1), live_id!(tool_input_1)),
-        (live_id!(tool_row_2), live_id!(tool_icon_2), live_id!(tool_name_2), live_id!(tool_input_2)),
-        (live_id!(tool_row_3), live_id!(tool_icon_3), live_id!(tool_name_3), live_id!(tool_input_3)),
-        (live_id!(tool_row_4), live_id!(tool_icon_4), live_id!(tool_name_4), live_id!(tool_input_4)),
+        (
+            live_id!(tool_row_0),
+            live_id!(tool_icon_0),
+            live_id!(tool_name_0),
+            live_id!(tool_input_0),
+        ),
+        (
+            live_id!(tool_row_1),
+            live_id!(tool_icon_1),
+            live_id!(tool_name_1),
+            live_id!(tool_input_1),
+        ),
+        (
+            live_id!(tool_row_2),
+            live_id!(tool_icon_2),
+            live_id!(tool_name_2),
+            live_id!(tool_input_2),
+        ),
+        (
+            live_id!(tool_row_3),
+            live_id!(tool_icon_3),
+            live_id!(tool_name_3),
+            live_id!(tool_input_3),
+        ),
+        (
+            live_id!(tool_row_4),
+            live_id!(tool_icon_4),
+            live_id!(tool_name_4),
+            live_id!(tool_input_4),
+        ),
     ];
 
     pub(super) fn thinking_icon(&self) -> &'static str {

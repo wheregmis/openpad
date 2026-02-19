@@ -31,9 +31,8 @@ fn perform_sidebar_resize(
             *drag_start = Some((f.abs.x, current_width));
             None
         }
-        Hit::FingerMove(f) => drag_start.map(|(start_x, start_width)| {
-            start_width + delta_sign * (f.abs.x - start_x) as f32
-        }),
+        Hit::FingerMove(f) => drag_start
+            .map(|(start_x, start_width)| start_width + delta_sign * (f.abs.x - start_x) as f32),
         Hit::FingerUp(_) => {
             *drag_start = None;
             None
@@ -147,9 +146,14 @@ impl App {
         let drag_start = self.sidebar_drag_start;
         let current_width = self.sidebar_width;
         let mut drag_start_mut = drag_start;
-        if let Some(new_width) =
-            perform_sidebar_resize(cx, event, handle_area, &mut drag_start_mut, current_width, 1.0)
-        {
+        if let Some(new_width) = perform_sidebar_resize(
+            cx,
+            event,
+            handle_area,
+            &mut drag_start_mut,
+            current_width,
+            1.0,
+        ) {
             self.sidebar_drag_start = drag_start_mut;
             self.set_sidebar_width(cx, new_width);
         } else {

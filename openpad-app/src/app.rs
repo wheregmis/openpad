@@ -379,7 +379,9 @@ impl App {
     }
 
     fn create_session(&mut self, _cx: &mut Cx, project_id: Option<String>) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -414,7 +416,9 @@ impl App {
         request_id: String,
         reply: openpad_protocol::PermissionReply,
     ) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -455,7 +459,9 @@ impl App {
     }
 
     fn abort_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -464,7 +470,9 @@ impl App {
     }
 
     fn share_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -473,7 +481,9 @@ impl App {
     }
 
     fn unshare_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -482,7 +492,9 @@ impl App {
     }
 
     fn summarize_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -491,7 +503,9 @@ impl App {
     }
 
     fn load_session_diff(&mut self, _cx: &mut Cx, session_id: String, message_id: Option<String>) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -500,7 +514,9 @@ impl App {
     }
 
     fn branch_session(&mut self, _cx: &mut Cx, parent_session_id: String) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -512,7 +528,9 @@ impl App {
     }
 
     fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -524,7 +542,9 @@ impl App {
     }
 
     fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {
-        let Some(client) = self.client_or_error() else { return; };
+        let Some(client) = self.client_or_error() else {
+            return;
+        };
         let Some(runtime) = self._runtime.as_ref() else {
             return;
         };
@@ -534,7 +554,6 @@ impl App {
 
         async_runtime::spawn_session_unreverter(runtime, client, session_id, directory);
     }
-
 }
 
 impl AppMain for App {
@@ -1178,7 +1197,7 @@ impl AppMain for App {
 
 #[cfg(test)]
 mod tests {
-    use super::get_image_data_url_regex;
+    use super::composer::get_image_data_url_regex;
 
     #[test]
     fn test_data_url_detection() {

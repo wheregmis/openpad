@@ -1,10 +1,10 @@
+use super::{AppState, ModelDropdownEntry};
 use crate::state::actions::AppAction;
 use crate::ui::state_updates;
 use makepad_widgets::*;
 use openpad_protocol::{Event as OcEvent, Provider};
 use openpad_widgets::settings_dialog::SettingsDialogWidgetRefExt;
 use openpad_widgets::UpDropDownWidgetRefExt;
-use super::{AppState, ModelDropdownEntry};
 
 #[allow(dead_code)]
 fn build_model_entries(providers: &[Provider]) -> Vec<ModelDropdownEntry> {
@@ -222,7 +222,12 @@ pub fn handle_opencode_event(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, 
             handle_app_action(state, ui, cx, &AppAction::SessionUpdated(session.clone()));
         }
         OcEvent::SessionDeleted(session) => {
-            handle_app_action(state, ui, cx, &AppAction::SessionDeleted(session.id.clone()));
+            handle_app_action(
+                state,
+                ui,
+                cx,
+                &AppAction::SessionDeleted(session.id.clone()),
+            );
         }
         OcEvent::MessageUpdated(message) => {
             handle_app_action(state, ui, cx, &AppAction::MessageReceived(message.clone()));

@@ -1249,13 +1249,9 @@ pub enum Event {
         status: serde_json::Value,
     },
     /// A session became idle
-    SessionIdle {
-        session_id: String,
-    },
+    SessionIdle { session_id: String },
     /// A session was compacted
-    SessionCompacted {
-        session_id: String,
-    },
+    SessionCompacted { session_id: String },
     /// File changes (diff) for a session
     SessionDiff {
         session_id: String,
@@ -1335,54 +1331,29 @@ pub enum Event {
     /// PTY session updated
     PtyUpdated(Pty),
     /// PTY session exited
-    PtyExited {
-        id: String,
-        exit_code: i64,
-    },
+    PtyExited { id: String, exit_code: i64 },
     /// PTY session deleted
-    PtyDeleted {
-        id: String,
-    },
+    PtyDeleted { id: String },
     /// Project information was updated
     ProjectUpdated(Project),
     /// VCS branch was updated
-    VcsBranchUpdated {
-        branch: String,
-    },
+    VcsBranchUpdated { branch: String },
     /// File was edited
-    FileEdited {
-        file: String,
-    },
+    FileEdited { file: String },
     /// File watcher event
-    FileWatcherUpdated {
-        file: String,
-        event: String,
-    },
+    FileWatcherUpdated { file: String, event: String },
     /// LSP server updated
     LspUpdated,
     /// LSP diagnostics received
-    LspDiagnostics {
-        server_id: String,
-        path: String,
-    },
+    LspDiagnostics { server_id: String, path: String },
     /// Worktree is ready
-    WorktreeReady {
-        name: String,
-        branch: String,
-    },
+    WorktreeReady { name: String, branch: String },
     /// Worktree creation failed
-    WorktreeFailed {
-        message: String,
-    },
+    WorktreeFailed { message: String },
     /// MCP tools changed
-    McpToolsChanged {
-        server: String,
-    },
+    McpToolsChanged { server: String },
     /// MCP browser open failed
-    McpBrowserOpenFailed {
-        mcp_name: String,
-        url: String,
-    },
+    McpBrowserOpenFailed { mcp_name: String, url: String },
     /// Command was executed
     CommandExecuted {
         name: String,
@@ -1391,21 +1362,15 @@ pub enum Event {
         message_id: String,
     },
     /// Installation was updated
-    InstallationUpdated {
-        version: String,
-    },
+    InstallationUpdated { version: String },
     /// Update is available
-    InstallationUpdateAvailable {
-        version: String,
-    },
+    InstallationUpdateAvailable { version: String },
     /// Server connected
     ServerConnected,
     /// Global instance disposed
     GlobalDisposed,
     /// Server instance disposed
-    ServerInstanceDisposed {
-        directory: String,
-    },
+    ServerInstanceDisposed { directory: String },
     /// A generic error occurred
     Error(String),
     /// An unknown event type was received
