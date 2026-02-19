@@ -22,13 +22,13 @@ fn build_model_entries(providers: &[Provider]) -> Vec<ModelDropdownEntry> {
             let provider_label = display_label(provider.name.as_deref(), &provider.id);
             let mut model_items: Vec<_> = models.iter().collect();
             model_items.sort_by(|a, b| {
-                let a_label = display_label(a.1.name.as_deref(), &a.1.id);
-                let b_label = display_label(b.1.name.as_deref(), &b.1.id);
+                let a_label = display_label(Some(a.1.name.as_str()), &a.1.id);
+                let b_label = display_label(Some(b.1.name.as_str()), &b.1.id);
                 a_label.cmp(&b_label)
             });
             entries.push(ModelDropdownEntry::provider_header(provider_label.clone()));
             for (_key, model) in model_items {
-                let model_label = format!("  {}", display_label(model.name.as_deref(), &model.id));
+                let model_label = format!("  {}", display_label(Some(model.name.as_str()), &model.id));
                 entries.push(ModelDropdownEntry::model_option(
                     provider.id.clone(),
                     model.id.clone(),

@@ -196,7 +196,7 @@ impl AppState {
             for provider in &self.providers {
                 if let Some(provider_models) = provider.models.as_ref() {
                     for (_key, model) in provider_models {
-                        let model_label = model.name.as_deref().unwrap_or(&model.id).to_string();
+                        let model_label = model.name.clone();
                         models.push((provider.id.clone(), model.id.clone(), model_label));
                     }
                 }
@@ -205,7 +205,7 @@ impl AppState {
             // Specific provider selected
             if let Some(provider_models) = provider.models.as_ref() {
                 for (_key, model) in provider_models {
-                    let model_label = model.name.as_deref().unwrap_or(&model.id).to_string();
+                    let model_label = model.name.clone();
                     models.push((provider.id.clone(), model.id.clone(), model_label));
                 }
             }
@@ -238,7 +238,7 @@ impl AppState {
     pub fn selected_agent_permission(&self) -> Option<PermissionRuleset> {
         self.selected_agent_idx
             .and_then(|idx| self.agents.get(idx))
-            .and_then(|agent| agent.permission.clone())
+            .and_then(|agent| Some(agent.permission.clone()))
     }
 
     pub fn selected_skill(&self) -> Option<&Skill> {
