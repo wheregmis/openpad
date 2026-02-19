@@ -36,6 +36,7 @@ pub use session_tree::{SessionTree, SessionTreeAction, SessionTreeRef};
 pub use settings_dialog::{SettingsDialog, SettingsDialogAction, SettingsDialogRef};
 pub use side_panel::{SidePanel, SidePanelRef, SidePanelWidgetRefExt};
 pub use simple_dialog::{SimpleDialog, SimpleDialogAction, SimpleDialogRef};
+pub use status_dot::{StatusDot, StatusDotRef, StatusDotWidgetRefExt};
 pub use terminal::{Terminal, TerminalRef};
 pub use terminal_panel::{TerminalPanel, TerminalPanelRef};
 pub use upward_dropdown::{UpDropDown, UpDropDownRef, UpDropDownWidgetRefExt};
