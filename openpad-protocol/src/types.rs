@@ -218,6 +218,23 @@ impl fmt::Debug for Config {
     }
 }
 
+/// Checks if a key name suggests it contains sensitive information (e.g. credentials).
+fn is_sensitive_key(key: &str) -> bool {
+    let k_lower = key.to_lowercase();
+    k_lower == "key"
+        || k_lower == "token"
+        || k_lower == "secret"
+        || k_lower == "password"
+        || k_lower.ends_with("_key")
+        || k_lower.ends_with("-key")
+        || k_lower.ends_with("_token")
+        || k_lower.ends_with("-token")
+        || k_lower.ends_with("_secret")
+        || k_lower.ends_with("-secret")
+        || k_lower.ends_with("_password")
+        || k_lower.ends_with("-password")
+}
+
 /// Helper to mask sensitive keys in a HashMap when formatting for Debug.
 struct ExtraMasked<'a>(&'a HashMap<String, serde_json::Value>);
 
@@ -225,21 +242,7 @@ impl<'a> fmt::Debug for ExtraMasked<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut map = f.debug_map();
         for (k, v) in self.0 {
-            let k_lower = k.to_lowercase();
-            let is_sensitive = k_lower == "key"
-                || k_lower == "token"
-                || k_lower == "secret"
-                || k_lower == "password"
-                || k_lower.ends_with("_key")
-                || k_lower.ends_with("-key")
-                || k_lower.ends_with("_token")
-                || k_lower.ends_with("-token")
-                || k_lower.ends_with("_secret")
-                || k_lower.ends_with("-secret")
-                || k_lower.ends_with("_password")
-                || k_lower.ends_with("-password");
-
-            if is_sensitive {
+            if is_sensitive_key(k) {
                 map.entry(k, &"<REDACTED>");
             } else {
                 map.entry(k, v);
@@ -1335,7 +1338,7 @@ impl Part {
     pub fn tool_display(&self) -> Option<(String, String, String)> {
         match self {
             Part::Tool { tool, state, .. } => {
-                let input_summary = summarize_tool_input(&state.input());
+                let input_summary = summarize_tool_input(state.input());
                 let result = state.output_or_error();
                 Some((tool.clone(), input_summary, result))
             }
@@ -1344,7 +1347,7 @@ impl Part {
     }
 }
 
-fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -> String {
+pub(crate) fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -> String {
     if input.is_empty() {
         return String::new();
     }
@@ -1353,6 +1356,10 @@ fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -> String {
     let mut parts: Vec<String> = Vec::new();
     for k in keys {
         if let Some(v) = input.get(k) {
+            if is_sensitive_key(k) {
+                parts.push(format!("{}=<REDACTED>", k));
+                continue;
+            }
             let s = match v {
                 serde_json::Value::String(s) => s.clone(),
                 serde_json::Value::Number(n) => n.to_string(),
@@ -1365,7 +1372,14 @@ fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -> String {
         }
     }
     if parts.is_empty() {
-        let single = serde_json::to_string(input).unwrap_or_default();
+        // Redact sensitive keys before serializing the whole map to JSON for display
+        let mut masked = input.clone();
+        for (k, v) in masked.iter_mut() {
+            if is_sensitive_key(k) {
+                *v = serde_json::Value::String("<REDACTED>".to_string());
+            }
+        }
+        let single = serde_json::to_string(&masked).unwrap_or_default();
         truncate_display(&single, 80).to_string()
     } else {
         parts.join(" ")
@@ -1615,13 +1629,9 @@ pub enum Event {
         todos: Vec<Todo>,
     },
     /// TUI prompt append
-    TuiPromptAppend {
-        text: String,
-    },
+    TuiPromptAppend { text: String },
     /// TUI command execute
-    TuiCommandExecute {
-        command: String,
-    },
+    TuiCommandExecute { command: String },
     /// TUI toast show
     TuiToastShow {
         title: Option<String>,
@@ -1630,9 +1640,7 @@ pub enum Event {
         duration: Option<f64>,
     },
     /// TUI session select
-    TuiSessionSelect {
-        session_id: String,
-    },
+    TuiSessionSelect { session_id: String },
     /// PTY session created
     PtyCreated(Pty),
     /// PTY session updated
@@ -1682,4 +1690,16 @@ pub enum Event {
     Error(String),
     /// An unknown event type was received
     Unknown(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_summarize_tool_input_redaction() {
+        let mut input = HashMap::new();
+        input.insert("token".into(), serde_json::Value::String("secret".into()));
+        assert!(summarize_tool_input(&input).contains("<REDACTED>"));
+    }
 }
