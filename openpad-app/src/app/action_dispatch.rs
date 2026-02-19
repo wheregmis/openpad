@@ -1,4 +1,5 @@
 use super::*;
+use openpad_protocol::SecretString;
 
 impl App {
     pub(super) fn handle_actions(&mut self, cx: &mut Cx, actions: &ActionsBuf) {
@@ -87,7 +88,7 @@ impl App {
         &mut self,
         cx: &mut Cx,
         dialog_type: String,
-        value: String,
+        value: SecretString,
     ) {
         if dialog_type == "unsaved_editor" {
             let saved = if let Some(tab_id) = self.current_active_file_tab_id() {
@@ -127,7 +128,7 @@ impl App {
                         runtime,
                         client,
                         data.to_string(),
-                        value,
+                        value.to_string(),
                         directory,
                     );
                 }

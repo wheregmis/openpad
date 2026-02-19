@@ -7,3 +7,8 @@
 **Vulnerability:** Accidental leakage of API keys in debug logs and potential Denial of Service (DoS) from unvalidated network latency.
 **Learning:** `derive(Debug)` on structs containing credentials can lead to accidental exposure. `reqwest::Client` has no default timeout, which can hang an application if a remote server is slow or malicious.
 **Prevention:** Use a `SecretString` wrapper with a redacted `Debug` implementation for all credentials. Always set explicit timeouts on network requests (excluding long-running streams like SSE).
+
+## 2025-02-05 – API Key Protection in Dialogs and Actions
+**Vulnerability:** API keys were handled as plain `String` objects in dialog confirmation actions, potentially leaking them in debug logs due to `derive(Debug)` on core action enums.
+**Learning:** Global dialog actions often carry sensitive data. Using a dedicated wrapper like `SecretString` for these fields ensures they are masked in developer logs while remaining accessible for functional use.
+**Prevention:** Use `SecretString` for any action payload that might contain credentials, and ensure function signatures in the dispatch and runtime layers also use the protected type to maintain the security boundary.
