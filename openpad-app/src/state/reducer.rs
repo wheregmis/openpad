@@ -42,7 +42,6 @@ pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEf
         AppAction::SessionLoaded(session) => {
             if state.current_session_id.is_none() {
                 state.current_session_id = Some(session.id.clone());
-                state.messages_data.clear();
             }
 
             if let Some(existing) = state.find_session_mut(&session.id) {
@@ -53,7 +52,6 @@ pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEf
         }
         AppAction::SessionCreated(session) => {
             state.current_session_id = Some(session.id.clone());
-            state.messages_data.clear();
             state
                 .messages_by_session
                 .entry(session.id.clone())
@@ -72,7 +70,6 @@ pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEf
                 state.current_session_id = None;
                 state.selected_session_id = None;
                 state.is_working = false;
-                state.messages_data.clear();
             } else if state.selected_session_id.as_deref() == Some(session_id) {
                 state.selected_session_id = None;
             }
@@ -100,19 +97,12 @@ pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEf
                         });
                 summary.diffs = diffs.clone();
             }
-
-            if state.current_session_id.as_deref() == Some(session_id.as_str()) {
-                state.messages_data = state.messages_for_session(session_id).to_vec();
-            }
         }
         AppAction::MessagesLoaded {
             session_id,
             messages,
         } => {
             state.set_messages_for_session(session_id.clone(), messages.clone());
-            if state.current_session_id.as_deref() == Some(session_id.as_str()) {
-                state.messages_data = messages.clone();
-            }
 
             let message_id = messages.iter().rev().find_map(|mwp| match &mwp.info {
                 openpad_protocol::Message::User(msg) => Some(msg.id.clone()),
@@ -221,10 +211,6 @@ fn reduce_message_received(state: &mut AppState, message: &Message) {
         if let Message::Assistant(msg) = message {
             state.is_working = msg.time.completed.is_none() && msg.error.is_none();
         }
-
-        if let Some(session_messages) = state.messages_by_session.get(&session_id) {
-            state.messages_data = session_messages.clone();
-        }
     }
 }
 
@@ -235,12 +221,9 @@ fn reduce_part_received(state: &mut AppState, part: &Part) {
 
     let mut should_update_work = false;
     let mut work_session_id: Option<String> = None;
-    let mut did_mutate_parts = false;
-    let mut matched_session_id: Option<String> = None;
 
-    for (sid, messages) in state.messages_by_session.iter_mut() {
+    for (_sid, messages) in state.messages_by_session.iter_mut() {
         if let Some(mwp) = messages.iter_mut().find(|m| m.info.id() == msg_id) {
-            matched_session_id = Some(sid.clone());
             if matches!(mwp.info, Message::Assistant(_)) {
                 should_update_work = true;
                 work_session_id = Some(mwp.info.session_id().to_string());
@@ -255,24 +238,15 @@ fn reduce_part_received(state: &mut AppState, part: &Part) {
                     } else {
                         mwp.parts.push(part.clone());
                     }
-                    did_mutate_parts = true;
                 }
                 _ => {
                     mwp.parts.push(part.clone());
-                    did_mutate_parts = true;
                 }
             };
             break;
         }
     }
 
-    if let Some(current_sid) = state.current_session_id.clone() {
-        if did_mutate_parts && matched_session_id.as_deref() == Some(current_sid.as_str()) {
-            if let Some(session_messages) = state.messages_by_session.get(&current_sid) {
-                state.messages_data = session_messages.clone();
-            }
-        }
-    }
 
     if should_update_work {
         state.is_working = true;
@@ -340,15 +314,14 @@ fn reduce_session_error(state: &mut AppState, session_id: &str, error: &Assistan
         text: "Session error".to_string(),
     };
 
-    let entry = state
+    state
         .messages_by_session
         .entry(session_id.to_string())
-        .or_default();
-    entry.push(MessageWithParts {
-        info: Message::Assistant(assistant),
-        parts: vec![part],
-    });
-    state.messages_data = entry.clone();
+        .or_default()
+        .push(MessageWithParts {
+            info: Message::Assistant(assistant),
+            parts: vec![part],
+        });
 }
 
 pub fn upsert_session_tab(
@@ -465,7 +438,6 @@ mod tests {
 
         assert_eq!(state.messages_for_session("s1").len(), 1);
         assert_eq!(state.messages_for_session("s2").len(), 1);
-        assert_eq!(state.messages_data.len(), 0);
         assert_eq!(effects.len(), 1);
     }
 
@@ -482,7 +454,6 @@ mod tests {
         assert_eq!(state.working_by_session.get("s1").copied(), Some(true));
         assert!(state.is_working);
         assert_eq!(state.messages_for_session("s1").len(), 1);
-        assert_eq!(state.messages_data.len(), 1);
     }
 
     #[test]
@@ -625,7 +596,6 @@ mod tests {
         let mut state = AppState::default();
         state.current_session_id = Some("s1".to_string());
         state.selected_session_id = Some("s1".to_string());
-        state.messages_data = vec![user_message("s1", "m1")];
         state
             .messages_by_session
             .insert("s1".to_string(), vec![user_message("s1", "m1")]);
@@ -667,7 +637,6 @@ mod tests {
 
         assert_eq!(state.current_session_id, None);
         assert_eq!(state.selected_session_id, None);
-        assert!(state.messages_data.is_empty());
         assert!(!state.messages_by_session.contains_key("s1"));
         assert!(!state.working_by_session.contains_key("s1"));
         assert!(!state.tab_by_session.contains_key("s1"));

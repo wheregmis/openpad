@@ -121,7 +121,6 @@ pub struct AttachedFile {
 /// Data structure holding application state for event handling
 #[derive(Default)]
 pub struct AppState {
-    pub messages_data: Vec<MessageWithParts>,
     pub messages_by_session: HashMap<String, Vec<MessageWithParts>>,
     pub projects: Vec<Project>,
     pub sessions: Vec<Session>,
@@ -195,7 +194,7 @@ impl AppState {
             // "Default" selected - show all models from all providers
             for provider in &self.providers {
                 if let Some(provider_models) = provider.models.as_ref() {
-                    for (_key, model) in provider_models {
+                    for model in provider_models.values() {
                         let model_label = model.name.clone();
                         models.push((provider.id.clone(), model.id.clone(), model_label));
                     }
@@ -204,7 +203,7 @@ impl AppState {
         } else if let Some(provider) = self.providers.get(self.selected_provider_idx - 1) {
             // Specific provider selected
             if let Some(provider_models) = provider.models.as_ref() {
-                for (_key, model) in provider_models {
+                for model in provider_models.values() {
                     let model_label = model.name.clone();
                     models.push((provider.id.clone(), model.id.clone(), model_label));
                 }
@@ -238,7 +237,7 @@ impl AppState {
     pub fn selected_agent_permission(&self) -> Option<PermissionRuleset> {
         self.selected_agent_idx
             .and_then(|idx| self.agents.get(idx))
-            .and_then(|agent| Some(agent.permission.clone()))
+            .map(|agent| agent.permission.clone())
     }
 
     pub fn selected_skill(&self) -> Option<&Skill> {
@@ -343,7 +342,7 @@ impl AppState {
 
     pub fn update_project_context_ui(&self, ui: &WidgetRef, cx: &mut Cx) {
         let project_for_session = self.project_for_current_session();
-        let project = project_for_session.or_else(|| self.current_project.as_ref());
+        let project = project_for_session.or(self.current_project.as_ref());
         state_updates::update_project_context_ui(ui, cx, project);
     }
 

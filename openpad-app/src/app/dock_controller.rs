@@ -297,13 +297,6 @@ impl App {
 
         if !self.state.messages_by_session.contains_key(&session_id) {
             self.load_messages(session_id.clone());
-        } else {
-            self.state.messages_data = self
-                .state
-                .messages_by_session
-                .get(&session_id)
-                .cloned()
-                .unwrap_or_default();
         }
         self.load_pending_permissions();
     }

@@ -17,3 +17,7 @@
 ## 2026-02-18 – Buffer Reuse and Offset-based Slicing in Multi-line Widgets
 **Learning:** Widgets that render multi-line text (like `ColoredDiffText`) often allocate new `String` objects for every line during updates, causing significant heap churn in hot paths like streaming assistant responses. Even if the update is throttled, large diffs can trigger thousands of allocations.
 **Action:** Implement a buffer-reuse strategy by storing line data as `start` and `end` offsets into a single persistent `String` buffer. Clear and reuse the buffer using `.clear()` and `.push_str()` to maintain capacity and reduce deallocations to O(1) amortized. Render lines using string slices in the `draw_walk` loop to eliminate per-frame allocations.
+
+## 2026-06-25 – Eliminating Redundant Global State Caches and Massive Clones
+**Learning:** Maintaining a redundant "active cache" field (like `messages_data`) that mirrors a subset of a primary collection (like `messages_by_session`) leads to massive performance degradation. In streaming applications, updating this cache on every token received triggers $O(N)$ heap clones of large data structures (e.g., entire chat histories).
+**Action:** Remove redundant cache fields and implement a single-source-of-truth model. Perform targeted lookups or pass references/slices directly to UI components. This eliminates expensive redundant allocations in hot paths like SSE event processing and session switching.

@@ -191,12 +191,6 @@ impl App {
             Some(CenterTabKind::Chat { session_id }) => {
                 self.state.current_session_id = Some(session_id.clone());
                 self.state.selected_session_id = Some(session_id.clone());
-                self.state.messages_data = self
-                    .state
-                    .messages_by_session
-                    .get(&session_id)
-                    .cloned()
-                    .unwrap_or_default();
                 self.state.update_files_panel(&self.ui, cx);
                 self.state.update_sessions_panel(&self.ui, cx);
                 self.state.update_session_title_ui(&self.ui, cx);

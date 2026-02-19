@@ -297,6 +297,7 @@ impl SimpleDialogRef {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn show_confirm_with_secondary(
         &self,
         cx: &mut Cx,
