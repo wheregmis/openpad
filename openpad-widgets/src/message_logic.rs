@@ -98,7 +98,7 @@ pub struct DisplayStep {
     pub cached_header_collapsed: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct DisplayMessage {
     pub role: String,
     pub text: String,
@@ -129,39 +129,6 @@ pub struct DisplayMessage {
     pub cached_diff_del: String,
 }
 
-impl Default for DisplayMessage {
-    fn default() -> Self {
-        Self {
-            role: String::new(),
-            text: String::new(),
-            message_id: None,
-            timestamp: None,
-            model_id: None,
-            tokens: None,
-            cost: None,
-            error_text: None,
-            is_error: false,
-            diffs: Vec::new(),
-            show_diffs: false,
-            steps: Vec::new(),
-            show_steps: false,
-            duration_ms: None,
-            cached_steps_summary: String::new(),
-            cached_grouped_summary: String::new(),
-            cached_tool_groups: Vec::new(),
-            cached_needs_markdown: false,
-            cached_thinking_activity: String::new(),
-            cached_running_tools: Vec::new(),
-            cached_timestamp: String::new(),
-            cached_token_usage: String::new(),
-            cached_cost: String::new(),
-            cached_full_diff: String::new(),
-            cached_diff_files: String::new(),
-            cached_diff_add: String::new(),
-            cached_diff_del: String::new(),
-        }
-    }
-}
 
 pub struct MessageProcessor;
 

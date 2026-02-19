@@ -601,13 +601,14 @@ impl SessionTree {
         let height = self.node_height * scale;
         let walk = Walk::new(Size::fill(), Size::Fixed(height));
         if scale > 0.01 && cx.walk_turtle_would_be_visible(walk) {
-            return true;
+            true
         } else {
             cx.walk_turtle(walk);
-            return false;
+            false
         }
     }
 
+    #[allow(clippy::result_unit_err)]
     pub fn begin_folder(&mut self, cx: &mut Cx2d, node_id: LiveId, name: &str) -> Result<(), ()> {
         let scale = self.stack.last().cloned().unwrap_or(1.0);
 
@@ -640,12 +641,10 @@ impl SessionTree {
                 self.end_folder();
                 return Err(());
             }
+        } else if is_open {
+            self.stack.push(scale * 1.0);
         } else {
-            if is_open {
-                self.stack.push(scale * 1.0);
-            } else {
-                return Err(());
-            }
+            return Err(());
         }
         Ok(())
     }
@@ -739,12 +738,11 @@ impl Widget for SessionTree {
 
         self.scroll_bars.handle_event(cx, event, scope);
 
-        match event {
-            Event::DragEnd => self.dragging_node_id = None,
-            _ => (),
-        }
-
         let mut node_actions = Vec::new();
+
+        if let Event::DragEnd = event {
+            self.dragging_node_id = None;
+        }
 
         for (node_id, node) in self.tree_nodes.iter_mut() {
             node.handle_event(cx, event, *node_id, scope, &mut node_actions);

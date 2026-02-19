@@ -1335,7 +1335,7 @@ impl Part {
     pub fn tool_display(&self) -> Option<(String, String, String)> {
         match self {
             Part::Tool { tool, state, .. } => {
-                let input_summary = summarize_tool_input(&state.input());
+                let input_summary = summarize_tool_input(state.input());
                 let result = state.output_or_error();
                 Some((tool.clone(), input_summary, result))
             }
