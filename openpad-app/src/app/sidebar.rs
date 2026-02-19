@@ -73,6 +73,12 @@ impl App {
         let show_files = self.sidebar_mode == SidebarMode::Files;
         let show_settings = self.sidebar_mode == SidebarMode::Settings;
 
+        // Update the header active tab state
+        use crate::components::sidebar_header::SidebarHeaderWidgetRefExt;
+        self.ui
+            .sidebar_header(cx, &[id!(side_panel), id!(sidebar_header)])
+            .set_mode(cx, self.sidebar_mode);
+
         // Use widget() for custom widgets (FilesPanel, SettingsDialog).
         self.ui
             .widget(cx, &[id!(side_panel), id!(files_panel)])

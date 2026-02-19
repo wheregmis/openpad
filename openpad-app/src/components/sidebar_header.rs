@@ -30,6 +30,13 @@ script_mod! {
                     color: theme.THEME_COLOR_TEXT_PRIMARY
                     text_style: theme.font_regular { font_size: 11 }
                 }
+                animator: Animator {
+                    selected: {
+                        default: off
+                        off: { apply: { draw_bg: { color: (theme.THEME_COLOR_TRANSPARENT) } } }
+                        on: { apply: { draw_bg: { color: (theme.THEME_COLOR_HOVER_SUBTLE) } } }
+                    }
+                }
             }
 
             settings_tab := Button {
@@ -45,6 +52,13 @@ script_mod! {
                 draw_text +: {
                     color: theme.THEME_COLOR_TEXT_PRIMARY
                     text_style: theme.font_regular { font_size: 11 }
+                }
+                animator: Animator {
+                    selected: {
+                        default: off
+                        off: { apply: { draw_bg: { color: (theme.THEME_COLOR_TRANSPARENT) } } }
+                        on: { apply: { draw_bg: { color: (theme.THEME_COLOR_HOVER_SUBTLE) } } }
+                    }
                 }
             }
         }
@@ -66,6 +80,9 @@ pub struct SidebarHeader {
 
     #[deref]
     view: View,
+
+    #[rust]
+    mode: SidebarMode,
 }
 
 impl Widget for SidebarHeader {
@@ -79,6 +96,31 @@ impl Widget for SidebarHeader {
         }
         if self.view.button(cx, &[id!(settings_tab)]).clicked(&actions) {
             cx.action(AppAction::SetSidebarMode(SidebarMode::Settings));
+        }
+    }
+
+    fn draw_walk(&mut self, cx: &mut Cx2d, scope: &mut Scope, walk: Walk) -> DrawStep {
+        let is_files = self.mode == SidebarMode::Files;
+
+        if is_files {
+            self.view.view(cx, &[id!(projects_tab)]).animator_play(cx, &[id!(selected), id!(on)]);
+            self.view.view(cx, &[id!(settings_tab)]).animator_play(cx, &[id!(selected), id!(off)]);
+        } else {
+            self.view.view(cx, &[id!(projects_tab)]).animator_play(cx, &[id!(selected), id!(off)]);
+            self.view.view(cx, &[id!(settings_tab)]).animator_play(cx, &[id!(selected), id!(on)]);
+        }
+
+        self.view.draw_walk(cx, scope, walk)
+    }
+}
+
+impl SidebarHeaderRef {
+    pub fn set_mode(&self, cx: &mut Cx, mode: SidebarMode) {
+        if let Some(mut inner) = self.borrow_mut() {
+            if inner.mode != mode {
+                inner.mode = mode;
+                inner.redraw(cx);
+            }
         }
     }
 }

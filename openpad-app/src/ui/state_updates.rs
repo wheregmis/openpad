@@ -2,12 +2,14 @@ use crate::constants::*;
 use crate::utils::path_utils::normalize_worktree;
 use makepad_widgets::*;
 use openpad_protocol::{Project, SessionSummary};
+use openpad_widgets::status_dot::StatusDotWidgetRefExt;
 use std::path::Path;
 
 /// Updates the status indicator UI (dot color and label text)
 pub fn update_status_indicator(ui: &WidgetRef, cx: &mut Cx, status_text: &str, color: Vec4) {
     ui.label(cx, &[id!(status_label)]).set_text(cx, status_text);
-    let _ = color;
+    // Update the status dot color using the new setter
+    ui.status_dot(cx, &[id!(status_dot)]).set_color(cx, color);
 }
 
 /// Sets status to connected
@@ -32,7 +34,7 @@ pub fn update_work_indicator(ui: &WidgetRef, cx: &mut Cx, working: bool) {
 
 /// Updates the session title label with appropriate styling
 pub fn update_session_title_ui(ui: &WidgetRef, cx: &mut Cx, title: &str, is_active: bool) {
-    let color = if is_active {
+    let _color = if is_active {
         COLOR_TEXT_TITLE_ACTIVE
     } else {
         COLOR_TEXT_TITLE_INACTIVE
@@ -40,7 +42,6 @@ pub fn update_session_title_ui(ui: &WidgetRef, cx: &mut Cx, title: &str, is_acti
     let marker = if is_active { "●" } else { "○" };
     ui.label(cx, &[id!(session_title)])
         .set_text(cx, &format!("{marker} {title}"));
-    let _ = color;
 }
 
 /// Updates the revert indicator visibility based on session revert state
@@ -121,7 +122,7 @@ fn project_display_name_and_path(project: &Project) -> (String, String) {
 
 /// Updates the project context strip (badge + path) shown above the session title
 pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&Project>) {
-    let (badge_text, path_text, badge_color, badge_text_color, path_visible) =
+    let (badge_text, path_text, _badge_color, _badge_text_color, path_visible) =
         if let Some(project) = project {
             let (name, path) = project_display_name_and_path(project);
             (
@@ -155,8 +156,4 @@ pub fn update_project_context_ui(ui: &WidgetRef, cx: &mut Cx, project: Option<&P
         .set_text(cx, &format!("↳ {display_path}"));
     ui.view(cx, &[id!(project_path_wrap)])
         .set_visible(cx, path_visible);
-
-    let _ = badge_color;
-    let _ = badge_text_color;
-    let _ = COLOR_PROJECT_PATH_TEXT;
 }
