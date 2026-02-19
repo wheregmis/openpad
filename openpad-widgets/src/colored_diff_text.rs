@@ -38,11 +38,14 @@ pub struct ColoredDiffText {
     lines: Vec<DiffLine>,
     #[rust]
     cached_text: String,
+    #[rust]
+    normalized_text: String,
 }
 
 #[derive(Clone)]
 struct DiffLine {
-    text: String,
+    start: usize,
+    end: usize,
     line_type: DiffLineType,
 }
 
@@ -77,8 +80,11 @@ impl Widget for ColoredDiffText {
             };
 
             self.draw_text.color = text_color;
+            // Optimization: use a string slice from the persistent normalized_text buffer.
+            // This avoids creating new String objects per line during the draw loop.
+            let text = &self.normalized_text[line.start..line.end];
             self.draw_text
-                .draw_walk(cx, Walk::fit(), Align::default(), &line.text);
+                .draw_walk(cx, Walk::fit(), Align::default(), text);
         }
 
         cx.end_turtle();
@@ -91,8 +97,12 @@ impl ColoredDiffText {
         if self.cached_text == text {
             return;
         }
-        self.cached_text = text.to_string();
+        // Optimization: avoid repeated allocation by clearing and reusing persistent buffers.
+        // We reuse cached_text, normalized_text, and lines Vec to reduce heap churn.
+        self.cached_text.clear();
+        self.cached_text.push_str(text);
 
+        self.normalized_text.clear();
         self.lines.clear();
 
         for line in text.lines() {
@@ -107,14 +117,18 @@ impl ColoredDiffText {
                 DiffLineType::Context
             };
 
-            let display_text = if let Some(stripped) = line.strip_prefix(' ') {
-                format!("·{}", stripped)
+            let start = self.normalized_text.len();
+            if let Some(stripped) = line.strip_prefix(' ') {
+                self.normalized_text.push('·');
+                self.normalized_text.push_str(stripped);
             } else {
-                line.to_string()
+                self.normalized_text.push_str(line);
             };
+            let end = self.normalized_text.len();
 
             self.lines.push(DiffLine {
-                text: display_text,
+                start,
+                end,
                 line_type,
             });
         }
