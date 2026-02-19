@@ -12,3 +12,7 @@
 **Vulnerability:** API keys were handled as plain `String` objects in dialog confirmation actions, potentially leaking them in debug logs due to `derive(Debug)` on core action enums.
 **Learning:** Global dialog actions often carry sensitive data. Using a dedicated wrapper like `SecretString` for these fields ensures they are masked in developer logs while remaining accessible for functional use.
 **Prevention:** Use `SecretString` for any action payload that might contain credentials, and ensure function signatures in the dispatch and runtime layers also use the protected type to maintain the security boundary.
+## 2025-02-05 – Tool Input Redaction and Client Timeouts
+**Vulnerability:** Leakage of sensitive credentials in tool input summaries and potential Denial of Service (DoS) from missing network timeouts.
+**Learning:** Tool input summaries often serialize HashMaps directly to JSON for UI display. If these maps contain secrets (like API keys or tokens) that aren't in a preferred display list, they are leaked in full. Centralizing sensitive key detection logic ensures consistent redaction across both Debug logs and UI summaries.
+**Prevention:** Always redact sensitive keys in data structures intended for UI display or logging. Use centralized heuristics for identifying credentials and ensure all network requests have explicit timeouts.

@@ -515,6 +515,7 @@ impl OpenCodeClient {
             .get(&url)
             .query(&[("directory", &self.directory)])
             .query(&[("pattern", &request.pattern)])
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -540,7 +541,13 @@ impl OpenCodeClient {
             query.push(("limit", limit.to_string()));
         }
 
-        let response = self.http.get(&url).query(&query).send().await?;
+        let response = self
+            .http
+            .get(&url)
+            .query(&query)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
 
         let response = Self::check_response(response, "search files").await?;
         Ok(response.json().await?)
@@ -553,6 +560,7 @@ impl OpenCodeClient {
             .get(&url)
             .query(&[("directory", &self.directory)])
             .query(&[("query", &request.query)])
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -567,6 +575,7 @@ impl OpenCodeClient {
             .get(&url)
             .query(&[("directory", &self.directory)])
             .query(&[("path", &request.path)])
+            .timeout(std::time::Duration::from_secs(30))
             .send()
             .await?;
 
@@ -584,7 +593,13 @@ impl OpenCodeClient {
             }
         }
 
-        let response = self.http.get(&url).query(&query).send().await?;
+        let response = self
+            .http
+            .get(&url)
+            .query(&query)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
 
         let response = Self::check_response(response, "get file status").await?;
         Ok(response.json().await?)
