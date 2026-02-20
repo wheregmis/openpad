@@ -527,18 +527,16 @@ impl App {
         async_runtime::spawn_session_brancher(runtime, client, parent_session_id, directory);
     }
 
-    fn revert_to_message(&mut self, _cx: &mut Cx, session_id: String, message_id: String) {
-        let Some(client) = self.client_or_error() else {
-            return;
-        };
-        let Some(runtime) = self._runtime.as_ref() else {
-            return;
-        };
-
-        // Find the session to get its directory
-        let directory = self.get_session_directory(&session_id);
-
-        async_runtime::spawn_message_reverter(runtime, client, session_id, message_id, directory);
+    fn revert_to_message(&mut self, cx: &mut Cx, session_id: String, message_id: String) {
+        // Show confirmation dialog
+        self.ui
+            .simple_dialog(cx, &[id!(simple_dialog)])
+            .show_confirm(
+                cx,
+                "Revert Session",
+                "Are you sure you want to revert to this message? All subsequent messages and actions will be lost.",
+                format!("revert_session:{}:{}", session_id, message_id),
+            );
     }
 
     fn unrevert_session(&mut self, _cx: &mut Cx, session_id: String) {

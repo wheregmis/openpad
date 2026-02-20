@@ -60,7 +60,7 @@ script_mod! {
                     height: Fit
                     text: ""
                     draw_text +: {
-                        color: #27303a0
+                        color: #e6e9ee
                         text_style: theme.font_regular {font_size: 10}
                     }
                 }
