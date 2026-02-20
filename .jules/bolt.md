@@ -21,3 +21,7 @@
 ## 2026-06-25 – Eliminating Redundant Global State Caches and Massive Clones
 **Learning:** Maintaining a redundant "active cache" field (like `messages_data`) that mirrors a subset of a primary collection (like `messages_by_session`) leads to massive performance degradation. In streaming applications, updating this cache on every token received triggers $O(N)$ heap clones of large data structures (e.g., entire chat histories).
 **Action:** Remove redundant cache fields and implement a single-source-of-truth model. Perform targeted lookups or pass references/slices directly to UI components. This eliminates expensive redundant allocations in hot paths like SSE event processing and session switching.
+
+## 2026-07-02 – Reducing Heap Churn and System Calls in Makepad Draw Loops
+**Learning:** Performing $O(N)$ heap clones (e.g., `projects.clone()`) and calling system APIs (e.g., `std::env::current_dir()`) inside a Makepad `draw_walk` or `draw_tree` function causes significant performance degradation, especially during animations or frequent state updates. Furthermore, inefficient string operations like `chars().take(n).collect::<String>()` for UI label truncation cause constant temporary allocations.
+**Action:** Use references and intermediate data structures that store `&T` instead of owned `T` objects in draw loops. Cache system-level information in persistent `#[rust]` fields. Optimize string handling by pre-allocating with `String::with_capacity` and using slice-based truncation with `is_char_boundary()` checks to eliminate unnecessary heap churn.

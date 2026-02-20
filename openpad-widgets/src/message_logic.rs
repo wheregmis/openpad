@@ -129,7 +129,6 @@ pub struct DisplayMessage {
     pub cached_diff_del: String,
 }
 
-
 pub struct MessageProcessor;
 
 impl MessageProcessor {
