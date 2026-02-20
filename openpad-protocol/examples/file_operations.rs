@@ -130,10 +130,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("   Found {} tracked files", files.len());
             for (i, file) in files.iter().take(10).enumerate() {
                 println!(
-                    "   {}. {} ({})",
+                    "   {}. {} ({}) [+{}/-{}]",
                     i + 1,
                     file.path,
-                    file.status.as_deref().unwrap_or("unknown")
+                    file.status,
+                    file.added,
+                    file.removed
                 );
             }
             if files.len() > 10 {
@@ -155,14 +157,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("   Found {} symbols", symbols.len());
             for (i, symbol) in symbols.iter().take(10).enumerate() {
                 println!(
-                    "   {}. {} ({})",
+                    "   {}. {} (kind {})",
                     i + 1,
                     symbol.name,
-                    symbol.kind.as_deref().unwrap_or("unknown")
+                    symbol.kind
                 );
-                if let Some(loc) = &symbol.location {
-                    println!("      at {}:{}:{}", loc.path, loc.line, loc.column);
-                }
+                let loc = &symbol.location;
+                println!(
+                    "      at {} ({}:{} to {}:{})",
+                    loc.uri,
+                    loc.range.start.line,
+                    loc.range.start.character,
+                    loc.range.end.line,
+                    loc.range.end.character
+                );
             }
             if symbols.len() > 10 {
                 println!("   ... and {} more symbols", symbols.len() - 10);

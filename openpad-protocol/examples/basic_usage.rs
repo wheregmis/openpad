@@ -47,6 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             service: "basic_usage_example".to_string(),
             level: "info".to_string(),
             message: "Starting basic usage example".to_string(),
+            extra: Default::default(),
         })
         .await?;
     println!("   ✓ Log entry written");

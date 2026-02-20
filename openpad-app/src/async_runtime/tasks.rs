@@ -388,6 +388,7 @@ pub fn spawn_session_updater(
         let target_client = get_directory_client(client, directory);
         let request = SessionUpdateRequest {
             title: Some(new_title),
+            time: None,
         };
         match target_client.update_session(&session_id, request).await {
             Ok(session) => {
@@ -494,10 +495,15 @@ pub fn spawn_session_summarizer(
     runtime: &tokio::runtime::Runtime,
     client: Arc<OpenCodeClient>,
     session_id: String,
-    force: bool,
+    provider_id: String,
+    model_id: String,
 ) {
     runtime.spawn(async move {
-        let request = openpad_protocol::SessionSummarizeRequest { force: Some(force) };
+        let request = openpad_protocol::SessionSummarizeRequest {
+            provider_id,
+            model_id,
+            auto: false,
+        };
         match client.summarize_session(&session_id, request).await {
             Ok(_) => {}
             Err(e) => {

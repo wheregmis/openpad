@@ -241,7 +241,7 @@ impl SettingsDialog {
         let items: Vec<String> = self
             .providers
             .iter()
-            .map(|p| p.name.clone().unwrap_or_default())
+            .map(|p| p.name.clone())
             .collect();
         self.view
             .up_drop_down(cx, &[id!(content), id!(provider_dropdown)])

@@ -153,7 +153,7 @@ pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEf
                 state
                     .providers
                     .iter()
-                    .map(|p| p.name.as_deref().unwrap_or(&p.id).to_string()),
+                    .map(|p| p.name.clone()),
             );
             state.provider_labels = provider_labels;
             state.selected_provider_idx = 0;
@@ -312,6 +312,10 @@ fn reduce_session_error(state: &mut AppState, session_id: &str, error: &Assistan
         session_id: session_id.to_string(),
         message_id: message_id.clone(),
         text: "Session error".to_string(),
+        synthetic: None,
+        ignored: None,
+        time: None,
+        metadata: None,
     };
 
     state

@@ -76,7 +76,7 @@ mod tests {
         let _: FilesSearchRequest;
         let _: SymbolsSearchRequest;
         let _: Symbol;
-        let _: Location;
+        let _: SymbolLocation;
         let _: FileReadRequest;
         let _: FileReadResponse;
         let _: FileStatusRequest;
@@ -759,6 +759,10 @@ mod tests {
                 session_id: "ses_123".to_string(),
                 message_id: "msg_123".to_string(),
                 text: "Hello world".to_string(),
+                synthetic: None,
+                ignored: None,
+                time: None,
+                metadata: None,
             };
 
             let json = serde_json::to_value(&part).expect("Failed to serialize");
@@ -804,8 +808,12 @@ mod tests {
                 get_schema(&spec, "Provider").expect("Provider schema not found");
             let provider = Provider {
                 id: "anthropic".to_string(),
-                name: Some("Anthropic".to_string()),
-                models: None,
+                name: "Anthropic".to_string(),
+                source: "api".to_string(),
+                env: vec![],
+                key: None,
+                options: HashMap::new(),
+                models: HashMap::new(),
             };
 
             // Just verify the type serializes correctly with our required fields
