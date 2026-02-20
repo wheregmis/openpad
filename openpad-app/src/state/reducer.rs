@@ -247,7 +247,6 @@ fn reduce_part_received(state: &mut AppState, part: &Part) {
         }
     }
 
-
     if should_update_work {
         state.is_working = true;
         if let Some(session_id) = work_session_id {

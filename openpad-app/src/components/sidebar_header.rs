@@ -103,11 +103,19 @@ impl Widget for SidebarHeader {
         let is_files = self.mode == SidebarMode::Files;
 
         if is_files {
-            self.view.view(cx, &[id!(projects_tab)]).animator_play(cx, &[id!(selected), id!(on)]);
-            self.view.view(cx, &[id!(settings_tab)]).animator_play(cx, &[id!(selected), id!(off)]);
+            self.view
+                .view(cx, &[id!(projects_tab)])
+                .animator_play(cx, &[id!(selected), id!(on)]);
+            self.view
+                .view(cx, &[id!(settings_tab)])
+                .animator_play(cx, &[id!(selected), id!(off)]);
         } else {
-            self.view.view(cx, &[id!(projects_tab)]).animator_play(cx, &[id!(selected), id!(off)]);
-            self.view.view(cx, &[id!(settings_tab)]).animator_play(cx, &[id!(selected), id!(on)]);
+            self.view
+                .view(cx, &[id!(projects_tab)])
+                .animator_play(cx, &[id!(selected), id!(off)]);
+            self.view
+                .view(cx, &[id!(settings_tab)])
+                .animator_play(cx, &[id!(selected), id!(on)]);
         }
 
         self.view.draw_walk(cx, scope, walk)

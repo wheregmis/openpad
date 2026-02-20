@@ -82,28 +82,28 @@ pub struct SessionsPanel {
     session_node_to_id: HashMap<LiveId, String>,
     #[rust]
     project_node_to_id: HashMap<LiveId, Option<String>>,
+
+    #[rust]
+    current_dir_name: String,
 }
 
 impl SessionsPanel {
-    fn derive_project_name(project: &Project) -> String {
+    fn derive_project_name(project: &Project, current_dir_name: &str) -> String {
         if let Some(name) = &project.name {
             if !name.trim().is_empty() {
                 return name.clone();
             }
         }
         let worktree = if project.worktree == "." {
-            std::env::current_dir()
-                .ok()
-                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-                .unwrap_or_else(|| project.worktree.clone())
+            current_dir_name
         } else {
-            project.worktree.clone()
+            &project.worktree
         };
-        std::path::Path::new(&worktree)
+        std::path::Path::new(worktree)
             .file_name()
             .and_then(|n| n.to_str())
             .filter(|n| !n.is_empty())
-            .unwrap_or(&worktree)
+            .unwrap_or(worktree)
             .to_string()
     }
 
@@ -141,20 +141,38 @@ impl SessionsPanel {
     }
 
     fn session_display_label(&self, session: &Session) -> String {
-        let mut title = async_runtime::get_session_title(session);
-        if title.trim().is_empty() {
-            title = "Untitled session".to_string();
-        }
-
-        let mut label = if title.chars().count() > 40 {
-            format!("{}…", title.chars().take(40).collect::<String>())
+        let title = async_runtime::get_session_title(session);
+        let title = title.trim();
+        let display_title = if title.is_empty() {
+            "Untitled session"
         } else {
             title
         };
 
+        // Optimization: use String::with_capacity and more efficient truncation
+        // to reduce allocations and heap churn in the draw loop.
+        let mut label = String::with_capacity(128);
+
+        if display_title.len() > 60 {
+            // Fast estimate for truncation using byte indices
+            let mut end = 40;
+            while end > 0 && !display_title.is_char_boundary(end) {
+                end -= 1;
+            }
+            label.push_str(&display_title[..end]);
+            label.push('…');
+        } else {
+            label.push_str(display_title);
+        }
+
         if let Some(summary) = session.summary.as_ref() {
             if let Some((files, adds, dels)) = Self::session_diff_stats(summary) {
-                label.push_str(&format!("   {}  {}  {}", files, adds, dels));
+                label.push_str("   ");
+                label.push_str(&files);
+                label.push_str("  ");
+                label.push_str(&adds);
+                label.push_str("  ");
+                label.push_str(&dels);
             }
         }
 
@@ -183,10 +201,21 @@ impl SessionsPanel {
         self.session_node_to_id.clear();
         self.project_node_to_id.clear();
 
-        let projects = self.projects.clone();
-        let sessions = self.sessions.clone();
+        // Optimization: avoid repeated system calls to get current directory.
+        if self.current_dir_name.is_empty() {
+            self.current_dir_name = std::env::current_dir()
+                .ok()
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                .unwrap_or_else(|| ".".to_string());
+        }
+        let current_dir_name = &self.current_dir_name;
 
-        let mut grouped: HashMap<String, Vec<Session>> = HashMap::new();
+        // Optimization: use references instead of cloning projects and sessions every frame.
+        // This avoids $O(N)$ heap allocations in the draw loop.
+        let projects = &self.projects;
+        let sessions = &self.sessions;
+
+        let mut grouped: HashMap<String, Vec<&Session>> = HashMap::new();
         for session in sessions {
             grouped
                 .entry(session.project_id.clone())
@@ -195,14 +224,14 @@ impl SessionsPanel {
         }
 
         let mut known_project_ids = HashSet::new();
-        for project in &projects {
+        for project in projects {
             if project.worktree == "/" || project.worktree.is_empty() {
                 continue;
             }
 
             known_project_ids.insert(project.id.clone());
 
-            let project_name = Self::derive_project_name(project);
+            let project_name = Self::derive_project_name(project, current_dir_name);
             let project_node_id = Self::project_node_id(&project.id);
             self.project_node_to_id
                 .insert(project_node_id, Some(project.id.clone()));
@@ -224,7 +253,7 @@ impl SessionsPanel {
             }
         }
 
-        let ungrouped: Vec<Session> = grouped
+        let ungrouped: Vec<&Session> = grouped
             .into_iter()
             .filter(|(project_id, _)| !known_project_ids.contains(project_id))
             .flat_map(|(_, sessions)| sessions)

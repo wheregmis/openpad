@@ -116,19 +116,31 @@ impl App {
             return;
         };
 
-        let directory = self.get_session_directory(data);
-
         match action {
             "delete_session" => {
+                let directory = self.get_session_directory(data);
                 async_runtime::spawn_session_deleter(runtime, client, data.to_string(), directory);
             }
             "rename_session" => {
                 if !value.is_empty() {
+                    let directory = self.get_session_directory(data);
                     async_runtime::spawn_session_updater(
                         runtime,
                         client,
                         data.to_string(),
                         value.to_string(),
+                        directory,
+                    );
+                }
+            }
+            "revert_session" => {
+                if let Some((session_id, message_id)) = data.split_once(':') {
+                    let directory = self.get_session_directory(session_id);
+                    async_runtime::spawn_message_reverter(
+                        runtime,
+                        client,
+                        session_id.to_string(),
+                        message_id.to_string(),
                         directory,
                     );
                 }

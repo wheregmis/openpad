@@ -732,13 +732,13 @@ mod tests {
         fn test_permission_reply_enum_values() {
             // Validate that PermissionReply enum values match OpenAPI spec
             // (defined inline in Event.permission.replied)
-            let replies = vec![
+            let replies = [
                 PermissionReply::Once,
                 PermissionReply::Always,
                 PermissionReply::Reject,
             ];
 
-            let expected_values = vec!["once", "always", "reject"];
+            let expected_values = ["once", "always", "reject"];
 
             for (reply, expected) in replies.iter().zip(expected_values.iter()) {
                 let json = serde_json::to_value(reply).expect("Failed to serialize");
