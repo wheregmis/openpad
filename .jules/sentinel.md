@@ -16,3 +16,8 @@
 **Vulnerability:** Leakage of sensitive credentials in tool input summaries and potential Denial of Service (DoS) from missing network timeouts.
 **Learning:** Tool input summaries often serialize HashMaps directly to JSON for UI display. If these maps contain secrets (like API keys or tokens) that aren't in a preferred display list, they are leaked in full. Centralizing sensitive key detection logic ensures consistent redaction across both Debug logs and UI summaries.
 **Prevention:** Always redact sensitive keys in data structures intended for UI display or logging. Use centralized heuristics for identifying credentials and ensure all network requests have explicit timeouts.
+
+## 2025-02-05 – Enhanced Sensitive Key Detection and Error Security
+**Vulnerability:** Potentially sensitive headers (e.g., Cookie, Authorization) and error metadata were not being fully protected in Debug logs or UI summaries.
+**Learning:** Centralized key detection (`is_sensitive_key`) should cover a wide range of common sensitive keywords (auth, cookie, signature, credential) to be effective across different providers. Error response bodies and metadata from external APIs are high-risk areas for credential leakage.
+**Prevention:** Expand centralized sensitive key heuristics and apply `SecretString` to all fields containing external API responses or headers that might be logged during error conditions.

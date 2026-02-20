@@ -225,6 +225,12 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower == "token"
         || k_lower == "secret"
         || k_lower == "password"
+        || k_lower == "auth"
+        || k_lower == "authorization"
+        || k_lower == "cookie"
+        || k_lower == "set-cookie"
+        || k_lower == "signature"
+        || k_lower == "credential"
         || k_lower.ends_with("_key")
         || k_lower.ends_with("-key")
         || k_lower.ends_with("_token")
@@ -233,6 +239,8 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower.ends_with("-secret")
         || k_lower.ends_with("_password")
         || k_lower.ends_with("-password")
+        || k_lower.ends_with("_auth")
+        || k_lower.ends_with("-auth")
 }
 
 /// Helper to mask sensitive keys in a HashMap when formatting for Debug.
@@ -275,7 +283,7 @@ pub struct Model {
     pub limit: ModelLimit,
     pub status: String,
     pub options: HashMap<String, serde_json::Value>,
-    pub headers: HashMap<String, String>,
+    pub headers: HashMap<String, SecretString>,
     pub release_date: String,
     #[serde(default)]
     pub variants: Option<HashMap<String, serde_json::Value>>,
@@ -888,7 +896,7 @@ pub enum AssistantError {
         message: String,
         /// Optional response body
         #[serde(default, rename = "responseBody")]
-        response_body: Option<String>,
+        response_body: Option<SecretString>,
     },
     /// An error occurred while communicating with the AI API
     APIError {
@@ -908,7 +916,7 @@ pub enum AssistantError {
         response_body: Option<SecretString>,
         /// Additional metadata about the error
         #[serde(default)]
-        metadata: Option<HashMap<String, String>>,
+        metadata: Option<HashMap<String, SecretString>>,
     },
 }
 
