@@ -499,7 +499,22 @@ impl App {
             return;
         };
 
-        async_runtime::spawn_session_summarizer(runtime, client, session_id, false);
+        let model_spec = self.state.selected_model_spec();
+        let (provider_id, model_id) = match model_spec {
+            Some(spec) => (spec.provider_id, spec.model_id),
+            None => {
+                // If no model is explicitly selected (e.g. "Default" is selected),
+                // we try to use the first entry from model_entries if available.
+                if let Some((pid, mid)) = self.state.model_entries.first() {
+                    (pid.clone(), mid.clone())
+                } else {
+                    // Fallback to avoid crash, though ideally this shouldn't happen if connected
+                    ("openai".to_string(), "gpt-4o".to_string())
+                }
+            }
+        };
+
+        async_runtime::spawn_session_summarizer(runtime, client, session_id, provider_id, model_id);
     }
 
     fn load_session_diff(&mut self, _cx: &mut Cx, session_id: String, message_id: Option<String>) {

@@ -6,11 +6,12 @@
 use crate::{
     Agent, AppendPromptRequest, AuthSetRequest, CommandRequest, Config, ExecuteCommandRequest,
     File, FileDiff, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest,
-    HealthResponse, LogRequest, MessageWithParts, PathInfo, PermissionReply,
-    PermissionReplyRequest, PermissionRequest, PermissionResponse, Project, PromptRequest,
-    ProvidersResponse, Pty, RevertRequest, SessionCreateRequest, SessionInitRequest,
-    SessionSummarizeRequest, SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol,
-    SymbolsSearchRequest, TextSearchRequest, TextSearchResult, Todo,
+    GlobalSession, HealthResponse, LogRequest, MCPStatus, McpAddRequest, McpResource,
+    MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest, PermissionRequest,
+    PermissionResponse, Project, ProjectUpdateRequest, PromptRequest, ProvidersResponse, Pty,
+    RevertRequest, SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest,
+    SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol,
+    SymbolsSearchRequest, TextSearchRequest, TextSearchResult, Todo, ToolIDs, ToolList,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
 use reqwest::Client as HttpClient;
@@ -260,6 +261,49 @@ impl OpenCodeClient {
         self.get_json("/session", "list sessions").await
     }
 
+    pub async fn list_global_sessions(
+        &self,
+        roots: Option<bool>,
+        start: Option<f64>,
+        cursor: Option<f64>,
+        search: Option<&str>,
+        limit: Option<f64>,
+        archived: Option<bool>,
+    ) -> Result<Vec<GlobalSession>> {
+        let url = format!("{}/experimental/session", self.base_url);
+        let mut query = vec![("directory", self.directory.clone())];
+
+        if let Some(roots) = roots {
+            query.push(("roots", roots.to_string()));
+        }
+        if let Some(start) = start {
+            query.push(("start", start.to_string()));
+        }
+        if let Some(cursor) = cursor {
+            query.push(("cursor", cursor.to_string()));
+        }
+        if let Some(search) = search {
+            query.push(("search", search.to_string()));
+        }
+        if let Some(limit) = limit {
+            query.push(("limit", limit.to_string()));
+        }
+        if let Some(archived) = archived {
+            query.push(("archived", archived.to_string()));
+        }
+
+        let response = self
+            .http
+            .get(&url)
+            .query(&query)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let response = Self::check_response(response, "list global sessions").await?;
+        Ok(response.json().await?)
+    }
+
     pub async fn create_session(&self) -> Result<Session> {
         let body = serde_json::json!({});
         self.post_json("/session", &body, "create session").await
@@ -298,6 +342,36 @@ impl OpenCodeClient {
         Ok(response.json().await?)
     }
 
+    pub async fn get_global_config(&self) -> Result<Config> {
+        let url = format!("{}/global/config", self.base_url);
+        let response = self
+            .http
+            .get(&url)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+        let response = Self::check_response(response, "get global config").await?;
+        Ok(response.json().await?)
+    }
+
+    pub async fn update_global_config(&self, config: &Config) -> Result<Config> {
+        let url = format!("{}/global/config", self.base_url);
+        let response = self
+            .http
+            .patch(&url)
+            .json(config)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+        let response = Self::check_response(response, "update global config").await?;
+        Ok(response.json().await?)
+    }
+
+    pub async fn dispose_global(&self) -> Result<bool> {
+        self.post_no_body_bool("/global/dispose", "dispose global")
+            .await
+    }
+
     // ========================================================================
     // App APIs
     // ========================================================================
@@ -325,6 +399,15 @@ impl OpenCodeClient {
     pub async fn current_project(&self) -> Result<Project> {
         self.get_json("/project/current", "get current project")
             .await
+    }
+
+    pub async fn update_project(
+        &self,
+        project_id: &str,
+        request: ProjectUpdateRequest,
+    ) -> Result<Project> {
+        let endpoint = format!("/project/{}", project_id);
+        self.patch_json(&endpoint, &request, "update project").await
     }
 
     // ========================================================================
@@ -504,6 +587,42 @@ impl OpenCodeClient {
             .await
     }
 
+    pub async fn list_mcp_resources(&self) -> Result<std::collections::HashMap<String, McpResource>> {
+        self.get_json("/experimental/resource", "list mcp resources")
+            .await
+    }
+
+    pub async fn list_mcp_status(&self) -> Result<std::collections::HashMap<String, MCPStatus>> {
+        self.get_json("/mcp", "list mcp status").await
+    }
+
+    pub async fn add_mcp_server(
+        &self,
+        request: McpAddRequest,
+    ) -> Result<std::collections::HashMap<String, MCPStatus>> {
+        self.post_json("/mcp", &request, "add mcp server").await
+    }
+
+    pub async fn list_tool_ids(&self) -> Result<ToolIDs> {
+        self.get_json("/experimental/tool/ids", "list tool ids").await
+    }
+
+    pub async fn list_tools(&self, provider: &str, model: &str) -> Result<ToolList> {
+        let url = format!("{}/experimental/tool", self.base_url);
+        let response = self
+            .http
+            .get(&url)
+            .query(&[("directory", &self.directory)])
+            .query(&[("provider", provider)])
+            .query(&[("model", model)])
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let response = Self::check_response(response, "list tools").await?;
+        Ok(response.json().await?)
+    }
+
     // ========================================================================
     // File/Find APIs
     // ========================================================================
@@ -554,7 +673,7 @@ impl OpenCodeClient {
     }
 
     pub async fn search_symbols(&self, request: SymbolsSearchRequest) -> Result<Vec<Symbol>> {
-        let url = format!("{}/find/symbols", self.base_url);
+        let url = format!("{}/find/symbol", self.base_url);
         let response = self
             .http
             .get(&url)
@@ -569,7 +688,7 @@ impl OpenCodeClient {
     }
 
     pub async fn read_file(&self, request: FileReadRequest) -> Result<FileReadResponse> {
-        let url = format!("{}/file/read", self.base_url);
+        let url = format!("{}/file/content", self.base_url);
         let response = self
             .http
             .get(&url)
@@ -610,46 +729,46 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn append_prompt(&self, request: AppendPromptRequest) -> Result<bool> {
-        self.post_json_bool("/tui/appendPrompt", &request, "append prompt")
+        self.post_json_bool("/tui/append-prompt", &request, "append prompt")
             .await
     }
 
     pub async fn open_help(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/openHelp", "open help").await
+        self.post_no_body_bool("/tui/open-help", "open help").await
     }
 
     pub async fn open_sessions(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/openSessions", "open sessions")
+        self.post_no_body_bool("/tui/open-sessions", "open sessions")
             .await
     }
 
     pub async fn open_themes(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/openThemes", "open themes")
+        self.post_no_body_bool("/tui/open-themes", "open themes")
             .await
     }
 
     pub async fn open_models(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/openModels", "open models")
+        self.post_no_body_bool("/tui/open-models", "open models")
             .await
     }
 
     pub async fn submit_prompt(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/submitPrompt", "submit prompt")
+        self.post_no_body_bool("/tui/submit-prompt", "submit prompt")
             .await
     }
 
     pub async fn clear_prompt(&self) -> Result<bool> {
-        self.post_no_body_bool("/tui/clearPrompt", "clear prompt")
+        self.post_no_body_bool("/tui/clear-prompt", "clear prompt")
             .await
     }
 
     pub async fn execute_command(&self, request: ExecuteCommandRequest) -> Result<bool> {
-        self.post_json_bool("/tui/executeCommand", &request, "execute command")
+        self.post_json_bool("/tui/execute-command", &request, "execute command")
             .await
     }
 
     pub async fn show_toast(&self, request: ShowToastRequest) -> Result<bool> {
-        self.post_json_bool("/tui/showToast", &request, "show toast")
+        self.post_json_bool("/tui/show-toast", &request, "show toast")
             .await
     }
 

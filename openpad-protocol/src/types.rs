@@ -93,6 +93,8 @@ pub struct LogRequest {
     pub service: String,
     pub level: String,
     pub message: String,
+    #[serde(default)]
+    pub extra: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -137,8 +139,7 @@ pub struct Skill {
     pub name: String,
     pub description: String,
     pub location: String,
-    #[serde(default)]
-    pub content: Option<String>,
+    pub content: String,
 }
 
 // ============================================================================
@@ -166,7 +167,7 @@ pub struct Project {
 pub struct ProjectIcon {
     #[serde(default)]
     pub url: Option<String>,
-    #[serde(default)]
+    #[serde(default, rename = "override")]
     pub r#override: Option<String>,
     #[serde(default)]
     pub color: Option<String>,
@@ -176,6 +177,24 @@ pub struct ProjectIcon {
 pub struct ProjectCommands {
     #[serde(default)]
     pub start: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
+pub struct ProjectUpdateRequest {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub icon: Option<ProjectIcon>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub commands: Option<ProjectCommands>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ProjectSummary {
+    pub id: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    pub worktree: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -263,10 +282,13 @@ impl<'a> fmt::Debug for ExtraMasked<'a> {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Provider {
     pub id: String,
+    pub name: String,
+    pub source: String, // "env", "config", "custom", "api"
+    pub env: Vec<String>,
     #[serde(default)]
-    pub name: Option<String>,
-    #[serde(default)]
-    pub models: Option<HashMap<String, Model>>,
+    pub key: Option<String>,
+    pub options: HashMap<String, serde_json::Value>,
+    pub models: HashMap<String, Model>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -397,17 +419,14 @@ pub struct SymbolsSearchRequest {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Symbol {
     pub name: String,
-    #[serde(default)]
-    pub kind: Option<String>,
-    #[serde(default)]
-    pub location: Option<Location>,
+    pub kind: f64,
+    pub location: SymbolLocation,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct Location {
-    pub path: String,
-    pub line: usize,
-    pub column: usize,
+pub struct SymbolLocation {
+    pub uri: String,
+    pub range: Range,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -418,8 +437,16 @@ pub struct FileReadRequest {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FileReadResponse {
     #[serde(rename = "type")]
-    pub type_name: String, // "raw" or "patch"
+    pub type_name: String, // "text" or "binary"
     pub content: String,
+    #[serde(default)]
+    pub diff: Option<String>,
+    #[serde(default)]
+    pub patch: Option<serde_json::Value>,
+    #[serde(default)]
+    pub encoding: Option<String>,
+    #[serde(default, rename = "mimeType")]
+    pub mime_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -431,8 +458,9 @@ pub struct FileStatusRequest {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct File {
     pub path: String,
-    #[serde(default)]
-    pub status: Option<String>,
+    pub added: i64,
+    pub removed: i64,
+    pub status: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -492,6 +520,33 @@ pub struct Worktree {
     pub directory: String,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PtyCreateRequest {
+    pub command: String,
+    #[serde(default)]
+    pub args: Vec<String>,
+    #[serde(default)]
+    pub cwd: Option<String>,
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub env: HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PtyUpdateRequest {
+    #[serde(default)]
+    pub title: Option<String>,
+    #[serde(default)]
+    pub size: Option<PtySize>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct PtySize {
+    pub rows: f64,
+    pub cols: f64,
+}
+
 // ============================================================================
 // TUI API types
 // ============================================================================
@@ -508,9 +563,12 @@ pub struct ExecuteCommandRequest {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct ShowToastRequest {
-    pub message: String,
     #[serde(default)]
-    pub variant: Option<String>, // e.g., "success", "error", "info"
+    pub title: Option<String>,
+    pub message: String,
+    pub variant: String, // "info", "success", "warning", "error"
+    #[serde(default)]
+    pub duration: Option<f64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -749,21 +807,44 @@ pub struct SessionCreateRequest {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct GlobalSession {
+    #[serde(flatten)]
+    pub info: Session,
+    pub project: Option<ProjectSummary>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SessionUpdateRequest {
     #[serde(default)]
     pub title: Option<String>,
+    #[serde(default)]
+    pub time: Option<SessionUpdateTime>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct SessionUpdateTime {
+    #[serde(default)]
+    pub archived: Option<f64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SessionInitRequest {
-    #[serde(default)]
-    pub force: Option<bool>,
+    #[serde(rename = "modelID")]
+    pub model_id: String,
+    #[serde(rename = "providerID")]
+    pub provider_id: String,
+    #[serde(rename = "messageID")]
+    pub message_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct SessionSummarizeRequest {
+    #[serde(rename = "providerID")]
+    pub provider_id: String,
+    #[serde(rename = "modelID")]
+    pub model_id: String,
     #[serde(default)]
-    pub force: Option<bool>,
+    pub auto: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1065,6 +1146,14 @@ pub enum Part {
         message_id: String,
         #[serde(default)]
         text: String,
+        #[serde(default)]
+        synthetic: Option<bool>,
+        #[serde(default)]
+        ignored: Option<bool>,
+        #[serde(default)]
+        time: Option<PartTime>,
+        #[serde(default)]
+        metadata: Option<HashMap<String, serde_json::Value>>,
     },
     #[serde(rename = "subtask")]
     Subtask {
@@ -1108,6 +1197,8 @@ pub enum Part {
         filename: Option<String>,
         #[serde(default)]
         url: String,
+        #[serde(default)]
+        source: Option<FilePartSource>,
     },
     #[serde(rename = "tool")]
     Tool {
@@ -1434,6 +1525,10 @@ pub enum PartInput {
         synthetic: Option<bool>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         ignored: Option<bool>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        time: Option<PartTime>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        metadata: Option<HashMap<String, serde_json::Value>>,
     },
     File {
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1506,6 +1601,79 @@ pub struct Position {
     pub character: f64,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct McpResource {
+    pub name: String,
+    pub uri: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default, rename = "mimeType")]
+    pub mime_type: Option<String>,
+    pub client: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "status", rename_all = "snake_case")]
+pub enum MCPStatus {
+    Connected,
+    Disabled,
+    Failed {
+        error: String,
+    },
+    NeedsAuth,
+    NeedsClientRegistration {
+        error: String,
+    },
+}
+
+pub type ToolIDs = Vec<String>;
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ToolListItem {
+    pub id: String,
+    pub description: String,
+    pub parameters: serde_json::Value,
+}
+
+pub type ToolList = Vec<ToolListItem>;
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct McpAddRequest {
+    pub name: String,
+    pub config: McpConfig,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum McpConfig {
+    Local(McpLocalConfig),
+    Remote(McpRemoteConfig),
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct McpLocalConfig {
+    pub command: Vec<String>,
+    #[serde(default)]
+    pub environment: HashMap<String, String>,
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    #[serde(default)]
+    pub timeout: Option<f64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct McpRemoteConfig {
+    pub url: String,
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    #[serde(default)]
+    pub headers: HashMap<String, String>,
+    #[serde(default)]
+    pub oauth: Option<serde_json::Value>, // McpOAuthConfig or bool
+    #[serde(default)]
+    pub timeout: Option<f64>,
+}
+
 impl PartInput {
     pub fn text(text: impl Into<String>) -> Self {
         Self::Text {
@@ -1513,6 +1681,8 @@ impl PartInput {
             text: text.into(),
             synthetic: None,
             ignored: None,
+            time: None,
+            metadata: None,
         }
     }
 

@@ -193,20 +193,16 @@ impl AppState {
         if self.selected_provider_idx == 0 {
             // "Default" selected - show all models from all providers
             for provider in &self.providers {
-                if let Some(provider_models) = provider.models.as_ref() {
-                    for model in provider_models.values() {
-                        let model_label = model.name.clone();
-                        models.push((provider.id.clone(), model.id.clone(), model_label));
-                    }
+                for model in provider.models.values() {
+                    let model_label = model.name.clone();
+                    models.push((provider.id.clone(), model.id.clone(), model_label));
                 }
             }
         } else if let Some(provider) = self.providers.get(self.selected_provider_idx - 1) {
             // Specific provider selected
-            if let Some(provider_models) = provider.models.as_ref() {
-                for model in provider_models.values() {
-                    let model_label = model.name.clone();
-                    models.push((provider.id.clone(), model.id.clone(), model_label));
-                }
+            for model in provider.models.values() {
+                let model_label = model.name.clone();
+                models.push((provider.id.clone(), model.id.clone(), model_label));
             }
         }
 
