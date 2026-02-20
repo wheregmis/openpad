@@ -51,8 +51,7 @@ impl Widget for StatusDot {
         DrawStep::done()
     }
 
-    fn handle_event(&mut self, _cx: &mut Cx, _event: &Event, _scope: &mut Scope) {
-    }
+    fn handle_event(&mut self, _cx: &mut Cx, _event: &Event, _scope: &mut Scope) {}
 }
 
 impl StatusDotRef {

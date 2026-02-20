@@ -28,7 +28,8 @@ fn build_model_entries(providers: &[Provider]) -> Vec<ModelDropdownEntry> {
             });
             entries.push(ModelDropdownEntry::provider_header(provider_label.clone()));
             for (_key, model) in model_items {
-                let model_label = format!("  {}", display_label(Some(model.name.as_str()), &model.id));
+                let model_label =
+                    format!("  {}", display_label(Some(model.name.as_str()), &model.id));
                 entries.push(ModelDropdownEntry::model_option(
                     provider.id.clone(),
                     model.id.clone(),

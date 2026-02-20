@@ -34,8 +34,6 @@ fn is_probably_binary(bytes: &[u8]) -> bool {
 app_main!(App);
 mod action_dispatch;
 pub(crate) mod composer;
-#[cfg(test)]
-pub(crate) use composer::get_image_data_url_regex;
 mod dock_controller;
 mod lifecycle;
 mod sidebar;
