@@ -1069,6 +1069,8 @@ pub struct MessageList {
     cached_last_assistant_idx: Option<usize>,
     #[rust]
     cached_last_assistant_has_running: bool,
+    #[rust]
+    last_copied_at: Option<(usize, std::time::Instant)>,
 }
 
 impl Widget for MessageList {

@@ -140,10 +140,16 @@ impl MessageList {
                         };
                         let item_widget = list.item(cx, item_id, template);
 
+                        let is_copied = self.last_copied_at.map_or(false, |(id, _)| id == item_id);
+                        let copy_label = if is_copied { "Copied!" } else { "Copy" };
+
                         if msg.role == "user" {
                             item_widget
                                 .widget(cx, &[id!(msg_text)])
                                 .set_text(cx, fallback_text);
+                            item_widget
+                                .button(cx, &[id!(copy_button)])
+                                .set_text(cx, copy_label);
                         } else {
                             let use_markdown = msg.cached_needs_markdown;
                             if use_markdown {
@@ -190,6 +196,9 @@ impl MessageList {
                             || (self.revert_message_id.is_none()
                                 && last_assistant_idx == Some(item_id));
                         if msg.role == "assistant" {
+                            item_widget
+                                .button(cx, &[id!(copy_action_button)])
+                                .set_text(cx, copy_label);
                             item_widget
                                 .button(cx, &[id!(copy_action_button)])
                                 .set_visible(cx, true);

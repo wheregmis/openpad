@@ -2,14 +2,23 @@ use super::*;
 
 impl MessageList {
     pub(crate) fn handle_event_impl(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        if self.is_working {
+        if self.is_working || self.last_copied_at.is_some() {
             if let Event::NextFrame(_) = event {
-                // Optimization: throttle redraw frequency from ~60fps to ~10fps
-                // This significantly reduces CPU usage during the "thinking" state
-                self.frame_count += 1;
-                if self.frame_count.is_multiple_of(6) {
-                    self.thinking_frame = (self.thinking_frame + 1) % 6;
-                    self.redraw(cx);
+                if self.is_working {
+                    // Optimization: throttle redraw frequency from ~60fps to ~10fps
+                    // This significantly reduces CPU usage during the "thinking" state
+                    self.frame_count += 1;
+                    if self.frame_count.is_multiple_of(6) {
+                        self.thinking_frame = (self.thinking_frame + 1) % 6;
+                        self.redraw(cx);
+                    }
+                }
+
+                if let Some((_, time)) = self.last_copied_at {
+                    if time.elapsed().as_secs() >= 2 {
+                        self.last_copied_at = None;
+                        self.redraw(cx);
+                    }
                 }
             }
             cx.new_next_frame();
@@ -36,6 +45,8 @@ impl MessageList {
                 || widget.button(cx, &[id!(copy_button)]).clicked(&actions)
             {
                 cx.copy_to_clipboard(&self.messages[item_id].text);
+                self.last_copied_at = Some((item_id, std::time::Instant::now()));
+                self.redraw(cx);
             }
 
             if widget
