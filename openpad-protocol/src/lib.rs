@@ -314,7 +314,7 @@ mod tests {
                 }),
                 variant: Some("test-variant".to_string()),
                 prompt: Some("test-prompt".to_string()),
-                options: HashMap::new(),
+                options: HashMap::new().into(),
                 steps: Some(10),
             };
 
@@ -471,7 +471,7 @@ mod tests {
                 session_id: "ses_123".to_string(),
                 permission: "bash".to_string(),
                 patterns: vec!["*.sh".to_string()],
-                metadata: HashMap::new(),
+                metadata: HashMap::new().into(),
                 always: vec![],
                 tool: None,
             };
@@ -812,7 +812,7 @@ mod tests {
                 source: "api".to_string(),
                 env: vec![],
                 key: None,
-                options: HashMap::new(),
+                options: HashMap::new().into(),
                 models: HashMap::new(),
             };
 
@@ -869,7 +869,7 @@ mod tests {
                     output: 4096.0,
                 },
                 status: "active".to_string(),
-                options: HashMap::new(),
+                options: HashMap::new().into(),
                 headers: HashMap::new(),
                 release_date: "2024-03-04".to_string(),
                 variants: None,

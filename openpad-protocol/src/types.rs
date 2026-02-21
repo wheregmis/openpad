@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 /// A string wrapper that masks its content in Debug output.
 ///
@@ -94,7 +94,7 @@ pub struct LogRequest {
     pub level: String,
     pub message: String,
     #[serde(default)]
-    pub extra: HashMap<String, serde_json::Value>,
+    pub extra: ExtraMaskedMap<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -121,7 +121,7 @@ pub struct Agent {
     pub variant: Option<String>,
     #[serde(default)]
     pub prompt: Option<String>,
-    pub options: HashMap<String, serde_json::Value>,
+    pub options: ExtraMaskedMap<serde_json::Value>,
     #[serde(default)]
     pub steps: Option<i64>,
 }
@@ -250,8 +250,13 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower == "set-cookie"
         || k_lower == "signature"
         || k_lower == "credential"
+        || k_lower == "passphrase"
+        || k_lower == "pwd"
+        || k_lower == "sessionid"
+        || k_lower == "sid"
         || k_lower.ends_with("_key")
         || k_lower.ends_with("-key")
+        || k_lower.ends_with("apikey")
         || k_lower.ends_with("_token")
         || k_lower.ends_with("-token")
         || k_lower.ends_with("_secret")
@@ -262,10 +267,52 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower.ends_with("-auth")
 }
 
-/// Helper to mask sensitive keys in a HashMap when formatting for Debug.
-struct ExtraMasked<'a>(&'a HashMap<String, serde_json::Value>);
+/// A wrapper for HashMaps that masks sensitive keys in its Debug implementation.
+///
+/// Use this for any HashMap that might contain credentials or other sensitive
+/// information that shouldn't be leaked in logs.
+#[derive(Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ExtraMaskedMap<V>(HashMap<String, V>);
 
-impl<'a> fmt::Debug for ExtraMasked<'a> {
+impl<V: fmt::Debug> fmt::Debug for ExtraMaskedMap<V> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut map = f.debug_map();
+        for (k, v) in &self.0 {
+            if is_sensitive_key(k) {
+                map.entry(k, &"<REDACTED>");
+            } else {
+                map.entry(k, v);
+            }
+        }
+        map.finish()
+    }
+}
+
+impl<V> Deref for ExtraMaskedMap<V> {
+    type Target = HashMap<String, V>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<V> DerefMut for ExtraMaskedMap<V> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<V> From<HashMap<String, V>> for ExtraMaskedMap<V> {
+    fn from(map: HashMap<String, V>) -> Self {
+        Self(map)
+    }
+}
+
+/// Helper to mask sensitive keys in a HashMap when formatting for Debug.
+struct ExtraMasked<'a, V>(&'a HashMap<String, V>);
+
+impl<'a, V: fmt::Debug> fmt::Debug for ExtraMasked<'a, V> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut map = f.debug_map();
         for (k, v) in self.0 {
@@ -304,7 +351,7 @@ pub struct Model {
     pub cost: ModelCost,
     pub limit: ModelLimit,
     pub status: String,
-    pub options: HashMap<String, serde_json::Value>,
+    pub options: ExtraMaskedMap<serde_json::Value>,
     pub headers: HashMap<String, SecretString>,
     pub release_date: String,
     #[serde(default)]
@@ -679,7 +726,7 @@ pub struct PermissionRequest {
     #[serde(default)]
     pub patterns: Vec<String>,
     #[serde(default)]
-    pub metadata: HashMap<String, serde_json::Value>,
+    pub metadata: ExtraMaskedMap<serde_json::Value>,
     #[serde(default)]
     pub always: Vec<String>,
     #[serde(default)]
@@ -1153,7 +1200,7 @@ pub enum Part {
         #[serde(default)]
         time: Option<PartTime>,
         #[serde(default)]
-        metadata: Option<HashMap<String, serde_json::Value>>,
+        metadata: Option<ExtraMaskedMap<serde_json::Value>>,
     },
     #[serde(rename = "subtask")]
     Subtask {
@@ -1180,7 +1227,7 @@ pub enum Part {
         message_id: String,
         text: String,
         #[serde(default)]
-        metadata: Option<HashMap<String, serde_json::Value>>,
+        metadata: Option<ExtraMaskedMap<serde_json::Value>>,
         time: PartTime,
     },
     #[serde(rename = "file")]
@@ -1214,7 +1261,7 @@ pub enum Part {
         tool: String,
         state: ToolState,
         #[serde(default)]
-        metadata: Option<HashMap<String, serde_json::Value>>,
+        metadata: Option<ExtraMaskedMap<serde_json::Value>>,
     },
     #[serde(rename = "step-start")]
     StepStart {
@@ -1329,39 +1376,39 @@ pub struct PartSourceValue {
 pub enum ToolState {
     Pending {
         #[serde(default)]
-        input: HashMap<String, serde_json::Value>,
+        input: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         raw: String,
     },
     Running {
         #[serde(default)]
-        input: HashMap<String, serde_json::Value>,
+        input: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         title: String,
         #[serde(default)]
-        metadata: HashMap<String, serde_json::Value>,
+        metadata: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         time: ToolStateTime,
     },
     Completed {
         #[serde(default)]
-        input: HashMap<String, serde_json::Value>,
+        input: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         output: String,
         #[serde(default)]
         title: String,
         #[serde(default)]
-        metadata: HashMap<String, serde_json::Value>,
+        metadata: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         time: ToolStateTime,
     },
     Error {
         #[serde(default)]
-        input: HashMap<String, serde_json::Value>,
+        input: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         error: String,
         #[serde(default)]
-        metadata: HashMap<String, serde_json::Value>,
+        metadata: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         time: ToolStateTime,
     },
@@ -1528,7 +1575,7 @@ pub enum PartInput {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         time: Option<PartTime>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
-        metadata: Option<HashMap<String, serde_json::Value>>,
+        metadata: Option<ExtraMaskedMap<serde_json::Value>>,
     },
     File {
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -1654,7 +1701,7 @@ pub enum McpConfig {
 pub struct McpLocalConfig {
     pub command: Vec<String>,
     #[serde(default)]
-    pub environment: HashMap<String, String>,
+    pub environment: ExtraMaskedMap<String>,
     #[serde(default)]
     pub enabled: Option<bool>,
     #[serde(default)]
@@ -1667,7 +1714,7 @@ pub struct McpRemoteConfig {
     #[serde(default)]
     pub enabled: Option<bool>,
     #[serde(default)]
-    pub headers: HashMap<String, String>,
+    pub headers: HashMap<String, SecretString>,
     #[serde(default)]
     pub oauth: Option<serde_json::Value>, // McpOAuthConfig or bool
     #[serde(default)]
@@ -1879,5 +1926,21 @@ mod tests {
         let mut input = HashMap::new();
         input.insert("token".into(), serde_json::Value::String("secret".into()));
         assert!(summarize_tool_input(&input).contains("<REDACTED>"));
+    }
+
+    #[test]
+    fn test_extra_masked_map_debug() {
+        let mut map = HashMap::new();
+        map.insert("api_key".to_string(), "secret123".to_string());
+        map.insert("normal_field".to_string(), "value".to_string());
+
+        let masked: ExtraMaskedMap<String> = map.into();
+        let debug = format!("{:?}", masked);
+
+        assert!(debug.contains("api_key"));
+        assert!(debug.contains("<REDACTED>"));
+        assert!(!debug.contains("secret123"));
+        assert!(debug.contains("normal_field"));
+        assert!(debug.contains("value"));
     }
 }
