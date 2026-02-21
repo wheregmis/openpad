@@ -364,11 +364,17 @@ script_mod! {
 pub enum PanelItemKind {
     ProjectHeader {
         project_id: Option<String>,
-        name: String,
+        display_name: String,
+        chevron: &'static str,
+        project_working: bool,
     },
     SessionRow {
         session_id: String,
-        title: String,
+        display_title: String,
+        selected: bool,
+        working: bool,
+        menu_open: bool,
+        summary: Option<(String, String, String)>,
     },
     Spacer,
     EmptyState,
@@ -400,10 +406,12 @@ pub struct ProjectsPanel {
     /// When false, only project headers are shown (no sessions). Used for IDE-style left panel.
     #[rust]
     show_sessions: bool,
+    #[rust]
+    current_dir_name: String,
 }
 
 impl ProjectsPanel {
-    fn derive_project_name(project: &Project) -> String {
+    fn derive_project_name(project: &Project, current_dir_name: &str) -> String {
         if let Some(name) = &project.name {
             if !name.is_empty() {
                 return name.clone();
@@ -411,23 +419,29 @@ impl ProjectsPanel {
         }
         // For "." worktree, resolve to actual current directory name
         let worktree = if project.worktree == "." {
-            std::env::current_dir()
-                .ok()
-                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-                .unwrap_or_else(|| project.worktree.clone())
+            current_dir_name
         } else {
-            project.worktree.clone()
+            &project.worktree
         };
         // Derive name from last component of worktree path
-        std::path::Path::new(&worktree)
+        std::path::Path::new(worktree)
             .file_name()
             .and_then(|n| n.to_str())
             .filter(|n| !n.is_empty())
-            .unwrap_or(&worktree)
+            .unwrap_or(worktree)
             .to_string()
     }
 
     fn rebuild_items(&mut self) {
+        // Optimization: avoid repeated system calls to get current directory.
+        if self.current_dir_name.is_empty() {
+            self.current_dir_name = std::env::current_dir()
+                .ok()
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                .unwrap_or_else(|| ".".to_string());
+        }
+        let current_dir_name = &self.current_dir_name;
+
         let mut grouped: HashMap<Option<String>, Vec<Session>> = HashMap::new();
         for session in &self.sessions {
             grouped
@@ -444,25 +458,73 @@ impl ProjectsPanel {
             }
 
             let project_id = Some(project.id.clone());
-            let name = Self::derive_project_name(project);
+            let name = Self::derive_project_name(project, current_dir_name);
             let collapsed = self
                 .collapsed_projects
                 .get(&project_id)
                 .copied()
                 .unwrap_or(false);
 
+            let display_name = if name.trim().is_empty() {
+                "(project)".to_string()
+            } else {
+                name
+            };
+            let chevron = if collapsed { ">" } else { "v" };
+
+            // Optimization: Pre-calculate project_working (O(N) search) during rebuild.
+            let project_working = self.sessions.iter().any(|s| {
+                let matches_project = match &project_id {
+                    Some(pid) => &s.project_id == pid,
+                    None => true,
+                };
+                matches_project && self.working_by_session.get(&s.id).copied().unwrap_or(false)
+            });
+
             items.push(PanelItemKind::ProjectHeader {
                 project_id: project_id.clone(),
-                name,
+                display_name,
+                chevron,
+                project_working,
             });
 
             if !collapsed && self.show_sessions {
                 if let Some(sessions) = grouped.get(&project_id) {
                     for session in sessions {
                         let title = async_runtime::get_session_title(session);
+                        let title = title.trim();
+
+                        let display_title = if title.is_empty() {
+                            "Untitled session".to_string()
+                        } else {
+                            let truncated: String = title.chars().take(45).collect();
+                            if title.chars().count() > 45 {
+                                format!("{}…", truncated)
+                            } else {
+                                truncated
+                            }
+                        };
+
+                        let selected = self
+                            .selected_session_id
+                            .as_ref()
+                            .map(|id| id == &session.id)
+                            .unwrap_or(false);
+                        let working = self
+                            .working_by_session
+                            .get(&session.id)
+                            .copied()
+                            .unwrap_or(false);
+                        let menu_open = self.open_menu_session_id.as_deref() == Some(&session.id);
+                        let summary = session.summary.as_ref().and_then(Self::session_diff_stats);
+
                         items.push(PanelItemKind::SessionRow {
                             session_id: session.id.clone(),
-                            title,
+                            display_title,
+                            selected,
+                            working,
+                            menu_open,
+                            summary,
                         });
                     }
                 }
@@ -481,18 +543,56 @@ impl ProjectsPanel {
 
         if !ungrouped.is_empty() {
             let collapsed = self.collapsed_projects.get(&None).copied().unwrap_or(false);
+            let chevron = if collapsed { ">" } else { "v" };
+
+            // Optimization: Pre-calculate project_working for "Other" project.
+            let project_working = ungrouped
+                .iter()
+                .any(|s| self.working_by_session.get(&s.id).copied().unwrap_or(false));
 
             items.push(PanelItemKind::ProjectHeader {
                 project_id: None,
-                name: "Other".to_string(),
+                display_name: "Other".to_string(),
+                chevron,
+                project_working,
             });
 
             if !collapsed && self.show_sessions {
                 for session in ungrouped {
                     let title = async_runtime::get_session_title(session);
+                    let title = title.trim();
+
+                    let display_title = if title.is_empty() {
+                        "Untitled session".to_string()
+                    } else {
+                        let truncated: String = title.chars().take(45).collect();
+                        if title.chars().count() > 45 {
+                            format!("{}…", truncated)
+                        } else {
+                            truncated
+                        }
+                    };
+
+                    let selected = self
+                        .selected_session_id
+                        .as_ref()
+                        .map(|id| id == &session.id)
+                        .unwrap_or(false);
+                    let working = self
+                        .working_by_session
+                        .get(&session.id)
+                        .copied()
+                        .unwrap_or(false);
+                    let menu_open = self.open_menu_session_id.as_deref() == Some(&session.id);
+                    let summary = session.summary.as_ref().and_then(Self::session_diff_stats);
+
                     items.push(PanelItemKind::SessionRow {
                         session_id: session.id.clone(),
-                        title,
+                        display_title,
+                        selected,
+                        working,
+                        menu_open,
+                        summary,
                     });
                 }
             }
@@ -530,9 +630,6 @@ impl ProjectsPanel {
 
 impl Widget for ProjectsPanel {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event, scope: &mut Scope) {
-        // Pointer position for popup placement; not available from Event directly here.
-        let _pointer_pos: Option<(f32, f32)> = None;
-
         let actions = cx.capture_actions(|cx| {
             self.view.handle_event(cx, event, scope);
         });
@@ -570,7 +667,7 @@ impl Widget for ProjectsPanel {
 
                     if widget.button(cx, &[id!(menu_button)]).clicked(&actions) {
                         menu_opened = true;
-                        let (x, y) = _pointer_pos.unwrap_or((0.0, 0.0));
+                        let (x, y) = (0.0, 0.0);
                         let working = self
                             .working_by_session
                             .get(&session_id)
@@ -616,7 +713,7 @@ impl Widget for ProjectsPanel {
                 if let PanelItemKind::SessionRow { session_id, .. } = panel_item {
                     let widget = list.item(cx, item_id, live_id!(SessionRow));
                     if widget.button(cx, &[id!(menu_button)]).clicked(&actions) {
-                        let (x, y) = _pointer_pos.unwrap_or((0.0, 0.0));
+                        let (x, y) = (0.0, 0.0);
                         let working = self
                             .working_by_session
                             .get(session_id)
@@ -652,8 +749,10 @@ impl Widget for ProjectsPanel {
                     if item_id >= self.items.len() {
                         continue;
                     }
-                    let panel_item = self.items[item_id].clone();
-                    let template = match &panel_item {
+
+                    // Optimization: Use reference to avoid cloning the enum and its contained strings.
+                    let panel_item = &self.items[item_id];
+                    let template = match panel_item {
                         PanelItemKind::ProjectHeader { .. } => live_id!(ProjectHeader),
                         PanelItemKind::SessionRow { .. } => live_id!(SessionRow),
                         PanelItemKind::Spacer => live_id!(Spacer),
@@ -661,93 +760,55 @@ impl Widget for ProjectsPanel {
                     };
                     let item_widget = list.item(cx, item_id, template);
 
-                    match &panel_item {
+                    match panel_item {
                         PanelItemKind::ProjectHeader {
-                            name, project_id, ..
+                            display_name,
+                            chevron,
+                            project_working,
+                            ..
                         } => {
-                            let collapsed = self
-                                .collapsed_projects
-                                .get(project_id)
-                                .copied()
-                                .unwrap_or(false);
-                            let chevron = if collapsed { ">" } else { "v" };
-                            let display_name = if name.trim().is_empty() {
-                                "(project)"
-                            } else {
-                                name.as_str()
-                            };
                             item_widget
                                 .button(cx, &[id!(project_toggle)])
                                 .set_text(cx, display_name);
                             item_widget.label(cx, &[id!(chevron)]).set_text(cx, chevron);
-                            // Show orange dot if any session in this project is working
-                            let project_working = self.sessions.iter().any(|s| {
-                                let matches_project = match project_id {
-                                    Some(pid) => &s.project_id == pid,
-                                    None => true,
-                                };
-                                matches_project
-                                    && self.working_by_session.get(&s.id).copied().unwrap_or(false)
-                            });
                             item_widget
                                 .view(cx, &[id!(project_working_dot)])
-                                .set_visible(cx, project_working);
+                                .set_visible(cx, *project_working);
                         }
-                        PanelItemKind::SessionRow { session_id, title } => {
-                            let display_title = if title.trim().is_empty() {
-                                "Untitled session".to_string()
-                            } else {
-                                let truncated: String = title.chars().take(45).collect();
-                                if title.chars().count() > 45 {
-                                    format!("{}…", truncated)
-                                } else {
-                                    truncated
-                                }
-                            };
-                            let selected = self
-                                .selected_session_id
-                                .as_ref()
-                                .map(|id| id == session_id)
-                                .unwrap_or(false);
+                        PanelItemKind::SessionRow {
+                            session_id: _,
+                            display_title,
+                            selected,
+                            working,
+                            menu_open,
+                            summary,
+                        } => {
                             item_widget
                                 .button(cx, &[id!(session_button)])
-                                .set_text(cx, &display_title);
+                                .set_text(cx, display_title);
                             item_widget
                                 .view(cx, &[id!(selected_pill)])
-                                .set_visible(cx, selected);
-                            let working = self
-                                .working_by_session
-                                .get(session_id)
-                                .copied()
-                                .unwrap_or(false);
+                                .set_visible(cx, *selected);
                             item_widget
                                 .view(cx, &[id!(working_dot)])
-                                .set_visible(cx, working);
-                            let menu_open =
-                                self.open_menu_session_id.as_deref() == Some(session_id);
+                                .set_visible(cx, *working);
                             item_widget
                                 .view(cx, &[id!(menu_panel)])
-                                .set_visible(cx, menu_open);
+                                .set_visible(cx, *menu_open);
                             item_widget
                                 .button(cx, &[id!(menu_button)])
-                                .set_visible(cx, !menu_open);
+                                .set_visible(cx, !*menu_open);
                             item_widget
                                 .button(cx, &[id!(menu_abort)])
-                                .set_visible(cx, working);
+                                .set_visible(cx, *working);
 
-                            let summary_text = self
-                                .sessions
-                                .iter()
-                                .find(|s| &s.id == session_id)
-                                .and_then(|s| s.summary.as_ref())
-                                .and_then(Self::session_diff_stats);
                             let summary_files = item_widget.label(cx, &[id!(summary_files_label)]);
                             let summary_add = item_widget.label(cx, &[id!(summary_add_label)]);
                             let summary_del = item_widget.label(cx, &[id!(summary_del_label)]);
-                            if let Some((files, adds, dels)) = summary_text {
-                                summary_files.set_text(cx, &files);
-                                summary_add.set_text(cx, &adds);
-                                summary_del.set_text(cx, &dels);
+                            if let Some((files, adds, dels)) = summary {
+                                summary_files.set_text(cx, files);
+                                summary_add.set_text(cx, adds);
+                                summary_del.set_text(cx, dels);
                                 item_widget
                                     .view(cx, &[id!(summary_stats)])
                                     .set_visible(cx, true);

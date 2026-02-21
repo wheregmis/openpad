@@ -15,27 +15,25 @@ fn build_model_entries(providers: &[Provider]) -> Vec<ModelDropdownEntry> {
 
     let mut entries = vec![ModelDropdownEntry::default_option()];
     for provider in providers {
-        if let Some(models) = provider.models.as_ref() {
-            if models.is_empty() {
-                continue;
-            }
-            let provider_label = display_label(provider.name.as_deref(), &provider.id);
-            let mut model_items: Vec<_> = models.iter().collect();
-            model_items.sort_by(|a, b| {
-                let a_label = display_label(Some(a.1.name.as_str()), &a.1.id);
-                let b_label = display_label(Some(b.1.name.as_str()), &b.1.id);
-                a_label.cmp(&b_label)
-            });
-            entries.push(ModelDropdownEntry::provider_header(provider_label.clone()));
-            for (_key, model) in model_items {
-                let model_label =
-                    format!("  {}", display_label(Some(model.name.as_str()), &model.id));
-                entries.push(ModelDropdownEntry::model_option(
-                    provider.id.clone(),
-                    model.id.clone(),
-                    model_label,
-                ));
-            }
+        let models = &provider.models;
+        if models.is_empty() {
+            continue;
+        }
+        let provider_label = display_label(Some(provider.name.as_str()), &provider.id);
+        let mut model_items: Vec<_> = models.iter().collect();
+        model_items.sort_by(|a, b| {
+            let a_label = display_label(Some(a.1.name.as_str()), &a.1.id);
+            let b_label = display_label(Some(b.1.name.as_str()), &b.1.id);
+            a_label.cmp(&b_label)
+        });
+        entries.push(ModelDropdownEntry::provider_header(provider_label.clone()));
+        for (_key, model) in model_items {
+            let model_label = format!("  {}", display_label(Some(model.name.as_str()), &model.id));
+            entries.push(ModelDropdownEntry::model_option(
+                provider.id.clone(),
+                model.id.clone(),
+                model_label,
+            ));
         }
     }
     entries
@@ -196,7 +194,7 @@ pub fn handle_app_action(state: &mut AppState, ui: &WidgetRef, cx: &mut Cx, acti
         }
         AppAction::ConfigLoaded(config) => {
             ui.settings_dialog(cx, &[id!(side_panel), id!(settings_panel)])
-                .set_config(cx, &config);
+                .set_config(cx, config);
             cx.redraw_all();
         }
         AppAction::AuthSet {
