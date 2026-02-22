@@ -156,12 +156,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Ok(symbols) => {
             println!("   Found {} symbols", symbols.len());
             for (i, symbol) in symbols.iter().take(10).enumerate() {
-                println!(
-                    "   {}. {} (kind {})",
-                    i + 1,
-                    symbol.name,
-                    symbol.kind
-                );
+                println!("   {}. {} (kind {})", i + 1, symbol.name, symbol.kind);
                 let loc = &symbol.location;
                 println!(
                     "      at {} ({}:{} to {}:{})",

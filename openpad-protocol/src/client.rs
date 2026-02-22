@@ -10,8 +10,8 @@ use crate::{
     MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest, PermissionRequest,
     PermissionResponse, Project, ProjectUpdateRequest, PromptRequest, ProvidersResponse, Pty,
     RevertRequest, SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest,
-    SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol,
-    SymbolsSearchRequest, TextSearchRequest, TextSearchResult, Todo, ToolIDs, ToolList,
+    SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol, SymbolsSearchRequest,
+    TextSearchRequest, TextSearchResult, Todo, ToolIDs, ToolList,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
 use reqwest::Client as HttpClient;
@@ -587,7 +587,9 @@ impl OpenCodeClient {
             .await
     }
 
-    pub async fn list_mcp_resources(&self) -> Result<std::collections::HashMap<String, McpResource>> {
+    pub async fn list_mcp_resources(
+        &self,
+    ) -> Result<std::collections::HashMap<String, McpResource>> {
         self.get_json("/experimental/resource", "list mcp resources")
             .await
     }
@@ -604,7 +606,8 @@ impl OpenCodeClient {
     }
 
     pub async fn list_tool_ids(&self) -> Result<ToolIDs> {
-        self.get_json("/experimental/tool/ids", "list tool ids").await
+        self.get_json("/experimental/tool/ids", "list tool ids")
+            .await
     }
 
     pub async fn list_tools(&self, provider: &str, model: &str) -> Result<ToolList> {

@@ -21,3 +21,8 @@
 **Vulnerability:** Potentially sensitive headers (e.g., Cookie, Authorization) and error metadata were not being fully protected in Debug logs or UI summaries.
 **Learning:** Centralized key detection (`is_sensitive_key`) should cover a wide range of common sensitive keywords (auth, cookie, signature, credential) to be effective across different providers. Error response bodies and metadata from external APIs are high-risk areas for credential leakage.
 **Prevention:** Expand centralized sensitive key heuristics and apply `SecretString` to all fields containing external API responses or headers that might be logged during error conditions.
+
+## 2025-02-05 – Type-Level Hardening and Expanded Secret Detection
+**Vulnerability:** Accidental leakage of provider API keys, sensitive environment variables, and database URLs in Debug logs.
+**Learning:** Even with `SecretString` available, sensitive fields in common structs like `Provider` or `PtyCreateRequest` might be missed if they use standard types. Centralized sensitive key detection (`is_sensitive_key`) needs to cover domain-specific keywords like 'database', 'connectionstring', and 'bearer' to be truly effective, especially in environment variable contexts.
+**Prevention:** Audit all structs carrying external configuration or environment data. Use type-level wrappers (`SecretString`, `ExtraMaskedMap`) for any field that could potentially hold credentials. Ensure `is_sensitive_key` includes substring matching for highly sensitive terms like 'database'.

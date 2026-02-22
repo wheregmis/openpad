@@ -171,6 +171,66 @@ mod tests {
     }
 
     #[test]
+    fn test_harden_masking() {
+        // Test Provider masking
+        let mut options = HashMap::new();
+        options.insert(
+            "api_key".to_string(),
+            serde_json::Value::String("secret123".to_string()),
+        );
+        options.insert(
+            "timeout".to_string(),
+            serde_json::Value::Number(300000.into()),
+        );
+
+        let provider = Provider {
+            id: "test-provider".to_string(),
+            name: "Test Provider".to_string(),
+            source: "config".to_string(),
+            env: vec!["TEST_API_KEY".to_string()],
+            key: Some(SecretString::new("direct-secret")),
+            options: options.into(),
+            models: HashMap::new(),
+        };
+
+        let debug_output = format!("{:?}", provider);
+        assert!(debug_output.contains("test-provider"));
+        assert!(debug_output.contains("api_key"));
+        assert!(debug_output.contains("<REDACTED>"));
+        assert!(debug_output.contains("timeout"));
+        assert!(debug_output.contains("300000"));
+        assert!(!debug_output.contains("secret123"));
+        assert!(!debug_output.contains("direct-secret"));
+
+        // Test PtyCreateRequest masking
+        let mut env = HashMap::new();
+        env.insert("PATH".to_string(), "/usr/bin".to_string());
+        env.insert(
+            "DATABASE_URL".to_string(),
+            "postgres://user:pass@host/db".to_string(),
+        );
+        env.insert("STRIPE_KEY".to_string(), "sk_test_123".to_string());
+
+        let pty_req = PtyCreateRequest {
+            command: "ls".to_string(),
+            args: vec!["-la".into()],
+            cwd: None,
+            title: None,
+            env: env.into(),
+        };
+
+        let debug_output = format!("{:?}", pty_req);
+        assert!(debug_output.contains("ls"));
+        assert!(debug_output.contains("PATH"));
+        assert!(debug_output.contains("/usr/bin"));
+        assert!(debug_output.contains("DATABASE_URL"));
+        assert!(debug_output.contains("STRIPE_KEY"));
+        assert!(debug_output.contains("<REDACTED>"));
+        assert!(!debug_output.contains("postgres://user:pass@host/db"));
+        assert!(!debug_output.contains("sk_test_123"));
+    }
+
+    #[test]
     fn test_config_masking() {
         let mut extra = HashMap::new();
         extra.insert(

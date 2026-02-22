@@ -244,16 +244,33 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower == "token"
         || k_lower == "secret"
         || k_lower == "password"
+        || k_lower == "pass"
         || k_lower == "auth"
         || k_lower == "authorization"
         || k_lower == "cookie"
         || k_lower == "set-cookie"
         || k_lower == "signature"
         || k_lower == "credential"
+        || k_lower == "credentials"
         || k_lower == "passphrase"
         || k_lower == "pwd"
         || k_lower == "sessionid"
         || k_lower == "sid"
+        || k_lower == "api"
+        || k_lower.contains("database")
+        || k_lower.contains("connectionstring")
+        || k_lower == "access_id"
+        || k_lower == "key_id"
+        || k_lower == "client_id"
+        || k_lower == "client_secret"
+        || k_lower == "bearer"
+        || k_lower == "jwt"
+        || k_lower == "cert"
+        || k_lower == "certificate"
+        || k_lower == "pkcs"
+        || k_lower == "ssh"
+        || k_lower == "gpg"
+        || k_lower == "pgp"
         || k_lower.ends_with("_key")
         || k_lower.ends_with("-key")
         || k_lower.ends_with("apikey")
@@ -333,8 +350,8 @@ pub struct Provider {
     pub source: String, // "env", "config", "custom", "api"
     pub env: Vec<String>,
     #[serde(default)]
-    pub key: Option<String>,
-    pub options: HashMap<String, serde_json::Value>,
+    pub key: Option<SecretString>,
+    pub options: ExtraMaskedMap<serde_json::Value>,
     pub models: HashMap<String, Model>,
 }
 
@@ -577,7 +594,7 @@ pub struct PtyCreateRequest {
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
-    pub env: HashMap<String, String>,
+    pub env: ExtraMaskedMap<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1664,13 +1681,9 @@ pub struct McpResource {
 pub enum MCPStatus {
     Connected,
     Disabled,
-    Failed {
-        error: String,
-    },
+    Failed { error: String },
     NeedsAuth,
-    NeedsClientRegistration {
-        error: String,
-    },
+    NeedsClientRegistration { error: String },
 }
 
 pub type ToolIDs = Vec<String>;

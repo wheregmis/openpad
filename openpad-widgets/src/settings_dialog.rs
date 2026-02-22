@@ -238,11 +238,7 @@ impl SettingsDialog {
     pub fn set_providers(&mut self, cx: &mut Cx, providers: Vec<Provider>) {
         self.providers = providers;
 
-        let items: Vec<String> = self
-            .providers
-            .iter()
-            .map(|p| p.name.clone())
-            .collect();
+        let items: Vec<String> = self.providers.iter().map(|p| p.name.clone()).collect();
         self.view
             .up_drop_down(cx, &[id!(content), id!(provider_dropdown)])
             .set_labels(cx, items);
