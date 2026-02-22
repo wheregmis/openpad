@@ -5,9 +5,10 @@
 
 use crate::{
     Agent, AppendPromptRequest, AuthSetRequest, CommandRequest, Config, ExecuteCommandRequest,
-    File, FileDiff, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest,
-    GlobalSession, HealthResponse, LogRequest, MCPStatus, McpAddRequest, McpResource,
-    MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest, PermissionRequest,
+    File, FileDiff, FileNode, FileReadRequest, FileReadResponse, FileStatusRequest,
+    FilesSearchRequest, GlobalSession, HealthResponse, LogRequest, MCPStatus, McpAddRequest,
+    McpResource, MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest,
+    PermissionRequest,
     PermissionResponse, Project, ProjectUpdateRequest, PromptRequest, ProvidersResponse, Pty,
     RevertRequest, SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest,
     SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol,
@@ -236,6 +237,25 @@ impl OpenCodeClient {
         Ok(response.json().await?)
     }
 
+    /// Helper for DELETE requests that return JSON.
+    async fn delete_json<T: serde::de::DeserializeOwned>(
+        &self,
+        endpoint: &str,
+        action: &str,
+    ) -> Result<T> {
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self
+            .http
+            .delete(&url)
+            .query(&[("directory", &self.directory)])
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let response = Self::check_response(response, action).await?;
+        Ok(response.json().await?)
+    }
+
     /// Helper for DELETE requests that return boolean.
     async fn delete_bool(&self, endpoint: &str, action: &str) -> Result<bool> {
         let url = format!("{}{}", self.base_url, endpoint);
@@ -377,7 +397,7 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn log(&self, request: LogRequest) -> Result<bool> {
-        self.post_json_bool("/app/log", &request, "log").await
+        self.post_json_bool("/log", &request, "log").await
     }
 
     pub async fn agents(&self) -> Result<Vec<Agent>> {
@@ -481,8 +501,8 @@ impl OpenCodeClient {
     }
 
     pub async fn unshare_session(&self, session_id: &str) -> Result<Session> {
-        let endpoint = format!("/session/{}/unshare", session_id);
-        self.post_no_body_json(&endpoint, "unshare session").await
+        let endpoint = format!("/session/{}/share", session_id);
+        self.delete_json(&endpoint, "unshare session").await
     }
 
     pub async fn summarize_session(
@@ -628,7 +648,7 @@ impl OpenCodeClient {
     // ========================================================================
 
     pub async fn search_text(&self, request: TextSearchRequest) -> Result<Vec<TextSearchResult>> {
-        let url = format!("{}/find/text", self.base_url);
+        let url = format!("{}/find", self.base_url);
         let response = self
             .http
             .get(&url)
@@ -643,7 +663,7 @@ impl OpenCodeClient {
     }
 
     pub async fn search_files(&self, request: FilesSearchRequest) -> Result<Vec<String>> {
-        let url = format!("{}/find/files", self.base_url);
+        let url = format!("{}/find/file", self.base_url);
 
         // Use request.directory if provided, otherwise use self.directory
         let directory = request
@@ -684,6 +704,21 @@ impl OpenCodeClient {
             .await?;
 
         let response = Self::check_response(response, "search symbols").await?;
+        Ok(response.json().await?)
+    }
+
+    pub async fn list_files(&self, path: &str) -> Result<Vec<FileNode>> {
+        let url = format!("{}/file", self.base_url);
+        let response = self
+            .http
+            .get(&url)
+            .query(&[("directory", &self.directory)])
+            .query(&[("path", path)])
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let response = Self::check_response(response, "list files").await?;
         Ok(response.json().await?)
     }
 

@@ -81,6 +81,7 @@ mod tests {
         let _: FileReadResponse;
         let _: FileStatusRequest;
         let _: File;
+        let _: FileNode;
         let _: Todo;
         let _: Pty;
         let _: LSPStatus;
@@ -651,6 +652,7 @@ mod tests {
                 "PermissionRule",
                 "PermissionAction",
                 "FileDiff",
+                "FileNode",
                 "Config",
                 "Provider",
                 "Model",
@@ -772,6 +774,29 @@ mod tests {
                 json.get("text").and_then(|v| v.as_str()),
                 Some("Hello world")
             );
+        }
+
+        #[test]
+        fn test_file_node_matches_openapi() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "FileNode").expect("FileNode schema not found");
+
+            let node = FileNode {
+                name: "test.txt".to_string(),
+                path: "test.txt".to_string(),
+                absolute: "/tmp/test.txt".to_string(),
+                type_name: "file".to_string(),
+                ignored: false,
+            };
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("FileNode schema missing required fields");
+
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
+
+            validate_serialization(&node, &required_fields);
         }
 
         #[test]

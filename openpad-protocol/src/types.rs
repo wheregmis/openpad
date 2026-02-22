@@ -333,8 +333,8 @@ pub struct Provider {
     pub source: String, // "env", "config", "custom", "api"
     pub env: Vec<String>,
     #[serde(default)]
-    pub key: Option<String>,
-    pub options: HashMap<String, serde_json::Value>,
+    pub key: Option<SecretString>,
+    pub options: ExtraMaskedMap<serde_json::Value>,
     pub models: HashMap<String, Model>,
 }
 
@@ -511,6 +511,16 @@ pub struct File {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FileNode {
+    pub name: String,
+    pub path: String,
+    pub absolute: String,
+    #[serde(rename = "type")]
+    pub type_name: String, // "file" or "directory"
+    pub ignored: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Todo {
     pub content: String,
     pub status: String,
@@ -577,7 +587,7 @@ pub struct PtyCreateRequest {
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
-    pub env: HashMap<String, String>,
+    pub env: ExtraMaskedMap<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1231,22 +1241,7 @@ pub enum Part {
         time: PartTime,
     },
     #[serde(rename = "file")]
-    File {
-        #[serde(default)]
-        id: String,
-        #[serde(default, rename = "sessionID")]
-        session_id: String,
-        #[serde(default, rename = "messageID")]
-        message_id: String,
-        #[serde(default)]
-        mime: String,
-        #[serde(default)]
-        filename: Option<String>,
-        #[serde(default)]
-        url: String,
-        #[serde(default)]
-        source: Option<FilePartSource>,
-    },
+    File(FilePart),
     #[serde(rename = "tool")]
     Tool {
         #[serde(default)]
@@ -1364,6 +1359,24 @@ pub struct PartTimeCreated {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FilePart {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default, rename = "sessionID")]
+    pub session_id: String,
+    #[serde(default, rename = "messageID")]
+    pub message_id: String,
+    #[serde(default)]
+    pub mime: String,
+    #[serde(default)]
+    pub filename: Option<String>,
+    #[serde(default)]
+    pub url: String,
+    #[serde(default)]
+    pub source: Option<FilePartSource>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PartSourceValue {
     pub value: String,
     pub start: i64,
@@ -1401,6 +1414,8 @@ pub enum ToolState {
         metadata: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         time: ToolStateTime,
+        #[serde(default)]
+        attachments: Vec<FilePart>,
     },
     Error {
         #[serde(default)]
@@ -1437,12 +1452,7 @@ impl Part {
     /// Get file attachment info, if this is a file part.
     pub fn file_info(&self) -> Option<(&str, Option<&str>, &str)> {
         match self {
-            Part::File {
-                mime,
-                filename,
-                url,
-                ..
-            } => Some((mime.as_str(), filename.as_deref(), url.as_str())),
+            Part::File(file) => Some((file.mime.as_str(), file.filename.as_deref(), file.url.as_str())),
             _ => None,
         }
     }
@@ -1453,7 +1463,7 @@ impl Part {
             Part::Text { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::Subtask { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::Reasoning { message_id, .. } if !message_id.is_empty() => Some(message_id),
-            Part::File { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::File(file) if !file.message_id.is_empty() => Some(&file.message_id),
             Part::StepStart { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::StepFinish { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::Tool { message_id, .. } if !message_id.is_empty() => Some(message_id),
