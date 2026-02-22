@@ -84,20 +84,28 @@ pub struct FilesPanel {
     projects: Vec<Project>,
     #[rust]
     file_node_to_path: HashMap<LiveId, (String, String)>,
+
+    #[rust]
+    current_dir_name: String,
+    #[rust]
+    dir_cache: HashMap<String, Vec<(String, bool)>>,
+    #[rust]
+    normalized_worktrees: HashMap<String, String>,
 }
 
 impl FilesPanel {
-    fn derive_project_name(project: &Project) -> String {
+    fn derive_project_name(&self, project: &Project) -> String {
         if let Some(name) = &project.name {
             if !name.trim().is_empty() {
                 return name.clone();
             }
         }
         let worktree = if project.worktree == "." {
-            std::env::current_dir()
-                .ok()
-                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-                .unwrap_or_else(|| project.worktree.clone())
+            if !self.current_dir_name.is_empty() {
+                self.current_dir_name.clone()
+            } else {
+                project.worktree.clone()
+            }
         } else {
             project.worktree.clone()
         };
@@ -109,18 +117,34 @@ impl FilesPanel {
             .to_string()
     }
 
-    fn normalize_worktree(worktree: &str) -> String {
-        if worktree == "." {
-            if let Ok(path) = std::env::current_dir() {
-                return path.to_string_lossy().to_string();
-            }
+    fn normalize_worktree(&mut self, worktree: &str) -> String {
+        if let Some(cached) = self.normalized_worktrees.get(worktree) {
+            return cached.clone();
         }
-        std::fs::canonicalize(worktree)
-            .map(|p| p.to_string_lossy().to_string())
-            .unwrap_or_else(|_| worktree.to_string())
+
+        let normalized = if worktree == "." {
+            if let Ok(path) = std::env::current_dir() {
+                path.to_string_lossy().to_string()
+            } else {
+                worktree.to_string()
+            }
+        } else {
+            std::fs::canonicalize(worktree)
+                .map(|p| p.to_string_lossy().to_string())
+                .unwrap_or_else(|_| worktree.to_string())
+        };
+
+        self.normalized_worktrees
+            .insert(worktree.to_string(), normalized.clone());
+        normalized
     }
 
-    fn read_dir_entries(path: &Path) -> Vec<(String, bool)> {
+    fn read_dir_entries(&mut self, path: &Path) -> Vec<(String, bool)> {
+        let path_str = path.to_string_lossy().to_string();
+        if let Some(cached) = self.dir_cache.get(&path_str) {
+            return cached.clone();
+        }
+
         let mut entries = Vec::new();
         if let Ok(rd) = std::fs::read_dir(path) {
             for e in rd.flatten() {
@@ -140,6 +164,8 @@ impl FilesPanel {
                 _ => a.0.to_lowercase().cmp(&b.0.to_lowercase()),
             });
         }
+
+        self.dir_cache.insert(path_str, entries.clone());
         entries
     }
 
@@ -149,7 +175,7 @@ impl FilesPanel {
     }
 
     fn draw_dir_recursive(&mut self, cx: &mut Cx2d, project_id: &str, dir: &Path) {
-        for (name, is_dir) in Self::read_dir_entries(dir) {
+        for (name, is_dir) in self.read_dir_entries(dir) {
             let full_path = dir.join(&name);
             let node_id = Self::node_id(project_id, &full_path);
             if is_dir {
@@ -172,14 +198,25 @@ impl FilesPanel {
 
     fn draw_tree(&mut self, cx: &mut Cx2d) {
         self.file_node_to_path.clear();
+
+        // Optimization: avoid repeated system calls to get current directory.
+        if self.current_dir_name.is_empty() {
+            self.current_dir_name = std::env::current_dir()
+                .ok()
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                .unwrap_or_else(|| ".".to_string());
+        }
+
+        // Optimization: clone projects once per frame to avoid borrow checker issues
+        // while still using mutable caches.
         let projects = self.projects.clone();
         for project in &projects {
             if project.worktree == "/" || project.worktree.is_empty() {
                 continue;
             }
 
-            let display_name = Self::derive_project_name(project);
-            let root = Self::normalize_worktree(&project.worktree);
+            let display_name = self.derive_project_name(project);
+            let root = self.normalize_worktree(&project.worktree);
             let root_path = Path::new(&root);
             if !root_path.is_dir() {
                 continue;
@@ -238,6 +275,11 @@ impl FilesPanelRef {
     pub fn set_data(&self, cx: &mut Cx, projects: Vec<Project>) {
         if let Some(mut inner) = self.borrow_mut() {
             inner.projects = projects;
+
+            // Clear caches when new data is set to ensure the file tree is refreshed.
+            inner.dir_cache.clear();
+            inner.normalized_worktrees.clear();
+
             let project_ids: Vec<String> = inner.projects.iter().map(|p| p.id.clone()).collect();
             for project_id in project_ids {
                 let project_node_id = LiveId::from_str(&format!("project:{}", project_id));
