@@ -140,7 +140,7 @@ impl MessageList {
                         };
                         let item_widget = list.item(cx, item_id, template);
 
-                        let is_copied = self.last_copied_at.map_or(false, |(id, _)| id == item_id);
+                        let is_copied = self.last_copied_at.is_some_and(|(id, _)| id == item_id);
                         let copy_label = if is_copied { "Copied!" } else { "Copy" };
 
                         if msg.role == "user" {

@@ -210,7 +210,20 @@ script_mod! {
                                             flow: Right
                                             align: Align{ y: 0.5 }
                                             visible: false
-                                            Label { text: "Working..." }
+                                            work_icon := Label {
+                                                text: "◐"
+                                                draw_text +: {
+                                                    color: #aab3bd
+                                                    text_style: theme.font_regular { font_size: 10 }
+                                                }
+                                            }
+                                            Label {
+                                                text: " Working..."
+                                                draw_text +: {
+                                                    color: #aab3bd
+                                                    text_style: theme.font_regular { font_size: 10 }
+                                                }
+                                            }
                                         }
                                         status_dot := StatusDot {}
                                         status_label := Label { text: "Connected" }
@@ -363,6 +376,12 @@ pub struct App {
     connected_once: bool,
     #[rust]
     providers_loaded_once: bool,
+    #[rust]
+    share_link_copied_at: Option<std::time::Instant>,
+    #[rust]
+    working_frame: usize,
+    #[rust]
+    working_frame_count: usize,
 }
 
 impl App {
@@ -571,9 +590,42 @@ impl App {
 
 impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
-        if self.state.is_working {
+        if self.state.is_working || self.share_link_copied_at.is_some() {
             if let Event::NextFrame(_) = event {
-                self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
+                if self.state.is_working {
+                    self.working_frame_count += 1;
+                    if self.working_frame_count % 6 == 0 {
+                        self.working_frame = (self.working_frame + 1) % 6;
+                        let icon = match self.working_frame {
+                            0 => "◐",
+                            1 => "◑",
+                            2 => "◒",
+                            3 => "◓",
+                            4 => "◔",
+                            _ => "◕",
+                        };
+                        self.ui
+                            .label(cx, &[id!(work_indicator), id!(work_icon)])
+                            .set_text(cx, icon);
+                        self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
+                    }
+                }
+
+                if let Some(time) = self.share_link_copied_at {
+                    if time.elapsed().as_secs() >= 2 {
+                        self.share_link_copied_at = None;
+                        self.ui
+                            .button(cx, &[id!(copy_share_button)])
+                            .set_text(cx, "Copy link");
+                    } else {
+                        self.ui
+                            .button(cx, &[id!(copy_share_button)])
+                            .set_text(cx, "Copied!");
+                    }
+                    self.ui
+                        .button(cx, &[id!(copy_share_button)])
+                        .redraw(cx);
+                }
             }
             cx.new_next_frame();
         }
@@ -1095,6 +1147,8 @@ impl AppMain for App {
         {
             if let Some(url) = self.state.current_share_url() {
                 cx.copy_to_clipboard(&url);
+                self.share_link_copied_at = Some(std::time::Instant::now());
+                self.ui.redraw(cx);
             }
         }
 
