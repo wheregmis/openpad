@@ -87,6 +87,12 @@ mod tests {
         let _: FormatterStatus;
         let _: Command;
         let _: Worktree;
+        let _: WorktreeCreateInput;
+        let _: WorktreeRemoveInput;
+        let _: WorktreeResetInput;
+        let _: FileNode;
+        let _: McpAuthStartResponse;
+        let _: McpAuthRemoveResponse;
 
         // TUI types
         let _: AppendPromptRequest;
@@ -337,6 +343,29 @@ mod tests {
                 Some("3.1.1"),
                 "OpenAPI version mismatch"
             );
+        }
+
+        #[test]
+        fn test_file_node_matches_openapi() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "FileNode").expect("FileNode schema not found");
+
+            let node = FileNode {
+                name: "test.rs".to_string(),
+                path: "src/test.rs".to_string(),
+                absolute: "/tmp/src/test.rs".to_string(),
+                node_type: FileNodeType::File,
+                ignored: false,
+            };
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("FileNode schema missing required fields");
+
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
+
+            validate_serialization(&node, &required_fields);
         }
 
         #[test]
@@ -796,6 +825,40 @@ mod tests {
             let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
 
             validate_serialization(&diff, &required_fields);
+        }
+
+        #[test]
+        fn test_tool_state_with_attachments_matches_openapi() {
+            let spec = load_openapi_spec();
+            let schema =
+                get_schema(&spec, "ToolStateCompleted").expect("ToolStateCompleted schema not found");
+
+            let state = ToolState::Completed {
+                input: HashMap::new().into(),
+                output: "Done".to_string(),
+                title: "Test Task".to_string(),
+                metadata: HashMap::new().into(),
+                time: ToolStateTime::default(),
+                attachments: Some(vec![FilePart {
+                    id: "part_1".to_string(),
+                    session_id: "ses_1".to_string(),
+                    message_id: "msg_1".to_string(),
+                    type_name: "file".to_string(),
+                    mime: "text/plain".to_string(),
+                    filename: Some("output.txt".to_string()),
+                    url: "file://...".to_string(),
+                    source: None,
+                }]),
+            };
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("ToolStateCompleted schema missing required fields");
+
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
+
+            validate_serialization(&state, &required_fields);
         }
 
         #[test]

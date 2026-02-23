@@ -5,13 +5,15 @@
 
 use crate::{
     Agent, AppendPromptRequest, AuthSetRequest, CommandRequest, Config, ExecuteCommandRequest,
-    File, FileDiff, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest,
-    GlobalSession, HealthResponse, LogRequest, MCPStatus, McpAddRequest, McpResource,
-    MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest, PermissionRequest,
-    PermissionResponse, Project, ProjectUpdateRequest, PromptRequest, ProvidersResponse, Pty,
-    RevertRequest, SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest,
-    SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol,
-    SymbolsSearchRequest, TextSearchRequest, TextSearchResult, Todo, ToolIDs, ToolList,
+    File, FileDiff, FileNode, FileReadRequest, FileReadResponse, FileStatusRequest,
+    FilesSearchRequest, GlobalSession, HealthResponse, LogRequest, MCPStatus, McpAddRequest,
+    McpAuthRemoveResponse, McpAuthStartResponse, McpResource, MessageWithParts, PathInfo,
+    PermissionReply, PermissionReplyRequest, PermissionRequest, PermissionResponse, Project,
+    ProjectUpdateRequest, PromptRequest, ProvidersResponse, Pty, RevertRequest,
+    SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest, SessionUpdateRequest,
+    ShellRequest, ShowToastRequest, Skill, Symbol, SymbolsSearchRequest, TextSearchRequest,
+    TextSearchResult, Todo, ToolIDs, ToolList, WorktreeCreateInput, WorktreeRemoveInput,
+    WorktreeResetInput,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
 use reqwest::Client as HttpClient;
@@ -722,6 +724,92 @@ impl OpenCodeClient {
 
         let response = Self::check_response(response, "get file status").await?;
         Ok(response.json().await?)
+    }
+
+    pub async fn list_files(&self, path: &str) -> Result<Vec<FileNode>> {
+        let url = format!("{}/file", self.base_url);
+        let response = self
+            .http
+            .get(&url)
+            .query(&[("directory", &self.directory), ("path", &path.to_string())])
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let response = Self::check_response(response, "list files").await?;
+        Ok(response.json().await?)
+    }
+
+    pub async fn create_worktree(&self, request: WorktreeCreateInput) -> Result<crate::Worktree> {
+        self.post_json("/experimental/worktree", &request, "create worktree")
+            .await
+    }
+
+    pub async fn list_worktrees(&self) -> Result<Vec<String>> {
+        self.get_json("/experimental/worktree", "list worktrees")
+            .await
+    }
+
+    pub async fn remove_worktree(&self, request: WorktreeRemoveInput) -> Result<bool> {
+        let url = format!("{}/experimental/worktree", self.base_url);
+        let response = self
+            .http
+            .delete(&url)
+            .query(&[("directory", &self.directory)])
+            .json(&request)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        Self::check_response(response, "remove worktree").await?;
+        Ok(true)
+    }
+
+    pub async fn reset_worktree(&self, request: WorktreeResetInput) -> Result<bool> {
+        self.post_json_bool("/experimental/worktree/reset", &request, "reset worktree")
+            .await
+    }
+
+    pub async fn mcp_auth_start(&self, name: &str) -> Result<McpAuthStartResponse> {
+        let endpoint = format!("/mcp/{}/auth", name);
+        self.post_no_body_json(&endpoint, "mcp auth start").await
+    }
+
+    pub async fn mcp_auth_remove(&self, name: &str) -> Result<McpAuthRemoveResponse> {
+        let endpoint = format!("/mcp/{}/auth", name);
+        let url = format!("{}{}", self.base_url, endpoint);
+        let response = self
+            .http
+            .delete(&url)
+            .query(&[("directory", &self.directory)])
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let response = Self::check_response(response, "mcp auth remove").await?;
+        Ok(response.json().await?)
+    }
+
+    pub async fn mcp_auth_callback(&self, name: &str, code: &str) -> Result<MCPStatus> {
+        let endpoint = format!("/mcp/{}/auth/callback", name);
+        let body = serde_json::json!({ "code": code });
+        self.post_json(&endpoint, &body, "mcp auth callback").await
+    }
+
+    pub async fn mcp_auth_authenticate(&self, name: &str) -> Result<MCPStatus> {
+        let endpoint = format!("/mcp/{}/auth/authenticate", name);
+        self.post_no_body_json(&endpoint, "mcp auth authenticate")
+            .await
+    }
+
+    pub async fn mcp_connect(&self, name: &str) -> Result<bool> {
+        let endpoint = format!("/mcp/{}/connect", name);
+        self.post_no_body_bool(&endpoint, "mcp connect").await
+    }
+
+    pub async fn mcp_disconnect(&self, name: &str) -> Result<bool> {
+        let endpoint = format!("/mcp/{}/disconnect", name);
+        self.post_no_body_bool(&endpoint, "mcp disconnect").await
     }
 
     // ========================================================================
