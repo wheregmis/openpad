@@ -265,6 +265,12 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower.ends_with("-password")
         || k_lower.ends_with("_auth")
         || k_lower.ends_with("-auth")
+        || k_lower == "api"
+        || k_lower == "jwt"
+        || k_lower == "bearer"
+        || k_lower == "ssh"
+        || k_lower.contains("database")
+        || k_lower.contains("connectionstring")
 }
 
 /// A wrapper for HashMaps that masks sensitive keys in its Debug implementation.
@@ -333,8 +339,8 @@ pub struct Provider {
     pub source: String, // "env", "config", "custom", "api"
     pub env: Vec<String>,
     #[serde(default)]
-    pub key: Option<String>,
-    pub options: HashMap<String, serde_json::Value>,
+    pub key: Option<SecretString>,
+    pub options: ExtraMaskedMap<serde_json::Value>,
     pub models: HashMap<String, Model>,
 }
 
@@ -577,7 +583,7 @@ pub struct PtyCreateRequest {
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
-    pub env: HashMap<String, String>,
+    pub env: ExtraMaskedMap<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1664,13 +1670,9 @@ pub struct McpResource {
 pub enum MCPStatus {
     Connected,
     Disabled,
-    Failed {
-        error: String,
-    },
+    Failed { error: String },
     NeedsAuth,
-    NeedsClientRegistration {
-        error: String,
-    },
+    NeedsClientRegistration { error: String },
 }
 
 pub type ToolIDs = Vec<String>;
@@ -1933,13 +1935,28 @@ mod tests {
         let mut map = HashMap::new();
         map.insert("api_key".to_string(), "secret123".to_string());
         map.insert("normal_field".to_string(), "value".to_string());
+        map.insert("jwt".to_string(), "token456".to_string());
+        map.insert("bearer".to_string(), "token789".to_string());
+        map.insert("ssh_key".to_string(), "ssh-rsa...".to_string());
+        map.insert("my_database_url".to_string(), "postgres://...".to_string());
+        map.insert("connectionstring".to_string(), "sensitive".to_string());
 
         let masked: ExtraMaskedMap<String> = map.into();
         let debug = format!("{:?}", masked);
 
         assert!(debug.contains("api_key"));
+        assert!(debug.contains("jwt"));
+        assert!(debug.contains("bearer"));
+        assert!(debug.contains("ssh_key"));
+        assert!(debug.contains("my_database_url"));
+        assert!(debug.contains("connectionstring"));
         assert!(debug.contains("<REDACTED>"));
         assert!(!debug.contains("secret123"));
+        assert!(!debug.contains("token456"));
+        assert!(!debug.contains("token789"));
+        assert!(!debug.contains("ssh-rsa"));
+        assert!(!debug.contains("postgres"));
+        assert!(!debug.contains("sensitive"));
         assert!(debug.contains("normal_field"));
         assert!(debug.contains("value"));
     }
