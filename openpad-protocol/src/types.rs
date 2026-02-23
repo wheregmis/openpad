@@ -1664,13 +1664,9 @@ pub struct McpResource {
 pub enum MCPStatus {
     Connected,
     Disabled,
-    Failed {
-        error: String,
-    },
+    Failed { error: String },
     NeedsAuth,
-    NeedsClientRegistration {
-        error: String,
-    },
+    NeedsClientRegistration { error: String },
 }
 
 pub type ToolIDs = Vec<String>;

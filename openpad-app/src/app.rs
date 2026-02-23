@@ -19,6 +19,7 @@ use openpad_widgets::{
 };
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Instant;
 
 const SIDEBAR_DEFAULT_WIDTH: f32 = 260.0;
 const SIDEBAR_MIN_WIDTH: f32 = 200.0;
@@ -363,6 +364,8 @@ pub struct App {
     connected_once: bool,
     #[rust]
     providers_loaded_once: bool,
+    #[rust]
+    copy_feedback_start: Option<Instant>,
 }
 
 impl App {
@@ -571,9 +574,23 @@ impl App {
 
 impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
-        if self.state.is_working {
+        if self.state.is_working || self.copy_feedback_start.is_some() {
             if let Event::NextFrame(_) = event {
-                self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
+                if self.state.is_working {
+                    self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
+                }
+
+                if let Some(start) = self.copy_feedback_start {
+                    if start.elapsed().as_secs_f64()
+                        >= crate::constants::COPY_FEEDBACK_DURATION_SECS
+                    {
+                        self.copy_feedback_start = None;
+                        self.ui
+                            .button(cx, &[id!(copy_share_button)])
+                            .set_text(cx, "Copy link");
+                        self.ui.redraw(cx);
+                    }
+                }
             }
             cx.new_next_frame();
         }
@@ -1095,6 +1112,11 @@ impl AppMain for App {
         {
             if let Some(url) = self.state.current_share_url() {
                 cx.copy_to_clipboard(&url);
+                self.copy_feedback_start = Some(Instant::now());
+                self.ui
+                    .button(cx, &[id!(copy_share_button)])
+                    .set_text(cx, "Copied!");
+                cx.new_next_frame();
             }
         }
 
