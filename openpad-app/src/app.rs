@@ -210,7 +210,7 @@ script_mod! {
                                             flow: Right
                                             align: Align{ y: 0.5 }
                                             visible: false
-                                            Label { text: "Working..." }
+                                            work_label := Label { text: "Working..." }
                                         }
                                         status_dot := StatusDot {}
                                         status_label := Label { text: "Connected" }
@@ -363,6 +363,8 @@ pub struct App {
     connected_once: bool,
     #[rust]
     providers_loaded_once: bool,
+    #[rust]
+    frame_count: u64,
 }
 
 impl App {
@@ -573,6 +575,12 @@ impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         if self.state.is_working {
             if let Event::NextFrame(_) = event {
+                self.frame_count += 1;
+                let frames = ["◐", "◓", "◑", "◒", "◔", "◕"];
+                let frame = frames[(self.frame_count as usize / 10) % frames.len()];
+                self.ui
+                    .label(cx, &[id!(work_label)])
+                    .set_text(cx, &format!("{} Working...", frame));
                 self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
             }
             cx.new_next_frame();

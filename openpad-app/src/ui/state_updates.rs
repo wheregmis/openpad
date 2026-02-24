@@ -30,6 +30,9 @@ pub fn set_status_error(ui: &WidgetRef, cx: &mut Cx, error: &str) {
 
 pub fn update_work_indicator(ui: &WidgetRef, cx: &mut Cx, working: bool) {
     ui.view(cx, &[id!(work_indicator)]).set_visible(cx, working);
+    if !working {
+        ui.label(cx, &[id!(work_label)]).set_text(cx, "Working...");
+    }
 }
 
 /// Updates the session title label with appropriate styling
