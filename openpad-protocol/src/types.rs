@@ -240,20 +240,29 @@ impl fmt::Debug for Config {
 /// Checks if a key name suggests it contains sensitive information (e.g. credentials).
 fn is_sensitive_key(key: &str) -> bool {
     let k_lower = key.to_lowercase();
-    k_lower == "key"
+    k_lower.contains("password")
+        || k_lower.contains("passphrase")
+        || k_lower.contains("credential")
+        || k_lower.contains("database")
+        || k_lower.contains("connectionstring")
+        || k_lower == "key"
         || k_lower == "token"
         || k_lower == "secret"
-        || k_lower == "password"
         || k_lower == "auth"
         || k_lower == "authorization"
         || k_lower == "cookie"
         || k_lower == "set-cookie"
         || k_lower == "signature"
-        || k_lower == "credential"
-        || k_lower == "passphrase"
         || k_lower == "pwd"
+        || k_lower == "passwd"
         || k_lower == "sessionid"
         || k_lower == "sid"
+        || k_lower == "api"
+        || k_lower == "jwt"
+        || k_lower == "bearer"
+        || k_lower == "ssh"
+        || k_lower == "nonce"
+        || k_lower == "salt"
         || k_lower.ends_with("_key")
         || k_lower.ends_with("-key")
         || k_lower.ends_with("apikey")
@@ -261,16 +270,10 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower.ends_with("-token")
         || k_lower.ends_with("_secret")
         || k_lower.ends_with("-secret")
-        || k_lower.ends_with("_password")
-        || k_lower.ends_with("-password")
         || k_lower.ends_with("_auth")
         || k_lower.ends_with("-auth")
-        || k_lower == "api"
-        || k_lower == "jwt"
-        || k_lower == "bearer"
-        || k_lower == "ssh"
-        || k_lower.contains("database")
-        || k_lower.contains("connectionstring")
+        || k_lower.ends_with("_sig")
+        || k_lower.ends_with("-sig")
 }
 
 /// A wrapper for HashMaps that masks sensitive keys in its Debug implementation.
@@ -1940,6 +1943,11 @@ mod tests {
         map.insert("ssh_key".to_string(), "ssh-rsa...".to_string());
         map.insert("my_database_url".to_string(), "postgres://...".to_string());
         map.insert("connectionstring".to_string(), "sensitive".to_string());
+        map.insert("passwd".to_string(), "pwd123".to_string());
+        map.insert("nonce".to_string(), "nonce123".to_string());
+        map.insert("salt".to_string(), "salt123".to_string());
+        map.insert("my_signature_sig".to_string(), "sig123".to_string());
+        map.insert("user_credentials".to_string(), "creds123".to_string());
 
         let masked: ExtraMaskedMap<String> = map.into();
         let debug = format!("{:?}", masked);
@@ -1950,6 +1958,11 @@ mod tests {
         assert!(debug.contains("ssh_key"));
         assert!(debug.contains("my_database_url"));
         assert!(debug.contains("connectionstring"));
+        assert!(debug.contains("passwd"));
+        assert!(debug.contains("nonce"));
+        assert!(debug.contains("salt"));
+        assert!(debug.contains("my_signature_sig"));
+        assert!(debug.contains("user_credentials"));
         assert!(debug.contains("<REDACTED>"));
         assert!(!debug.contains("secret123"));
         assert!(!debug.contains("token456"));
@@ -1957,6 +1970,11 @@ mod tests {
         assert!(!debug.contains("ssh-rsa"));
         assert!(!debug.contains("postgres"));
         assert!(!debug.contains("sensitive"));
+        assert!(!debug.contains("pwd123"));
+        assert!(!debug.contains("nonce123"));
+        assert!(!debug.contains("salt123"));
+        assert!(!debug.contains("sig123"));
+        assert!(!debug.contains("creds123"));
         assert!(debug.contains("normal_field"));
         assert!(debug.contains("value"));
     }
