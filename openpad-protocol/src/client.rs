@@ -5,13 +5,16 @@
 
 use crate::{
     Agent, AppendPromptRequest, AuthSetRequest, CommandRequest, Config, ExecuteCommandRequest,
-    File, FileDiff, FileReadRequest, FileReadResponse, FileStatusRequest, FilesSearchRequest,
-    GlobalSession, HealthResponse, LogRequest, MCPStatus, McpAddRequest, McpResource,
-    MessageWithParts, PathInfo, PermissionReply, PermissionReplyRequest, PermissionRequest,
-    PermissionResponse, Project, ProjectUpdateRequest, PromptRequest, ProvidersResponse, Pty,
-    RevertRequest, SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest,
-    SessionUpdateRequest, ShellRequest, ShowToastRequest, Skill, Symbol, SymbolsSearchRequest,
-    TextSearchRequest, TextSearchResult, Todo, ToolIDs, ToolList,
+    File, FileDiff, FileNode, FileReadRequest, FileReadResponse, FileStatusRequest,
+    FilesSearchRequest, GlobalSession, HealthResponse, LogRequest, MCPStatus, McpAddRequest,
+    McpAuthCallbackRequest, McpAuthStartResponse, McpResource, MessageWithParts, PathInfo,
+    PermissionReply, PermissionReplyRequest, PermissionRequest, PermissionResponse, Project,
+    ProjectUpdateRequest, PromptRequest, ProviderAuthAuthorization, ProviderAuthAuthorizeRequest,
+    ProviderAuthCallbackRequest, ProviderAuthMethod, ProvidersResponse, Pty, RevertRequest,
+    SessionCreateRequest, SessionInitRequest, SessionSummarizeRequest, SessionUpdateRequest,
+    ShellRequest, ShowToastRequest, Skill, Symbol,
+    SymbolsSearchRequest, TextSearchRequest, TextSearchResult, Todo, ToolIDs, ToolList,
+    TuiSelectSessionRequest, Worktree, WorktreeCreateInput, WorktreeRemoveInput, WorktreeResetInput,
 };
 use crate::{AssistantError, Error, Event, Message, Part, PartInput, Result, Session};
 use reqwest::Client as HttpClient;
@@ -430,6 +433,36 @@ impl OpenCodeClient {
         self.get_json("/config/providers", "get providers").await
     }
 
+    pub async fn list_provider_auth_methods(
+        &self,
+    ) -> Result<std::collections::HashMap<String, Vec<ProviderAuthMethod>>> {
+        self.get_json("/provider/auth", "list provider auth methods")
+            .await
+    }
+
+    pub async fn provider_oauth_authorize(
+        &self,
+        provider_id: &str,
+        method_index: usize,
+    ) -> Result<ProviderAuthAuthorization> {
+        let endpoint = format!("/provider/{}/oauth/authorize", provider_id);
+        let request = ProviderAuthAuthorizeRequest {
+            method: method_index,
+        };
+        self.post_json(&endpoint, &request, "provider oauth authorize")
+            .await
+    }
+
+    pub async fn provider_oauth_callback(
+        &self,
+        provider_id: &str,
+        request: ProviderAuthCallbackRequest,
+    ) -> Result<bool> {
+        let endpoint = format!("/provider/{}/oauth/callback", provider_id);
+        self.post_json_bool(&endpoint, &request, "provider oauth callback")
+            .await
+    }
+
     // ========================================================================
     // Extended Session APIs
     // ========================================================================
@@ -605,6 +638,41 @@ impl OpenCodeClient {
         self.post_json("/mcp", &request, "add mcp server").await
     }
 
+    pub async fn mcp_auth_start(&self, name: &str) -> Result<McpAuthStartResponse> {
+        let endpoint = format!("/mcp/{}/auth", name);
+        self.post_no_body_json(&endpoint, "mcp auth start").await
+    }
+
+    pub async fn mcp_auth_remove(&self, name: &str) -> Result<bool> {
+        let endpoint = format!("/mcp/{}/auth", name);
+        self.delete_bool(&endpoint, "mcp auth remove").await
+    }
+
+    pub async fn mcp_auth_callback(
+        &self,
+        name: &str,
+        request: McpAuthCallbackRequest,
+    ) -> Result<MCPStatus> {
+        let endpoint = format!("/mcp/{}/auth/callback", name);
+        self.post_json(&endpoint, &request, "mcp auth callback").await
+    }
+
+    pub async fn mcp_auth_authenticate(&self, name: &str) -> Result<MCPStatus> {
+        let endpoint = format!("/mcp/{}/auth/authenticate", name);
+        self.post_no_body_json(&endpoint, "mcp auth authenticate")
+            .await
+    }
+
+    pub async fn mcp_connect(&self, name: &str) -> Result<bool> {
+        let endpoint = format!("/mcp/{}/connect", name);
+        self.post_no_body_bool(&endpoint, "mcp connect").await
+    }
+
+    pub async fn mcp_disconnect(&self, name: &str) -> Result<bool> {
+        let endpoint = format!("/mcp/{}/disconnect", name);
+        self.post_no_body_bool(&endpoint, "mcp disconnect").await
+    }
+
     pub async fn list_tool_ids(&self) -> Result<ToolIDs> {
         self.get_json("/experimental/tool/ids", "list tool ids")
             .await
@@ -624,6 +692,38 @@ impl OpenCodeClient {
 
         let response = Self::check_response(response, "list tools").await?;
         Ok(response.json().await?)
+    }
+
+    pub async fn create_worktree(&self, request: WorktreeCreateInput) -> Result<Worktree> {
+        self.post_json("/experimental/worktree", &request, "create worktree")
+            .await
+    }
+
+    pub async fn list_worktrees(&self) -> Result<Vec<String>> {
+        self.get_json("/experimental/worktree", "list worktrees")
+            .await
+    }
+
+    pub async fn remove_worktree(&self, request: WorktreeRemoveInput) -> Result<bool> {
+        let url = format!("{}/experimental/worktree", self.base_url);
+        let response = self
+            .http
+            .delete(&url)
+            .query(&[("directory", &self.directory)])
+            .json(&request)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let response = Self::check_response(response, "remove worktree").await?;
+        // Consume the response body to allow connection reuse
+        let _ = response.bytes().await?;
+        Ok(true)
+    }
+
+    pub async fn reset_worktree(&self, request: WorktreeResetInput) -> Result<bool> {
+        self.post_json_bool("/experimental/worktree/reset", &request, "reset worktree")
+            .await
     }
 
     // ========================================================================
@@ -687,6 +787,20 @@ impl OpenCodeClient {
             .await?;
 
         let response = Self::check_response(response, "search symbols").await?;
+        Ok(response.json().await?)
+    }
+
+    pub async fn list_files(&self, path: &str) -> Result<Vec<FileNode>> {
+        let url = format!("{}/file", self.base_url);
+        let response = self
+            .http
+            .get(&url)
+            .query(&[("directory", self.directory.as_str()), ("path", path)])
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let response = Self::check_response(response, "list files").await?;
         Ok(response.json().await?)
     }
 
@@ -772,6 +886,14 @@ impl OpenCodeClient {
 
     pub async fn show_toast(&self, request: ShowToastRequest) -> Result<bool> {
         self.post_json_bool("/tui/show-toast", &request, "show toast")
+            .await
+    }
+
+    pub async fn tui_select_session(&self, session_id: &str) -> Result<bool> {
+        let request = TuiSelectSessionRequest {
+            session_id: session_id.to_string(),
+        };
+        self.post_json_bool("/tui/select-session", &request, "select session")
             .await
     }
 

@@ -517,6 +517,16 @@ pub struct File {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FileNode {
+    pub name: String,
+    pub path: String,
+    pub absolute: String,
+    #[serde(rename = "type")]
+    pub type_name: String, // "file" or "directory"
+    pub ignored: bool,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Todo {
     pub content: String,
     pub status: String,
@@ -574,6 +584,23 @@ pub struct Worktree {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WorktreeCreateInput {
+    pub name: Option<String>,
+    #[serde(rename = "startCommand")]
+    pub start_command: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WorktreeRemoveInput {
+    pub directory: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WorktreeResetInput {
+    pub directory: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PtyCreateRequest {
     pub command: String,
     #[serde(default)]
@@ -622,6 +649,12 @@ pub struct ShowToastRequest {
     pub variant: String, // "info", "success", "warning", "error"
     #[serde(default)]
     pub duration: Option<f64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct TuiSelectSessionRequest {
+    #[serde(rename = "sessionID")]
+    pub session_id: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -824,6 +857,32 @@ pub struct SessionRevert {
     /// Diff showing what was reverted (optional)
     #[serde(default)]
     pub diff: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ProviderAuthMethod {
+    #[serde(rename = "type")]
+    pub type_name: String, // "oauth" or "api"
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ProviderAuthAuthorization {
+    pub url: String,
+    pub method: String, // "auto" or "code"
+    pub instructions: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ProviderAuthAuthorizeRequest {
+    pub method: usize,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ProviderAuthCallbackRequest {
+    pub method: usize,
+    #[serde(default)]
+    pub code: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -1187,6 +1246,24 @@ impl Message {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct FilePart {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default, rename = "sessionID")]
+    pub session_id: String,
+    #[serde(default, rename = "messageID")]
+    pub message_id: String,
+    #[serde(rename = "type")]
+    pub type_name: String, // "file"
+    pub mime: String,
+    #[serde(default)]
+    pub filename: Option<String>,
+    pub url: String,
+    #[serde(default)]
+    pub source: Option<FilePartSource>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "kebab-case")]
 pub enum Part {
     #[serde(rename = "text")]
@@ -1237,22 +1314,7 @@ pub enum Part {
         time: PartTime,
     },
     #[serde(rename = "file")]
-    File {
-        #[serde(default)]
-        id: String,
-        #[serde(default, rename = "sessionID")]
-        session_id: String,
-        #[serde(default, rename = "messageID")]
-        message_id: String,
-        #[serde(default)]
-        mime: String,
-        #[serde(default)]
-        filename: Option<String>,
-        #[serde(default)]
-        url: String,
-        #[serde(default)]
-        source: Option<FilePartSource>,
-    },
+    File(FilePart),
     #[serde(rename = "tool")]
     Tool {
         #[serde(default)]
@@ -1407,6 +1469,8 @@ pub enum ToolState {
         metadata: ExtraMaskedMap<serde_json::Value>,
         #[serde(default)]
         time: ToolStateTime,
+        #[serde(default)]
+        attachments: Vec<FilePart>,
     },
     Error {
         #[serde(default)]
@@ -1443,12 +1507,11 @@ impl Part {
     /// Get file attachment info, if this is a file part.
     pub fn file_info(&self) -> Option<(&str, Option<&str>, &str)> {
         match self {
-            Part::File {
-                mime,
-                filename,
-                url,
-                ..
-            } => Some((mime.as_str(), filename.as_deref(), url.as_str())),
+            Part::File(file) => Some((
+                file.mime.as_str(),
+                file.filename.as_deref(),
+                file.url.as_str(),
+            )),
             _ => None,
         }
     }
@@ -1459,7 +1522,7 @@ impl Part {
             Part::Text { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::Subtask { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::Reasoning { message_id, .. } if !message_id.is_empty() => Some(message_id),
-            Part::File { message_id, .. } if !message_id.is_empty() => Some(message_id),
+            Part::File(file) if !file.message_id.is_empty() => Some(&file.message_id),
             Part::StepStart { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::StepFinish { message_id, .. } if !message_id.is_empty() => Some(message_id),
             Part::Tool { message_id, .. } if !message_id.is_empty() => Some(message_id),
@@ -1711,6 +1774,15 @@ pub struct McpLocalConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct McpOAuthConfig {
+    #[serde(rename = "clientId")]
+    pub client_id: Option<String>,
+    #[serde(rename = "clientSecret")]
+    pub client_secret: Option<String>,
+    pub scope: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct McpRemoteConfig {
     pub url: String,
     #[serde(default)]
@@ -1721,6 +1793,17 @@ pub struct McpRemoteConfig {
     pub oauth: Option<serde_json::Value>, // McpOAuthConfig or bool
     #[serde(default)]
     pub timeout: Option<f64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct McpAuthStartResponse {
+    #[serde(rename = "authorizationUrl")]
+    pub authorization_url: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct McpAuthCallbackRequest {
+    pub code: String,
 }
 
 impl PartInput {

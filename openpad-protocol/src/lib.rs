@@ -87,11 +87,16 @@ mod tests {
         let _: FormatterStatus;
         let _: Command;
         let _: Worktree;
+        let _: WorktreeCreateInput;
+        let _: WorktreeRemoveInput;
+        let _: WorktreeResetInput;
+        let _: FileNode;
 
         // TUI types
         let _: AppendPromptRequest;
         let _: ExecuteCommandRequest;
         let _: ShowToastRequest;
+        let _: TuiSelectSessionRequest;
 
         // Auth types
         let _: AuthSetRequest;
@@ -119,6 +124,10 @@ mod tests {
         let _: PermissionReply;
         let _: PermissionRequest;
         let _: PermissionReplyRequest;
+        let _: ProviderAuthMethod;
+        let _: ProviderAuthAuthorization;
+        let _: ProviderAuthAuthorizeRequest;
+        let _: ProviderAuthCallbackRequest;
 
         // Message types
         let _: Message;
@@ -131,6 +140,7 @@ mod tests {
         let _: CacheUsage;
         let _: AssistantError;
         let _: Part;
+        let _: FilePart;
         let _: PartInput;
         let _: OutputFormat;
 
@@ -654,6 +664,14 @@ mod tests {
                 "Config",
                 "Provider",
                 "Model",
+                "FileNode",
+                "Worktree",
+                "WorktreeCreateInput",
+                "WorktreeRemoveInput",
+                "WorktreeResetInput",
+                "ProviderAuthMethod",
+                "ProviderAuthAuthorization",
+                "McpOAuthConfig",
             ];
 
             for schema_name in expected_schemas {
@@ -796,6 +814,44 @@ mod tests {
             let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
 
             validate_serialization(&diff, &required_fields);
+        }
+
+        #[test]
+        fn test_file_node_schema() {
+            let spec = load_openapi_spec();
+            let schema = get_schema(&spec, "FileNode").expect("FileNode schema not found");
+
+            let node = FileNode {
+                name: "test.rs".to_string(),
+                path: "src/test.rs".to_string(),
+                absolute: "/app/src/test.rs".to_string(),
+                type_name: "file".to_string(),
+                ignored: false,
+            };
+
+            let required = schema
+                .get("required")
+                .and_then(|v| v.as_array())
+                .expect("FileNode schema missing required fields");
+
+            let required_fields: Vec<&str> = required.iter().filter_map(|v| v.as_str()).collect();
+
+            validate_serialization(&node, &required_fields);
+        }
+
+        #[test]
+        fn test_worktree_create_input_schema() {
+            let spec = load_openapi_spec();
+            let _schema =
+                get_schema(&spec, "WorktreeCreateInput").expect("WorktreeCreateInput schema not found");
+
+            let input = WorktreeCreateInput {
+                name: Some("test-branch".to_string()),
+                start_command: Some("npm install".to_string()),
+            };
+
+            // It has no required fields according to openapi.json
+            validate_serialization(&input, &[]);
         }
 
         #[test]
