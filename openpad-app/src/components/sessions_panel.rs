@@ -85,9 +85,66 @@ pub struct SessionsPanel {
 
     #[rust]
     current_dir_name: String,
+
+    #[rust]
+    dirty: bool,
+    #[rust]
+    cached_project_names: HashMap<String, String>,
+    #[rust]
+    cached_session_labels: HashMap<String, String>,
+    #[rust]
+    sessions_by_project: HashMap<String, Vec<usize>>,
+    #[rust]
+    project_node_ids: HashMap<String, LiveId>,
+    #[rust]
+    session_node_ids: HashMap<String, LiveId>,
 }
 
 impl SessionsPanel {
+    fn rebuild_cache(&mut self) {
+        // Optimization: avoid repeated system calls to get current directory.
+        if self.current_dir_name.is_empty() {
+            self.current_dir_name = std::env::current_dir()
+                .ok()
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                .unwrap_or_else(|| ".".to_string());
+        }
+        let current_dir_name = &self.current_dir_name;
+
+        self.cached_project_names.clear();
+        self.cached_session_labels.clear();
+        self.sessions_by_project.clear();
+        self.project_node_ids.clear();
+        self.session_node_ids.clear();
+
+        for i in 0..self.sessions.len() {
+            let session = &self.sessions[i];
+            self.sessions_by_project
+                .entry(session.project_id.clone())
+                .or_default()
+                .push(i);
+
+            let label = self.session_display_label(session);
+            self.cached_session_labels.insert(session.id.clone(), label);
+
+            let node_id = Self::session_node_id(&session.id);
+            self.session_node_ids.insert(session.id.clone(), node_id);
+        }
+
+        for project in &self.projects {
+            if project.worktree == "/" || project.worktree.is_empty() {
+                continue;
+            }
+            let name = Self::derive_project_name(project, current_dir_name);
+            self.cached_project_names.insert(project.id.clone(), name);
+
+            let node_id = Self::project_node_id(&project.id);
+            self.project_node_ids.insert(project.id.clone(), node_id);
+        }
+
+        self.dirty = false;
+    }
+
     fn derive_project_name(project: &Project, current_dir_name: &str) -> String {
         if let Some(name) = &project.name {
             if !name.trim().is_empty() {
@@ -198,81 +255,74 @@ impl SessionsPanel {
     }
 
     fn draw_tree(&mut self, cx: &mut Cx2d) {
+        if self.dirty {
+            self.rebuild_cache();
+        }
+
         self.session_node_to_id.clear();
         self.project_node_to_id.clear();
 
-        // Optimization: avoid repeated system calls to get current directory.
-        if self.current_dir_name.is_empty() {
-            self.current_dir_name = std::env::current_dir()
-                .ok()
-                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-                .unwrap_or_else(|| ".".to_string());
-        }
-        let current_dir_name = &self.current_dir_name;
-
-        // Optimization: use references instead of cloning projects and sessions every frame.
-        // This avoids $O(N)$ heap allocations in the draw loop.
-        let projects = &self.projects;
-        let sessions = &self.sessions;
-
-        let mut grouped: HashMap<String, Vec<&Session>> = HashMap::new();
-        for session in sessions {
-            grouped
-                .entry(session.project_id.clone())
-                .or_default()
-                .push(session);
-        }
-
-        let mut known_project_ids = HashSet::new();
-        for project in projects {
-            if project.worktree == "/" || project.worktree.is_empty() {
+        for project in &self.projects {
+            let Some(project_name) = self.cached_project_names.get(&project.id) else {
                 continue;
-            }
+            };
+            let project_node_id = *self.project_node_ids.get(&project.id).unwrap_or(&LiveId(0));
 
-            known_project_ids.insert(project.id.clone());
-
-            let project_name = Self::derive_project_name(project, current_dir_name);
-            let project_node_id = Self::project_node_id(&project.id);
             self.project_node_to_id
                 .insert(project_node_id, Some(project.id.clone()));
 
             if self
                 .file_tree
-                .begin_folder(cx, project_node_id, &project_name)
+                .begin_folder(cx, project_node_id, project_name)
                 .is_ok()
             {
-                if let Some(project_sessions) = grouped.get(&project.id) {
-                    for session in project_sessions {
-                        let node_id = Self::session_node_id(&session.id);
-                        let label = self.session_display_label(session);
+                if let Some(project_session_indices) = self.sessions_by_project.get(&project.id) {
+                    for &idx in project_session_indices {
+                        let session = &self.sessions[idx];
+                        let node_id = *self.session_node_ids.get(&session.id).unwrap_or(&LiveId(0));
+                        let label = self
+                            .cached_session_labels
+                            .get(&session.id)
+                            .map(|s| s.as_str())
+                            .unwrap_or("");
                         self.session_node_to_id.insert(node_id, session.id.clone());
-                        self.file_tree.file(cx, node_id, &label);
+                        self.file_tree.file(cx, node_id, label);
                     }
                 }
                 self.file_tree.end_folder();
             }
         }
 
-        let ungrouped: Vec<&Session> = grouped
-            .into_iter()
-            .filter(|(project_id, _)| !known_project_ids.contains(project_id))
-            .flat_map(|(_, sessions)| sessions)
-            .collect();
+        let other_project_node_id = Self::other_project_node_id();
+        let mut has_ungrouped = false;
+        for (project_id, session_indices) in &self.sessions_by_project {
+            if !self.cached_project_names.contains_key(project_id) {
+                if !has_ungrouped {
+                    if self
+                        .file_tree
+                        .begin_folder(cx, other_project_node_id, "Other")
+                        .is_err()
+                    {
+                        break;
+                    }
+                    self.project_node_to_id.insert(other_project_node_id, None);
+                    has_ungrouped = true;
+                }
 
-        if !ungrouped.is_empty()
-            && self
-                .file_tree
-                .begin_folder(cx, Self::other_project_node_id(), "Other")
-                .is_ok()
-        {
-            self.project_node_to_id
-                .insert(Self::other_project_node_id(), None);
-            for session in &ungrouped {
-                let node_id = Self::session_node_id(&session.id);
-                let label = self.session_display_label(session);
-                self.session_node_to_id.insert(node_id, session.id.clone());
-                self.file_tree.file(cx, node_id, &label);
+                for &idx in session_indices {
+                    let session = &self.sessions[idx];
+                    let node_id = *self.session_node_ids.get(&session.id).unwrap_or(&LiveId(0));
+                    let label = self
+                        .cached_session_labels
+                        .get(&session.id)
+                        .map(|s| s.as_str())
+                        .unwrap_or("");
+                    self.session_node_to_id.insert(node_id, session.id.clone());
+                    self.file_tree.file(cx, node_id, label);
+                }
             }
+        }
+        if has_ungrouped {
             self.file_tree.end_folder();
         }
     }
@@ -346,6 +396,7 @@ impl SessionsPanelRef {
             inner.sessions = sessions;
             inner.selected_session_id = selected_session_id;
             inner.working_by_session = working_by_session;
+            inner.dirty = true;
 
             let project_ids: Vec<String> = inner.projects.iter().map(|p| p.id.clone()).collect();
             for project_id in project_ids {

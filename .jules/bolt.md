@@ -29,3 +29,7 @@
 ## 2026-02-23 – Composite Cache Keys and ID Hashing Optimization in File Trees
 **Learning:** In multi-project IDE environments, caching filesystem I/O using only the path as a key can lead to collisions where node IDs from one project are incorrectly used for another. Furthermore, generating `LiveId`s via `LiveId::from_str(format!(...))` every frame for every visible node adds significant hashing and allocation overhead.
 **Action:** Use composite keys (e.g., `(project_id, path)`) for filesystem caches to ensure project-specific correctness. Cache `LiveId` results and use pre-extracted project metadata in draw loops to avoid full object clones and repeated string formatting, ensuring the render pass remains O(visible_items) with minimal heap churn.
+
+## 2026-02-24 – Eliminating Heap Churn in Session List Rendering
+**Learning:** Even with "optimized" truncation logic, rebuilding HashMaps and formatting multiple strings per item inside a Makepad `draw_tree` loop causes massive heap churn (thousands of allocations per frame during scrolling or animations). This is especially problematic when grouping items (e.g., sessions by project) on the fly.
+**Action:** Move all item grouping, label formatting, and ID generation (LiveId::from_str) into a `rebuild_cache` method guarded by a `dirty` flag. Update this flag in the widget's `set_data` method. The render loop should only perform (visible\_items)$ lookups into these pre-calculated caches, ensuring a smooth, allocation-free UI path.

@@ -149,12 +149,7 @@ pub fn reduce_app_state(state: &mut AppState, action: &AppAction) -> Vec<StateEf
             state.providers = providers_response.providers.clone();
 
             let mut provider_labels = vec!["Default".to_string()];
-            provider_labels.extend(
-                state
-                    .providers
-                    .iter()
-                    .map(|p| p.name.clone()),
-            );
+            provider_labels.extend(state.providers.iter().map(|p| p.name.clone()));
             state.provider_labels = provider_labels;
             state.selected_provider_idx = 0;
             state.update_model_list_for_provider();
