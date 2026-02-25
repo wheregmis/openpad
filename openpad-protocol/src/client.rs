@@ -827,9 +827,13 @@ impl OpenCodeClient {
                             break;
                         }
 
-                        // Parse SSE format: "data: {...}\n\n"
-                        while let Some(idx) = buffer.find("\n\n") {
-                            let event_str = &buffer[..idx];
+                        // Optimization: Avoid O(N^2) reallocations by using offset-based processing
+                        // and a single drain() at the end. Previously, buffer[idx+2..].to_string()
+                        // created a new String and copied the remainder for every event in the chunk.
+                        let mut consumed = 0;
+                        while let Some(idx) = buffer[consumed..].find("\n\n") {
+                            let absolute_idx = consumed + idx;
+                            let event_str = &buffer[consumed..absolute_idx];
 
                             if let Some(data) = event_str.strip_prefix("data: ") {
                                 if let Some(event) = parse_sse_event(data) {
@@ -837,7 +841,10 @@ impl OpenCodeClient {
                                 }
                             }
 
-                            buffer = buffer[idx + 2..].to_string();
+                            consumed = absolute_idx + 2;
+                        }
+                        if consumed > 0 {
+                            buffer.drain(..consumed);
                         }
                     }
                     Err(e) => {
@@ -853,31 +860,39 @@ impl OpenCodeClient {
 }
 
 fn parse_sse_event(data: &str) -> Option<Event> {
-    let value: serde_json::Value = serde_json::from_str(data).ok()?;
+    let mut value: serde_json::Value = serde_json::from_str(data).ok()?;
 
-    // SSE events are wrapped in a "payload" envelope
-    let payload = value.get("payload").unwrap_or(&value);
+    // SSE events are wrapped in a "payload" envelope.
+    // Optimization: We use take() to move data out of the Value instead of cloning,
+    // which significantly reduces heap churn for large protocol structures.
+    let mut payload = match value.get_mut("payload") {
+        Some(p) => p.take(),
+        None => value,
+    };
 
-    let event_type = payload.get("type")?.as_str()?;
-    let props = payload.get("properties")?;
+    let event_type = payload.get("type")?.as_str()?.to_string();
+    let mut props = match payload.get_mut("properties") {
+        Some(p) => p.take(),
+        None => return None,
+    };
 
-    match event_type {
+    match event_type.as_str() {
         "session.created" => {
-            let session: Session = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            let session: Session = serde_json::from_value(props.get_mut("info")?.take()).ok()?;
             Some(Event::SessionCreated(session))
         }
         "session.updated" => {
-            let session: Session = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            let session: Session = serde_json::from_value(props.get_mut("info")?.take()).ok()?;
             Some(Event::SessionUpdated(session))
         }
         "session.deleted" => {
-            let session: Session = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            let session: Session = serde_json::from_value(props.get_mut("info")?.take()).ok()?;
             Some(Event::SessionDeleted(session))
         }
         "session.status" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
             let status: crate::SessionStatus =
-                serde_json::from_value(props.get("status")?.clone()).ok()?;
+                serde_json::from_value(props.get_mut("status")?.take()).ok()?;
             Some(Event::SessionStatus { session_id, status })
         }
         "session.idle" => {
@@ -890,11 +905,11 @@ fn parse_sse_event(data: &str) -> Option<Event> {
         }
         "session.diff" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
-            let diff: Vec<FileDiff> = serde_json::from_value(props.get("diff")?.clone()).ok()?;
+            let diff: Vec<FileDiff> = serde_json::from_value(props.get_mut("diff")?.take()).ok()?;
             Some(Event::SessionDiff { session_id, diff })
         }
         "message.updated" => {
-            let message: Message = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            let message: Message = serde_json::from_value(props.get_mut("info")?.take()).ok()?;
             Some(Event::MessageUpdated(message))
         }
         "message.removed" => {
@@ -906,7 +921,7 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             })
         }
         "message.part.updated" => {
-            let part: Part = serde_json::from_value(props.get("part")?.clone()).ok()?;
+            let part: Part = serde_json::from_value(props.get_mut("part")?.take()).ok()?;
             let delta = props
                 .get("delta")
                 .and_then(|v| v.as_str())
@@ -939,18 +954,19 @@ fn parse_sse_event(data: &str) -> Option<Event> {
         }
         "session.error" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
-            let error: AssistantError = serde_json::from_value(props.get("error")?.clone()).ok()?;
+            let error: AssistantError = serde_json::from_value(props.get_mut("error")?.take()).ok()?;
             Some(Event::SessionError { session_id, error })
         }
         "permission.asked" => {
-            let request: PermissionRequest = serde_json::from_value(props.clone()).ok()?;
+            // Optimization: props itself is now an owned Value, so we can use from_value(props) directly
+            let request: PermissionRequest = serde_json::from_value(props).ok()?;
             Some(Event::PermissionAsked(request))
         }
         "permission.replied" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
             let request_id = props.get("requestID")?.as_str()?.to_string();
             let reply: PermissionReply =
-                serde_json::from_value(props.get("reply")?.clone()).ok()?;
+                serde_json::from_value(props.get_mut("reply")?.take()).ok()?;
             Some(Event::PermissionReplied {
                 session_id,
                 request_id,
@@ -958,14 +974,14 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             })
         }
         "question.asked" => {
-            let request: crate::QuestionRequest = serde_json::from_value(props.clone()).ok()?;
+            let request: crate::QuestionRequest = serde_json::from_value(props).ok()?;
             Some(Event::QuestionAsked(request))
         }
         "question.replied" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
             let request_id = props.get("requestID")?.as_str()?.to_string();
             let answers: Vec<Vec<String>> =
-                serde_json::from_value(props.get("answers")?.clone()).ok()?;
+                serde_json::from_value(props.get_mut("answers")?.take()).ok()?;
             Some(Event::QuestionReplied {
                 session_id,
                 request_id,
@@ -982,7 +998,7 @@ fn parse_sse_event(data: &str) -> Option<Event> {
         }
         "todo.updated" => {
             let session_id = props.get("sessionID")?.as_str()?.to_string();
-            let todos: Vec<Todo> = serde_json::from_value(props.get("todos")?.clone()).ok()?;
+            let todos: Vec<Todo> = serde_json::from_value(props.get_mut("todos")?.take()).ok()?;
             Some(Event::TodoUpdated { session_id, todos })
         }
         "tui.prompt.append" => {
@@ -1013,11 +1029,11 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             Some(Event::TuiSessionSelect { session_id })
         }
         "pty.created" => {
-            let info: Pty = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            let info: Pty = serde_json::from_value(props.get_mut("info")?.take()).ok()?;
             Some(Event::PtyCreated(info))
         }
         "pty.updated" => {
-            let info: Pty = serde_json::from_value(props.get("info")?.clone()).ok()?;
+            let info: Pty = serde_json::from_value(props.get_mut("info")?.take()).ok()?;
             Some(Event::PtyUpdated(info))
         }
         "pty.exited" => {
@@ -1030,7 +1046,7 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             Some(Event::PtyDeleted { id })
         }
         "project.updated" => {
-            let info: Project = serde_json::from_value(props.clone()).ok()?;
+            let info: Project = serde_json::from_value(props).ok()?;
             Some(Event::ProjectUpdated(info))
         }
         "vcs.branch.updated" => {
@@ -1096,6 +1112,6 @@ fn parse_sse_event(data: &str) -> Option<Event> {
             let directory = props.get("directory")?.as_str()?.to_string();
             Some(Event::ServerInstanceDisposed { directory })
         }
-        _ => Some(Event::Unknown(event_type.to_string())),
+        _ => Some(Event::Unknown(event_type)),
     }
 }

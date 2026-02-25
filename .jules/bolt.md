@@ -29,3 +29,7 @@
 ## 2026-02-23 – Composite Cache Keys and ID Hashing Optimization in File Trees
 **Learning:** In multi-project IDE environments, caching filesystem I/O using only the path as a key can lead to collisions where node IDs from one project are incorrectly used for another. Furthermore, generating `LiveId`s via `LiveId::from_str(format!(...))` every frame for every visible node adds significant hashing and allocation overhead.
 **Action:** Use composite keys (e.g., `(project_id, path)`) for filesystem caches to ensure project-specific correctness. Cache `LiveId` results and use pre-extracted project metadata in draw loops to avoid full object clones and repeated string formatting, ensuring the render pass remains O(visible_items) with minimal heap churn.
+
+## 2026-05-20 – Efficient SSE Buffer Management and JSON Deserialization
+**Learning:** Reallocating the remainder of a string buffer inside a processing loop (e.g., buffer = buffer[idx..].to_string()) leads to O(N^2) complexity and massive heap churn when processing multiple events per chunk. Furthermore, cloning sub-objects from a serde_json::Value during deserialization causes expensive deep copies of large protocol structures.
+**Action:** Use an offset-based approach to identify all events in a buffer without intermediate reallocations, then perform a single drain() operation to clear processed data. For JSON parsing, use Value::take() to move data into serde_json::from_value instead of cloning, significantly reducing allocations in high-throughput data streams.
