@@ -5,3 +5,7 @@
 ## 2025-02-05 – Accessible Labels for Custom Icon Buttons
 **Learning:** For custom icon buttons (e.g., ellipses/dots), implementing the visual rendering in the `draw_bg` shader using SDFs while using the `text` property and `draw_text: { color: #0000 }` provides a descriptive, hidden accessibility label without breaking the visual design.
 **Action:** Use this pattern to replace opaque symbols or empty strings in all icon-only controls.
+
+## 2025-02-13 – Animated Indicators and Transient Feedback
+**Learning:** High-impact UX can be achieved with minimal code by leveraging Makepad's `NextFrame` event loop for animations and timers. Using Unicode characters (◐, ◑, ◒, ◓, ◔, ◕) provides a lightweight alternative to complex shader-based spinners. Transient feedback (e.g., 'Copied!') on buttons improves interaction quality by confirming invisible actions.
+**Action:** Store `frame_count` or `Instant` in the `App` or widget struct. In `handle_event`, use the `Event::NextFrame` block to update UI state (text, visibility) and call `cx.new_next_frame()` to drive the loop until the animation or timer completes.

@@ -19,6 +19,7 @@ use openpad_widgets::{
 };
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Instant;
 
 const SIDEBAR_DEFAULT_WIDTH: f32 = 260.0;
 const SIDEBAR_MIN_WIDTH: f32 = 200.0;
@@ -210,7 +211,7 @@ script_mod! {
                                             flow: Right
                                             align: Align{ y: 0.5 }
                                             visible: false
-                                            Label { text: "Working..." }
+                                            work_label := Label { text: "Working..." }
                                         }
                                         status_dot := StatusDot {}
                                         status_label := Label { text: "Connected" }
@@ -363,6 +364,10 @@ pub struct App {
     connected_once: bool,
     #[rust]
     providers_loaded_once: bool,
+    #[rust]
+    frame_count: u64,
+    #[rust]
+    last_share_copy_at: Option<std::time::Instant>,
 }
 
 impl App {
@@ -571,9 +576,32 @@ impl App {
 
 impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
+        if self.last_share_copy_at.is_some() {
+            if let Event::NextFrame(_) = event {
+                if let Some(time) = self.last_share_copy_at {
+                    if time.elapsed().as_secs() >= 2 {
+                        self.last_share_copy_at = None;
+                        self.ui
+                            .button(cx, &[id!(copy_share_button)])
+                            .set_text(cx, "Copy link");
+                        self.ui.view(cx, &[id!(session_info)]).redraw(cx);
+                    }
+                }
+            }
+            cx.new_next_frame();
+        }
+
         if self.state.is_working {
             if let Event::NextFrame(_) = event {
-                self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
+                self.frame_count += 1;
+                if self.frame_count % 6 == 0 {
+                    let thinking_frame = (self.frame_count / 6 % 6) as usize;
+                    let icon = crate::constants::SPINNER_FRAMES[thinking_frame];
+                    self.ui
+                        .label(cx, &[id!(work_indicator), id!(work_label)])
+                        .set_text(cx, &format!("{} Working...", icon));
+                    self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
+                }
             }
             cx.new_next_frame();
         }
@@ -1095,6 +1123,11 @@ impl AppMain for App {
         {
             if let Some(url) = self.state.current_share_url() {
                 cx.copy_to_clipboard(&url);
+                self.last_share_copy_at = Some(std::time::Instant::now());
+                self.ui
+                    .button(cx, &[id!(copy_share_button)])
+                    .set_text(cx, "Copied!");
+                self.ui.view(cx, &[id!(session_info)]).redraw(cx);
             }
         }
 

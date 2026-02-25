@@ -34,6 +34,9 @@ pub const PROJECT_CONTEXT_NO_PROJECT: &str = "No active project";
 // OpenCode server configuration
 pub const OPENCODE_SERVER_URL: &str = "http://localhost:4096";
 
+// Spinner frames for animated "Working" indicator
+pub const SPINNER_FRAMES: &[&str] = &["◐", "◑", "◒", "◓", "◔", "◕"];
+
 // Timing constants (in seconds)
 pub const HEALTH_CHECK_INTERVAL_SECS: u64 = 5;
 pub const SSE_RETRY_DELAY_SECS: u64 = 2;
