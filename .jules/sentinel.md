@@ -21,3 +21,13 @@
 **Vulnerability:** Potentially sensitive headers (e.g., Cookie, Authorization) and error metadata were not being fully protected in Debug logs or UI summaries.
 **Learning:** Centralized key detection (`is_sensitive_key`) should cover a wide range of common sensitive keywords (auth, cookie, signature, credential) to be effective across different providers. Error response bodies and metadata from external APIs are high-risk areas for credential leakage.
 **Prevention:** Expand centralized sensitive key heuristics and apply `SecretString` to all fields containing external API responses or headers that might be logged during error conditions.
+
+## 2025-02-05 – Deep Secret Redaction in Tool Input Summaries
+**Vulnerability:** Leaking sensitive credentials (like environment variables or nested options) in tool input summaries and debug logs.
+**Learning:**  must be comprehensive and handle both exact matches and substring/suffix matches to be effective. Simple top-level key checks in maps are insufficient when sensitive data is nested in JSON objects or arrays.
+**Prevention:** Use a recursive redaction helper for all JSON-based data structures intended for logging or UI display. Expand sensitive key heuristics to include common patterns like `nonce`, `salt`, `otp`, and `sig` suffixes.
+
+## 2025-02-05 – Deep Secret Redaction in Tool Input Summaries
+**Vulnerability:** Leaking sensitive credentials (like environment variables or nested options) in tool input summaries and debug logs.
+**Learning:** `is_sensitive_key` must be comprehensive and handle both exact matches and substring/suffix matches to be effective. Simple top-level key checks in maps are insufficient when sensitive data is nested in JSON objects or arrays.
+**Prevention:** Use a recursive redaction helper for all JSON-based data structures intended for logging or UI display. Expand sensitive key heuristics to include common patterns like `nonce`, `salt`, `otp`, and `sig` suffixes.

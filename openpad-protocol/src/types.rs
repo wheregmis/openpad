@@ -243,17 +243,19 @@ fn is_sensitive_key(key: &str) -> bool {
     k_lower == "key"
         || k_lower == "token"
         || k_lower == "secret"
-        || k_lower == "password"
         || k_lower == "auth"
         || k_lower == "authorization"
         || k_lower == "cookie"
         || k_lower == "set-cookie"
         || k_lower == "signature"
-        || k_lower == "credential"
         || k_lower == "passphrase"
         || k_lower == "pwd"
         || k_lower == "sessionid"
         || k_lower == "sid"
+        || k_lower == "nonce"
+        || k_lower == "salt"
+        || k_lower == "otp"
+        || k_lower == "totp"
         || k_lower.ends_with("_key")
         || k_lower.ends_with("-key")
         || k_lower.ends_with("apikey")
@@ -265,12 +267,22 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower.ends_with("-password")
         || k_lower.ends_with("_auth")
         || k_lower.ends_with("-auth")
+        || k_lower.ends_with("_sig")
+        || k_lower.ends_with("-sig")
+        || k_lower.ends_with("_signature")
+        || k_lower.ends_with("-signature")
         || k_lower == "api"
         || k_lower == "jwt"
         || k_lower == "bearer"
         || k_lower == "ssh"
+        || k_lower.contains("password")
+        || k_lower.contains("passwd")
+        || k_lower.contains("credential")
         || k_lower.contains("database")
         || k_lower.contains("connectionstring")
+        || k_lower.contains("pkcs")
+        || k_lower.contains("certificate")
+        || k_lower.contains("cert")
 }
 
 /// A wrapper for HashMaps that masks sensitive keys in its Debug implementation.
@@ -1499,6 +1511,27 @@ impl Part {
     }
 }
 
+/// Recursively redacts sensitive information from a JSON value.
+pub(crate) fn redact_json_secrets(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (k, v) in map.iter_mut() {
+                if is_sensitive_key(k) {
+                    *v = serde_json::Value::String("<REDACTED>".to_string());
+                } else {
+                    redact_json_secrets(v);
+                }
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                redact_json_secrets(v);
+            }
+        }
+        _ => {}
+    }
+}
+
 pub(crate) fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -> String {
     if input.is_empty() {
         return String::new();
@@ -1512,11 +1545,13 @@ pub(crate) fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -
                 parts.push(format!("{}=<REDACTED>", k));
                 continue;
             }
-            let s = match v {
+            let mut v_masked = v.clone();
+            redact_json_secrets(&mut v_masked);
+            let s = match v_masked {
                 serde_json::Value::String(s) => s.clone(),
                 serde_json::Value::Number(n) => n.to_string(),
                 serde_json::Value::Bool(b) => b.to_string(),
-                _ => v.to_string(),
+                _ => v_masked.to_string(),
             };
             if !s.is_empty() {
                 parts.push(format!("{}={}", k, truncate_display(&s, 60)));
@@ -1529,6 +1564,8 @@ pub(crate) fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -
         for (k, v) in masked.iter_mut() {
             if is_sensitive_key(k) {
                 *v = serde_json::Value::String("<REDACTED>".to_string());
+            } else {
+                redact_json_secrets(v);
             }
         }
         let single = serde_json::to_string(&masked).unwrap_or_default();
@@ -1928,6 +1965,72 @@ mod tests {
         let mut input = HashMap::new();
         input.insert("token".into(), serde_json::Value::String("secret".into()));
         assert!(summarize_tool_input(&input).contains("<REDACTED>"));
+    }
+
+    #[test]
+    fn test_recursive_redaction() {
+        // Test direct sensitive key
+        let mut val = serde_json::json!({"api_key": "secret123"});
+        redact_json_secrets(&mut val);
+        assert_eq!(val, serde_json::json!({"api_key": "<REDACTED>"}));
+
+        // Test nested sensitive key
+        let mut val = serde_json::json!({
+            "options": {
+                "password": "mypassword",
+                "normal": "value"
+            }
+        });
+        redact_json_secrets(&mut val);
+        assert_eq!(
+            val,
+            serde_json::json!({
+                "options": {
+                    "password": "<REDACTED>",
+                    "normal": "value"
+                }
+            })
+        );
+
+        // Test array with objects
+        let mut val = serde_json::json!([
+            {"token": "t1"},
+            {"other": "v2"}
+        ]);
+        redact_json_secrets(&mut val);
+        assert_eq!(
+            val,
+            serde_json::json!([
+                {"token": "<REDACTED>"},
+                {"other": "v2"}
+            ])
+        );
+
+        // Test summarize_tool_input with nested env
+        let mut input = HashMap::new();
+        input.insert(
+            "env".to_string(),
+            serde_json::json!({
+                "DATABASE_URL": "postgres://user:pass@host/db",
+                "PATH": "/usr/bin"
+            }),
+        );
+        let summary = summarize_tool_input(&input);
+        assert!(summary.contains("DATABASE_URL"));
+        assert!(summary.contains("<REDACTED>"));
+        assert!(!summary.contains("postgres://"));
+        assert!(summary.contains("PATH"));
+        assert!(summary.contains("/usr/bin"));
+
+        // Test new keywords in is_sensitive_key
+        assert!(is_sensitive_key("nonce"));
+        assert!(is_sensitive_key("salt"));
+        assert!(is_sensitive_key("my_passwd"));
+        assert!(is_sensitive_key("user_credentials"));
+        assert!(is_sensitive_key("auth_sig"));
+        assert!(is_sensitive_key("request-signature"));
+        assert!(is_sensitive_key("pkcs12"));
+        assert!(is_sensitive_key("client_certificate"));
     }
 
     #[test]
