@@ -522,6 +522,11 @@ impl OpenCodeClient {
         self.get_json(&endpoint, "get message").await
     }
 
+    pub async fn delete_message(&self, session_id: &str, message_id: &str) -> Result<bool> {
+        let endpoint = format!("/session/{}/message/{}", session_id, message_id);
+        self.delete_bool(&endpoint, "delete message").await
+    }
+
     pub async fn send_prompt_with_options(
         &self,
         session_id: &str,
