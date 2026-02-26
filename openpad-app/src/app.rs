@@ -1,7 +1,7 @@
 use crate::async_runtime;
 use crate::components::editor_panel::{EditorPanelAction, EditorPanelWidgetRefExt};
 use crate::components::session_options_popup::SessionOptionsPopupWidgetRefExt;
-use crate::constants::OPENCODE_SERVER_URL;
+use crate::constants::*;
 use crate::state::{
     self, AppAction, AppState, CenterTabKind, OpenFileState, PendingCenterIntent,
     ProjectsPanelAction, SidebarMode,
@@ -207,10 +207,16 @@ script_mod! {
                                         align: Align{ y: 0.5 }
                                         work_indicator := View {
                                             width: Fit, height: Fit
-                                            flow: Right
+                                            flow: Right, spacing: 6
                                             align: Align{ y: 0.5 }
                                             visible: false
-                                            Label { text: "Working..." }
+                                            work_label := Label {
+                                                text: "Working..."
+                                                draw_text +: {
+                                                    text_style: theme.font_bold {font_size: 11}
+                                                    color: #f59e0b
+                                                }
+                                            }
                                         }
                                         status_dot := StatusDot {}
                                         status_label := Label { text: "Connected" }
@@ -572,7 +578,11 @@ impl App {
 impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         if self.state.is_working {
-            if let Event::NextFrame(_) = event {
+            if let Event::NextFrame(ne) = event {
+                let frame_idx = (ne.frame / 8) as usize % SPINNER_FRAMES.len();
+                self.ui
+                    .label(cx, &[id!(work_indicator), id!(work_label)])
+                    .set_text(cx, &format!("{} Working...", SPINNER_FRAMES[frame_idx]));
                 self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
             }
             cx.new_next_frame();

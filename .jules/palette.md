@@ -5,3 +5,7 @@
 ## 2025-02-05 – Accessible Labels for Custom Icon Buttons
 **Learning:** For custom icon buttons (e.g., ellipses/dots), implementing the visual rendering in the `draw_bg` shader using SDFs while using the `text` property and `draw_text: { color: #0000 }` provides a descriptive, hidden accessibility label without breaking the visual design.
 **Action:** Use this pattern to replace opaque symbols or empty strings in all icon-only controls.
+
+## 2025-02-06 – Unicode-based Text Spinner
+**Learning:** A sequence of Unicode characters (e.g., '◐', '◓', '◑', '◒', '◔', '◕') provides a lightweight, text-based spinner for Makepad `Label` components. Updating this in the `App`'s `handle_event` loop using the `Event::NextFrame` frame count provides clear visual feedback for background work without custom shaders.
+**Action:** Use a frame-gated loop (e.g., `ne.frame / 8`) to cycle through a `SPINNER_FRAMES` constant for 'Working' or 'Loading' states.
