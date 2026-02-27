@@ -64,6 +64,21 @@ script_mod! {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct CachedSession {
+    pub node_id: LiveId,
+    pub id: String,
+    pub label: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct CachedProject {
+    pub node_id: LiveId,
+    pub id: Option<String>,
+    pub name: String,
+    pub sessions: Vec<CachedSession>,
+}
+
 #[derive(Script, ScriptHook, Widget)]
 pub struct SessionsPanel {
     #[wrap]
@@ -85,6 +100,13 @@ pub struct SessionsPanel {
 
     #[rust]
     current_dir_name: String,
+
+    #[rust]
+    dirty: bool,
+    #[rust]
+    cached_projects: Vec<CachedProject>,
+    #[rust]
+    cached_other_sessions: Vec<CachedSession>,
 }
 
 impl SessionsPanel {
@@ -138,6 +160,87 @@ impl SessionsPanel {
             format!("+{}", additions),
             format!("-{}", deletions),
         ))
+    }
+
+    fn rebuild_cache(&mut self) {
+        self.session_node_to_id.clear();
+        self.project_node_to_id.clear();
+        self.cached_projects.clear();
+        self.cached_other_sessions.clear();
+
+        if self.current_dir_name.is_empty() {
+            self.current_dir_name = std::env::current_dir()
+                .ok()
+                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+                .unwrap_or_else(|| ".".to_string());
+        }
+        let current_dir_name = &self.current_dir_name;
+
+        let mut grouped: HashMap<String, Vec<&Session>> = HashMap::new();
+        for session in &self.sessions {
+            grouped
+                .entry(session.project_id.clone())
+                .or_default()
+                .push(session);
+        }
+
+        let mut known_project_ids = HashSet::new();
+        for project in &self.projects {
+            if project.worktree == "/" || project.worktree.is_empty() {
+                continue;
+            }
+
+            known_project_ids.insert(project.id.clone());
+
+            let project_name = Self::derive_project_name(project, current_dir_name);
+            let project_node_id = Self::project_node_id(&project.id);
+            self.project_node_to_id
+                .insert(project_node_id, Some(project.id.clone()));
+
+            let mut cached_sessions = Vec::new();
+            if let Some(project_sessions) = grouped.get(&project.id) {
+                for session in project_sessions {
+                    let node_id = Self::session_node_id(&session.id);
+                    let label = self.session_display_label(session);
+                    self.session_node_to_id.insert(node_id, session.id.clone());
+                    cached_sessions.push(CachedSession {
+                        node_id,
+                        id: session.id.clone(),
+                        label,
+                    });
+                }
+            }
+
+            self.cached_projects.push(CachedProject {
+                node_id: project_node_id,
+                id: Some(project.id.clone()),
+                name: project_name,
+                sessions: cached_sessions,
+            });
+        }
+
+        let ungrouped: Vec<&Session> = grouped
+            .into_iter()
+            .filter(|(project_id, _)| !known_project_ids.contains(project_id))
+            .flat_map(|(_, sessions)| sessions)
+            .collect();
+
+        if !ungrouped.is_empty() {
+            self.project_node_to_id
+                .insert(Self::other_project_node_id(), None);
+            for session in ungrouped {
+                let node_id = Self::session_node_id(&session.id);
+                let label = self.session_display_label(session);
+                self.session_node_to_id.insert(node_id, session.id.clone());
+                self.cached_other_sessions.push(CachedSession {
+                    node_id,
+                    id: session.id.clone(),
+                    label,
+                });
+            }
+        }
+
+        self.dirty = false;
     }
 
     fn session_display_label(&self, session: &Session) -> String {
@@ -198,83 +301,40 @@ impl SessionsPanel {
     }
 
     fn draw_tree(&mut self, cx: &mut Cx2d) {
-        self.session_node_to_id.clear();
-        self.project_node_to_id.clear();
-
-        // Optimization: avoid repeated system calls to get current directory.
-        if self.current_dir_name.is_empty() {
-            self.current_dir_name = std::env::current_dir()
-                .ok()
-                .and_then(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
-                .unwrap_or_else(|| ".".to_string());
-        }
-        let current_dir_name = &self.current_dir_name;
-
-        // Optimization: use references instead of cloning projects and sessions every frame.
-        // This avoids $O(N)$ heap allocations in the draw loop.
-        let projects = &self.projects;
-        let sessions = &self.sessions;
-
-        let mut grouped: HashMap<String, Vec<&Session>> = HashMap::new();
-        for session in sessions {
-            grouped
-                .entry(session.project_id.clone())
-                .or_default()
-                .push(session);
+        if self.dirty {
+            self.rebuild_cache();
         }
 
-        let mut known_project_ids = HashSet::new();
-        for project in projects {
-            if project.worktree == "/" || project.worktree.is_empty() {
-                continue;
-            }
-
-            known_project_ids.insert(project.id.clone());
-
-            let project_name = Self::derive_project_name(project, current_dir_name);
-            let project_node_id = Self::project_node_id(&project.id);
-            self.project_node_to_id
-                .insert(project_node_id, Some(project.id.clone()));
-
+        // Optimization: draw from pre-calculated cache to avoid $O(N)$ heap churn
+        // during the high-frequency render loop.
+        let projects = std::mem::take(&mut self.cached_projects);
+        for project in &projects {
             if self
                 .file_tree
-                .begin_folder(cx, project_node_id, &project_name)
+                .begin_folder(cx, project.node_id, &project.name)
                 .is_ok()
             {
-                if let Some(project_sessions) = grouped.get(&project.id) {
-                    for session in project_sessions {
-                        let node_id = Self::session_node_id(&session.id);
-                        let label = self.session_display_label(session);
-                        self.session_node_to_id.insert(node_id, session.id.clone());
-                        self.file_tree.file(cx, node_id, &label);
-                    }
+                for session in &project.sessions {
+                    self.file_tree.file(cx, session.node_id, &session.label);
                 }
                 self.file_tree.end_folder();
             }
         }
+        self.cached_projects = projects;
 
-        let ungrouped: Vec<&Session> = grouped
-            .into_iter()
-            .filter(|(project_id, _)| !known_project_ids.contains(project_id))
-            .flat_map(|(_, sessions)| sessions)
-            .collect();
-
-        if !ungrouped.is_empty()
+        let other_sessions = std::mem::take(&mut self.cached_other_sessions);
+        if !other_sessions.is_empty()
             && self
                 .file_tree
                 .begin_folder(cx, Self::other_project_node_id(), "Other")
                 .is_ok()
         {
-            self.project_node_to_id
-                .insert(Self::other_project_node_id(), None);
-            for session in &ungrouped {
-                let node_id = Self::session_node_id(&session.id);
-                let label = self.session_display_label(session);
-                self.session_node_to_id.insert(node_id, session.id.clone());
-                self.file_tree.file(cx, node_id, &label);
+            for session in &other_sessions {
+                self.file_tree.file(cx, session.node_id, &session.label);
             }
             self.file_tree.end_folder();
         }
+        self.cached_other_sessions = other_sessions;
     }
 }
 
@@ -289,6 +349,8 @@ impl Widget for SessionsPanel {
                 log!("SessionTree action: FileLeftClicked {:?}", node_id);
                 if let Some(session_id) = self.session_node_to_id.get(&node_id).cloned() {
                     self.selected_session_id = Some(session_id.clone());
+                    self.dirty = true;
+                    self.redraw(cx);
                     cx.action(ProjectsPanelAction::SelectSession(session_id.clone()));
                 }
             } else if let SessionTreeAction::FileRightClicked(node_id) = item.cast() {
@@ -346,6 +408,7 @@ impl SessionsPanelRef {
             inner.sessions = sessions;
             inner.selected_session_id = selected_session_id;
             inner.working_by_session = working_by_session;
+            inner.dirty = true;
 
             let project_ids: Vec<String> = inner.projects.iter().map(|p| p.id.clone()).collect();
             for project_id in project_ids {
