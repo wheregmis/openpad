@@ -241,6 +241,7 @@ impl fmt::Debug for Config {
 fn is_sensitive_key(key: &str) -> bool {
     let k_lower = key.to_lowercase();
     k_lower == "key"
+        || k_lower == "api_key"
         || k_lower == "token"
         || k_lower == "secret"
         || k_lower == "password"
@@ -254,6 +255,12 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower == "pwd"
         || k_lower == "sessionid"
         || k_lower == "sid"
+        || k_lower == "nonce"
+        || k_lower == "salt"
+        || k_lower == "otp"
+        || k_lower == "totp"
+        || k_lower == "pkcs"
+        || k_lower == "certificate"
         || k_lower.ends_with("_key")
         || k_lower.ends_with("-key")
         || k_lower.ends_with("apikey")
@@ -265,12 +272,39 @@ fn is_sensitive_key(key: &str) -> bool {
         || k_lower.ends_with("-password")
         || k_lower.ends_with("_auth")
         || k_lower.ends_with("-auth")
+        || k_lower.ends_with("_cert")
+        || k_lower.ends_with("-cert")
+        || k_lower.ends_with("_sig")
+        || k_lower.ends_with("-sig")
+        || k_lower.ends_with("_signature")
+        || k_lower.ends_with("-signature")
         || k_lower == "api"
         || k_lower == "jwt"
         || k_lower == "bearer"
         || k_lower == "ssh"
         || k_lower.contains("database")
         || k_lower.contains("connectionstring")
+}
+
+/// Recursively redacts sensitive keys in a JSON value.
+pub(crate) fn redact_json_secrets(value: &mut serde_json::Value) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (k, v) in map.iter_mut() {
+                if is_sensitive_key(k) {
+                    *v = serde_json::Value::String("<REDACTED>".to_string());
+                } else {
+                    redact_json_secrets(v);
+                }
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                redact_json_secrets(v);
+            }
+        }
+        _ => {}
+    }
 }
 
 /// A wrapper for HashMaps that masks sensitive keys in its Debug implementation.
@@ -281,12 +315,16 @@ fn is_sensitive_key(key: &str) -> bool {
 #[serde(transparent)]
 pub struct ExtraMaskedMap<V>(HashMap<String, V>);
 
-impl<V: fmt::Debug> fmt::Debug for ExtraMaskedMap<V> {
+impl<V: fmt::Debug + 'static> fmt::Debug for ExtraMaskedMap<V> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut map = f.debug_map();
         for (k, v) in &self.0 {
             if is_sensitive_key(k) {
                 map.entry(k, &"<REDACTED>");
+            } else if let Some(val) = (v as &dyn std::any::Any).downcast_ref::<serde_json::Value>() {
+                let mut redacted = val.clone();
+                redact_json_secrets(&mut redacted);
+                map.entry(k, &redacted);
             } else {
                 map.entry(k, v);
             }
@@ -318,12 +356,16 @@ impl<V> From<HashMap<String, V>> for ExtraMaskedMap<V> {
 /// Helper to mask sensitive keys in a HashMap when formatting for Debug.
 struct ExtraMasked<'a, V>(&'a HashMap<String, V>);
 
-impl<'a, V: fmt::Debug> fmt::Debug for ExtraMasked<'a, V> {
+impl<'a, V: fmt::Debug + 'static> fmt::Debug for ExtraMasked<'a, V> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut map = f.debug_map();
         for (k, v) in self.0 {
             if is_sensitive_key(k) {
                 map.entry(k, &"<REDACTED>");
+            } else if let Some(val) = (v as &dyn std::any::Any).downcast_ref::<serde_json::Value>() {
+                let mut redacted = val.clone();
+                redact_json_secrets(&mut redacted);
+                map.entry(k, &redacted);
             } else {
                 map.entry(k, v);
             }
@@ -1516,7 +1558,11 @@ pub(crate) fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -
                 serde_json::Value::String(s) => s.clone(),
                 serde_json::Value::Number(n) => n.to_string(),
                 serde_json::Value::Bool(b) => b.to_string(),
-                _ => v.to_string(),
+                _ => {
+                    let mut redacted = v.clone();
+                    redact_json_secrets(&mut redacted);
+                    redacted.to_string()
+                }
             };
             if !s.is_empty() {
                 parts.push(format!("{}={}", k, truncate_display(&s, 60)));
@@ -1525,13 +1571,10 @@ pub(crate) fn summarize_tool_input(input: &HashMap<String, serde_json::Value>) -
     }
     if parts.is_empty() {
         // Redact sensitive keys before serializing the whole map to JSON for display
-        let mut masked = input.clone();
-        for (k, v) in masked.iter_mut() {
-            if is_sensitive_key(k) {
-                *v = serde_json::Value::String("<REDACTED>".to_string());
-            }
-        }
-        let single = serde_json::to_string(&masked).unwrap_or_default();
+        let mut val = serde_json::Value::Object(input.clone().into_iter().collect());
+        redact_json_secrets(&mut val);
+
+        let single = serde_json::to_string(&val).unwrap_or_default();
         truncate_display(&single, 80).to_string()
     } else {
         parts.join(" ")
@@ -1928,6 +1971,53 @@ mod tests {
         let mut input = HashMap::new();
         input.insert("token".into(), serde_json::Value::String("secret".into()));
         assert!(summarize_tool_input(&input).contains("<REDACTED>"));
+
+        let mut nested_input = HashMap::new();
+        let mut nested_obj = serde_json::Map::new();
+        nested_obj.insert(
+            "password".to_string(),
+            serde_json::Value::String("secret".to_string()),
+        );
+        nested_input.insert("config".into(), serde_json::Value::Object(nested_obj));
+        assert!(summarize_tool_input(&nested_input).contains("<REDACTED>"));
+    }
+
+    #[test]
+    fn test_is_sensitive_key_enhancements() {
+        assert!(is_sensitive_key("nonce"));
+        assert!(is_sensitive_key("salt"));
+        assert!(is_sensitive_key("otp"));
+        assert!(is_sensitive_key("totp"));
+        assert!(is_sensitive_key("pkcs"));
+        assert!(is_sensitive_key("certificate"));
+        assert!(is_sensitive_key("client_cert"));
+        assert!(is_sensitive_key("api-sig"));
+        assert!(is_sensitive_key("request-signature"));
+    }
+
+    #[test]
+    fn test_redact_json_secrets_recursive() {
+        let mut val = serde_json::json!({
+            "user": "jules",
+            "auth_nested": {
+                "token": "secret123",
+                "nested_val": {
+                    "password": "password456"
+                }
+            },
+            "list": [
+                {"key": "val1"},
+                {"ssh_key": "val2"}
+            ]
+        });
+
+        redact_json_secrets(&mut val);
+
+        assert_eq!(val["user"], "jules");
+        assert_eq!(val["auth_nested"]["token"].as_str().unwrap(), "<REDACTED>");
+        assert_eq!(val["auth_nested"]["nested_val"]["password"].as_str().unwrap(), "<REDACTED>");
+        assert_eq!(val["list"][0]["key"].as_str().unwrap(), "<REDACTED>");
+        assert_eq!(val["list"][1]["ssh_key"].as_str().unwrap(), "<REDACTED>");
     }
 
     #[test]
