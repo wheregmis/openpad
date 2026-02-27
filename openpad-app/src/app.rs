@@ -2,6 +2,7 @@ use crate::async_runtime;
 use crate::components::editor_panel::{EditorPanelAction, EditorPanelWidgetRefExt};
 use crate::components::session_options_popup::SessionOptionsPopupWidgetRefExt;
 use crate::constants::OPENCODE_SERVER_URL;
+use crate::constants::SPINNER_FRAMES;
 use crate::state::{
     self, AppAction, AppState, CenterTabKind, OpenFileState, PendingCenterIntent,
     ProjectsPanelAction, SidebarMode,
@@ -210,7 +211,7 @@ script_mod! {
                                             flow: Right
                                             align: Align{ y: 0.5 }
                                             visible: false
-                                            Label { text: "Working..." }
+                                            work_label := Label { text: "Working..." }
                                         }
                                         status_dot := StatusDot {}
                                         status_label := Label { text: "Connected" }
@@ -363,6 +364,8 @@ pub struct App {
     connected_once: bool,
     #[rust]
     providers_loaded_once: bool,
+    #[rust]
+    frame_count: u64,
 }
 
 impl App {
@@ -573,6 +576,14 @@ impl AppMain for App {
     fn handle_event(&mut self, cx: &mut Cx, event: &Event) {
         if self.state.is_working {
             if let Event::NextFrame(_) = event {
+                self.frame_count += 1;
+                if self.frame_count % 10 == 0 {
+                    let frame_idx = (self.frame_count / 10) as usize % SPINNER_FRAMES.len();
+                    let label = format!("Working... {}", SPINNER_FRAMES[frame_idx]);
+                    self.ui
+                        .label(cx, &[id!(work_indicator), id!(work_label)])
+                        .set_text(cx, &label);
+                }
                 self.ui.view(cx, &[id!(work_indicator)]).redraw(cx);
             }
             cx.new_next_frame();
